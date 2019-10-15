@@ -8,11 +8,10 @@
 class KTParameters
 {
     public:
-    float Kompensation;// = 0.33f;
+    float hoverCompensation;// = 0.33f;
     float mass;// = 0.287f;
     float maxAngle;// = 45.0f
     float maxVerticalAcceleration;// = 4.0f,
-    float G;// = 9.81f;
 
     KTParameters();
 	KTParameters(float Komp, float m, float angleMax, float maxVerticalAcc);
