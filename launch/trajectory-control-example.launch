@@ -1,0 +1,14 @@
+<launch>
+	<!--arg name="arg_with_default" default="default" /-->
+
+	<node pkg="trajectory-control" type="trajectory-control_node" name="trajectory_control_node">
+		<!--param name="param_with_default" value="$(arg arg_with_default)" /-->
+
+		<!-- load blacklist, config -->
+		<!--rosparam command="load" file="$(arg config_yaml)" /-->
+	</node>
+
+  <node pkg="trajectory-control" type="trajectory_gen.py" name="trajectory_gen_node">
+  </node>
+
+</launch>
