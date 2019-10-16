@@ -16,7 +16,7 @@ void jointTrajectoryAcquireCallback(const trajectory_msgs::JointTrajectory & msg
 }
 
 void measuredStatesAcquireCallback(const geometry_msgs::PoseStamped & msg) {
-  ROS_INFO_STREAM("trajectory_control_node: acquire callback jointTrajectory = " << msg);
+  ROS_INFO_STREAM("trajectory_control_node: acquire callback measuredStates = " << msg);
 }
 
 int main(int argc, char *argv[])
