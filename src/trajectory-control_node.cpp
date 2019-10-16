@@ -75,11 +75,19 @@ int main(int argc, char *argv[])
   ros::Rate r = nh_private.param<int>("rate", 10);
   /** END PARAMETERS **/
 
+  ros::Time time = ros::Time::now()- r.expectedCycleTime(); // Initialize previous time in the past in order for dt calculation to be ok
+
   while (nh.ok())
   {
-    //Get actual dt for the control, not expected one
-  	dt = (r.cycleTime().toNSec())/1000000.0f;
+    //Get actual dt for the control, not expected one.
+    //Here we cannot use r.cycleTime cause it doesn't take into account the r.sleep() time, hence it only gives calculation time
+  	dt = (ros::Time::now().toNSec() - time.toNSec())/1000000000.0f;
+  	time = ros::Time::now(); 
+
+  	/*Debug
   	ROS_INFO_STREAM("******** trajectory_control_node: dt = " << dt << " ********");
+  	ROS_INFO_STREAM("******** trajectory_control_node: expected_dt = " << (r.expectedCycleTime().toNSec())/1000000000.0f << " ********");
+  	/**/
 
     measuredStates = predictedStates; // Should be measured state, so either position from MOCAP or from px4's EKF.
     eulerAngles = eulerAngles; // Should be measured angles (roll, pitch, yaw) from attitude estimation
