@@ -12,11 +12,11 @@
 #include <trajectory-control/statesEstimator.hpp>
 
 void jointTrajectoryAcquireCallback(const trajectory_msgs::JointTrajectory & msg) {
-  ROS_INFO_STREAM("trajectory_control_node: acquire callback jointTrajectory = " << msg.data);
+  ROS_INFO_STREAM("trajectory_control_node: acquire callback jointTrajectory = " << msg);
 }
 
 void measuredStatesAcquireCallback(const geometry_msgs::PoseStamped & msg) {
-  ROS_INFO_STREAM("trajectory_control_node: acquire callback jointTrajectory = " << msg.data);
+  ROS_INFO_STREAM("trajectory_control_node: acquire callback jointTrajectory = " << msg);
 }
 
 int main(int argc, char *argv[])
