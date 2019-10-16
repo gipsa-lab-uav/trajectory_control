@@ -2,28 +2,44 @@
 #include <ros/console.h>
 
 #include <geometry_msgs/Vector3.h>
+#include <geometry_msgs/PoseStamped.h>
+#include <trajectory_msgs/JointTrajectory.h>
+#include <trajectory_msgs/JointTrajectoryPoint.h>
 
 #include <trajectory-control/DroneStates.hpp>
 #include <trajectory-control/fsf.hpp>
 #include <trajectory-control/kinematicTransform.hpp>
 #include <trajectory-control/statesEstimator.hpp>
 
+void jointTrajectoryAcquireCallback(const trajectory_msgs::JointTrajectory & msg) {
+  ROS_INFO_STREAM("trajectory_control_node: acquire callback jointTrajectory = " << msg.data);
+}
+
+void measuredStatesAcquireCallback(const geometry_msgs::PoseStamped & msg) {
+  ROS_INFO_STREAM("trajectory_control_node: acquire callback jointTrajectory = " << msg.data);
+}
+
 int main(int argc, char *argv[])
 {
   ros::init(argc, argv, "trajectory_control_node");
   ros::NodeHandle nh, nh_private("~");
 
-  // Declare all classes & variables
+  // Define subscribers
+  ros::Subscriber jointTrajectory_sub = nh.subscribe("/mavros/JointTrajectory", 1, &jointTrajectoryAcquireCallback);
+  ros::Subscriber measuredStates_sub = nh.subscribe("/mavros/vision_pose/pose", 1, &measuredStatesAcquireCallback);
+
+  // Define publishers
+  ros::Publisher attitudeCommand_pub = nh.advertise<geometry_msgs::Vector3>("attitudeCommand", 1);
+
+  // Declare classes & variables
   FullStatesFeedback fsf;
   KinematicTransform kt;
   StatesEstimator se;
 
   DroneStates measuredStates, predictedStates, targetStates;
-
   geometry_msgs::Vector3 accelerationCommand, attitudeCommand, eulerAngles;
+  float dt;
 
-  float dt; 
-  
   /** PARAMETERS **/
   // Full States Feedback Gains
   fsf.x.param.Kp = nh_private.param<double>("fsf_x_P", 0.3f);
@@ -32,7 +48,7 @@ int main(int argc, char *argv[])
   fsf.y.param.Ks = nh_private.param<double>("fsf_y_S", 2.5f);
   fsf.z.param.Kp = nh_private.param<double>("fsf_z_P", 0.3f);
   fsf.z.param.Ks = nh_private.param<double>("fsf_z_S", 2.5f);
- 
+
   // States Observer Gains
   bool useStatesObserver = nh_private.param<bool>("use_StatesObserver", true);
   se.x.param.Lpos = nh_private.param<double>("se_x_Lpos", 1.03f);
@@ -59,29 +75,23 @@ int main(int argc, char *argv[])
   ros::Rate r = nh_private.param<int>("rate", 10);
   /** END PARAMETERS **/
 
-  // Declare all publishers & subscribers
-  ros::Publisher attitudeCommand_pub = nh.advertise<geometry_msgs::Vector3>("attitudeCommand", 10);
-
   while (nh.ok())
   {
-    ROS_INFO("******************* This is a test *******************");
-
     //Get actual dt for the control, not expected one
   	dt = (r.cycleTime().toNSec())/1000000.0f;
-  	//ROS_INFO("DT = "+dt);//toDo to see if it's the right one
+  	ROS_INFO_STREAM("******** trajectory_control_node: dt = " << dt << " ********");
 
     measuredStates = predictedStates; // Should be measured state, so either position from MOCAP or from px4's EKF.
-    eulerAngles = eulerAngles; // Should be measured angles (roll, pitch, yaw) from attitude estimation 
+    eulerAngles = eulerAngles; // Should be measured angles (roll, pitch, yaw) from attitude estimation
 
   	//Get the estimated state from measures and previous estimation & command
-    if(!useStatesObserver) 
+    if(!useStatesObserver)
     {
     	predictedStates = se.process(dt, measuredStates.getVectPos(), measuredStates, accelerationCommand);
-		measuredStates.x.uncertainties = predictedStates.x.uncertainties;
+      measuredStates.x.uncertainties = predictedStates.x.uncertainties;
    		measuredStates.y.uncertainties = predictedStates.y.uncertainties;
    		measuredStates.z.uncertainties = predictedStates.z.uncertainties;
    		predictedStates = measuredStates;
-   	
     }
     else predictedStates = se.process(dt, measuredStates.getVectPos(), predictedStates, accelerationCommand);
 
@@ -92,7 +102,7 @@ int main(int argc, char *argv[])
     //For compatibility with different aircrafts or even terrestrial robots, this should be in its own node
     attitudeCommand = kt.process(accelerationCommand, eulerAngles);
 
-	attitudeCommand_pub.publish(attitudeCommand);
+    attitudeCommand_pub.publish(attitudeCommand);
 
     ros::spinOnce();
     r.sleep();
