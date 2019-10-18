@@ -12,11 +12,11 @@
 #include <trajectory-control/statesEstimator.hpp>
 
 void jointTrajectoryAcquireCallback(const trajectory_msgs::JointTrajectory & msg) {
-  ROS_INFO_STREAM("trajectory_control_node: acquire callback jointTrajectory = " << msg.data);
+  ROS_INFO_STREAM("trajectory_control_node: acquire callback jointTrajectory = " << msg);
 }
 
 void measuredStatesAcquireCallback(const geometry_msgs::PoseStamped & msg) {
-  ROS_INFO_STREAM("trajectory_control_node: acquire callback jointTrajectory = " << msg.data);
+  ROS_INFO_STREAM("trajectory_control_node: acquire callback measuredStates = " << msg);
 }
 
 int main(int argc, char *argv[])
@@ -25,8 +25,8 @@ int main(int argc, char *argv[])
   ros::NodeHandle nh, nh_private("~");
 
   // Define subscribers
-  ros::Subscriber jointTrajectory_sub = nh.subscribe("/mavros/JointTrajectory", 1, &jointTrajectoryAcquireCallback);
-  ros::Subscriber measuredStates_sub = nh.subscribe("/mavros/vision_pose/pose", 1, &measuredStatesAcquireCallback);
+  ros::Subscriber jointTrajectory_sub = nh.subscribe("mavros/JointTrajectory", 1, &jointTrajectoryAcquireCallback);
+  ros::Subscriber measuredStates_sub = nh.subscribe("mavros/vision_pose/pose", 1, &measuredStatesAcquireCallback);
 
   // Define publishers
   ros::Publisher attitudeCommand_pub = nh.advertise<geometry_msgs::Vector3>("attitudeCommand", 1);

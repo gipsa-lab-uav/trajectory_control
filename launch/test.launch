@@ -1,0 +1,4 @@
+<launch>
+    <include file="$(find px4)/launch/mavros_posix_sitl.launch"/>
+    <node pkg="trajectory-control" name="offb_node" type="offb_node" output="screen"/>
+</launch>
