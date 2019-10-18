@@ -1,6 +1,16 @@
 # trajectory-control
 Trajectory generation and control algorithms for UAVs with ROS wrapping.
 
+The project uses external software such as Mavros. Below are the links directing to their documentations.
+
+[PX4 Development Guide](https://dev.px4.io/v1.9.0/en/)
+
+[PX4-Firmware](https://github.com/PX4/Firmware)
+
+[Mavros](https://github.com/mavlink/mavros/)
+
+[Sitl-Gazebo](https://github.com/PX4/sitl_gazebo)
+
 ## Installation
 ### Prerequisites
 Install mavros and libgstreamer
@@ -16,6 +26,8 @@ Clone sitl_gazebo and PX4 Firmware
 ```git clone --recursive https://github.com/PX4/sitl_gazebo```
 
 ```git clone https://github.com/PX4/Firmware px4```
+
+**Note:** If you have troubles intalling the different packages, it is strongly recommended to read the related documentation.
 
 ### Install trajectory-control
 ```cd ~/catkin_ws/src/```
