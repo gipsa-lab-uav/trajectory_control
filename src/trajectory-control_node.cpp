@@ -1,3 +1,5 @@
+#include <math.h>
+
 #include <ros/ros.h>
 #include <ros/console.h>
 
@@ -7,7 +9,16 @@
 #include <mavros_msgs/State.h>
 
 #include <geometry_msgs/PoseStamped.h>
+#include <geometry_msgs/PoseWithCovariance.h>
+#include <geometry_msgs/TwistWithCovariance.h>
 #include <geometry_msgs/Vector3.h>
+
+#include <nav_msgs/Odometry.h>
+
+#include <tf2/LinearMath/Matrix3x3.h>
+#include <tf2/LinearMath/Quaternion.h>
+
+#include <tf2_geometry_msgs/tf2_geometry_msgs.h>
 
 #include <trajectory_msgs/JointTrajectory.h>
 #include <trajectory_msgs/JointTrajectoryPoint.h>
@@ -17,18 +28,68 @@
 #include <trajectory-control/kinematicTransform.hpp>
 #include <trajectory-control/statesEstimator.hpp>
 
-void jointTrajectoryAcquireCallback(const trajectory_msgs::JointTrajectory & msg) {
-  ROS_INFO_STREAM("trajectory_control_node: acquire callback jointTrajectory = " << msg);
-}
-
-void measuredStatesAcquireCallback(const geometry_msgs::PoseStamped & msg) {
-  ROS_INFO_STREAM("trajectory_control_node: acquire callback measuredStates = " << msg);
-}
-
+trajectory_msgs::JointTrajectory jointTrajectory;
+DroneStates measuredStates;
+geometry_msgs::Vector3 eulerAngles;
 mavros_msgs::State drone_state;
+
+void jointTrajectoryAcquireCallback(const trajectory_msgs::JointTrajectory & msg) {
+  ROS_INFO_STREAM("trajectory_control_node: acquire callback jointTrajectory");
+}
+
+void measuredStatesAcquireCallback(const nav_msgs::Odometry & msg) {
+
+  geometry_msgs::PoseWithCovariance pose = msg.pose;
+  geometry_msgs::TwistWithCovariance twist = msg.twist;
+
+  geometry_msgs::Vector3 position, velocity;
+
+  position.x = pose.pose.position.x;
+  position.y = pose.pose.position.y;
+  position.z = pose.pose.position.z;
+
+  velocity = twist.twist.linear;
+
+  measuredStates.replacePosAndSpeed(position, velocity);
+
+  geometry_msgs::Quaternion q_msg;
+  geometry_msgs::Vector3 orientation;
+  tf2::Quaternion q;
+  tf2::Matrix3x3 m;
+
+  q_msg = pose.pose.orientation;
+  tf2::convert(q_msg, q);
+  m.setRotation(q);
+  m.getRPY(orientation.x, orientation.y, orientation.z);
+
+  eulerAngles = orientation;
+
+  ROS_INFO_STREAM("trajectory_control_node: measured state callback\n position:\n" << position << "orientation:\n" << eulerAngles << "velocity:\n" << velocity);
+}
 
 void droneStateAcquireCallback(const mavros_msgs::State::ConstPtr& msg){
     drone_state = *msg;
+}
+
+geometry_msgs::Quaternion EulerToQuaternion(float yaw, float pitch, float roll){
+
+  geometry_msgs::Quaternion q;
+  float cy, cp, cr, sy, sp, sr;
+
+  cy = cos(yaw * .5);
+  cp = cos(pitch * .5);
+  cr = cos(roll * .5);
+
+  sy = sin(yaw * .5);
+  sp = sin(pitch * .5);
+  sr = sin(roll * .5);
+
+  q.w = (cy * cp * cr) + (sy * sp * sr);
+  q.x = (cy * cp * sr) - (sy * sp * cr);
+  q.y = (sy * cp * sr) + (cy * sp * cr);
+  q.z = (sy * cp * cr) - (cy * sp * sr);
+
+  return q;
 }
 
 int main(int argc, char *argv[])
@@ -38,12 +99,13 @@ int main(int argc, char *argv[])
 
   // Define subscribers
   ros::Subscriber jointTrajectory_sub = nh.subscribe("mavros/JointTrajectory", 1, &jointTrajectoryAcquireCallback);
-  ros::Subscriber measuredStates_sub = nh.subscribe("mavros/vision_pose/pose", 1, &measuredStatesAcquireCallback);
+  ros::Subscriber measuredStates_sub = nh.subscribe("/mavros/global_position/local", 1, &measuredStatesAcquireCallback);
   ros::Subscriber state_sub = nh.subscribe<mavros_msgs::State>("mavros/state", 1, droneStateAcquireCallback);
 
+
   // Define publishers
-  //ros::Publisher attitudeCommand_pub = nh.advertise<geometry_msgs::Vector3>("attitudeCommand", 1);
-  ros::Publisher attitudeCommand_pub = nh.advertise<mavros_msgs::AttitudeTarget>("mavros/setpoint_raw/target_attitude", 1);
+  //ros::Publisher attitudeCmd_pub = nh.advertise<geometry_msgs::Vector3>("attitudeCmd", 1);
+  ros::Publisher attitudeCmd_pub = nh.advertise<mavros_msgs::AttitudeTarget>("mavros/setpoint_raw/attitude", 1);
   ros::Publisher local_pos_pub = nh.advertise<geometry_msgs::PoseStamped>("mavros/setpoint_position/local", 1);
 
   // Define service client
@@ -55,8 +117,9 @@ int main(int argc, char *argv[])
   KinematicTransform kt;
   StatesEstimator se;
 
-  DroneStates measuredStates, predictedStates, targetStates;
-  geometry_msgs::Vector3 accelerationCommand, attitudeCommand, eulerAngles;
+  DroneStates predictedStates, targetStates;
+  mavros_msgs::AttitudeTarget cmd;
+  geometry_msgs::Vector3 accelerationCmd, attitudeCmd;
   float dt;
 
   /** PARAMETERS **/
@@ -93,10 +156,11 @@ int main(int argc, char *argv[])
 
   // Rate of the controller
   ros::Rate rate = nh_private.param<int>("rate", 10);
+
   /** END PARAMETERS **/
 
   ros::Duration(rate.expectedCycleTime()).sleep();
-  ros::Time time = ros::Time::now() - rate.expectedCycleTime(); // Initialize previous time in the past in order for dt calculation to be ok
+  ros::Time time = ros::Time::now() - rate.expectedCycleTime();
 
   while(ros::ok() && !drone_state.connected){
       ros::spinOnce();
@@ -106,7 +170,12 @@ int main(int argc, char *argv[])
   geometry_msgs::PoseStamped pose;
   pose.pose.position.x = 0;
   pose.pose.position.y = 0;
-  pose.pose.position.z = 2;
+  pose.pose.position.z = 0;
+
+  cmd.orientation = EulerToQuaternion(0, 0.5, 0); // (yaw, pitch, roll)
+  cmd.body_rate = geometry_msgs::Vector3();
+  cmd.thrust = 0.7;
+  cmd.type_mask = 7; // ignore body rate
 
   //send a few setpoints before starting
   for(int i = 100; ros::ok() && i > 0; --i){
@@ -143,50 +212,41 @@ int main(int argc, char *argv[])
           }
       }
 
-      local_pos_pub.publish(pose);
+      dt = (ros::Time::now().toNSec() - time.toNSec())/1000000000.0f;
+      time = ros::Time::now();
+
+      // measuredStates = predictedStates; // Should be measured state, so either position from MOCAP or from px4's EKF.
+      // eulerAngles = eulerAngles; // Should be measured angles (roll, pitch, yaw) from attitude estimation
+
+      //Get the estimated state from measures and previous estimation & command
+      if(!useStatesObserver)
+      {
+        predictedStates = se.process(dt, measuredStates.getVectPos(), measuredStates, accelerationCmd);
+        measuredStates.x.uncertainties = predictedStates.x.uncertainties;
+        measuredStates.y.uncertainties = predictedStates.y.uncertainties;
+        measuredStates.z.uncertainties = predictedStates.z.uncertainties;
+        predictedStates = measuredStates;
+      }
+      else predictedStates = se.process(dt, measuredStates.getVectPos(), predictedStates, accelerationCmd);
+
+      //Compute full state feedback control
+      accelerationCmd = fsf.process(dt, predictedStates, targetStates);
+
+      //Generate (roll, pitch, thrust) command
+      //For compatibility with different aircrafts or even terrestrial robots, this should be in its own node
+      attitudeCmd = kt.process(accelerationCmd, eulerAngles);
+
+      //Convert command in geometry_msgs::Vector3 to geometry_msgs::AttitudeTarget
+      //Yaw is missing...
+      // cmd.orientation = EulerToQuaternion(0, attitudeCmd.y, attitudeCmd.x);
+      // cmd.body_rate = geometry_msgs::Vector3();
+      // cmd.thrust = attitudeCmd.z;
+
+      // local_pos_pub.publish(pose);
+      attitudeCmd_pub.publish(cmd);
 
       ros::spinOnce();
       rate.sleep();
   }
-
-  while (nh.ok())
-  {
-    //Get actual dt for the control, not expected one.
-    //Here we cannot use r.cycleTime cause it doesn't take into account the r.sleep() time, hence it only gives calculation time
-  	dt = (ros::Time::now().toNSec() - time.toNSec())/1000000000.0f;
-  	time = ros::Time::now();
-
-  	/*Debug
-  	ROS_INFO_STREAM("******** trajectory_control_node: dt = " << dt << " ********");
-  	ROS_INFO_STREAM("******** trajectory_control_node: expected_dt = " << (r.expectedCycleTime().toNSec())/1000000000.0f << " ********");
-  	/**/
-
-    measuredStates = predictedStates; // Should be measured state, so either position from MOCAP or from px4's EKF.
-    eulerAngles = eulerAngles; // Should be measured angles (roll, pitch, yaw) from attitude estimation
-
-  	//Get the estimated state from measures and previous estimation & command
-    if(!useStatesObserver)
-    {
-    	predictedStates = se.process(dt, measuredStates.getVectPos(), measuredStates, accelerationCommand);
-      measuredStates.x.uncertainties = predictedStates.x.uncertainties;
-   		measuredStates.y.uncertainties = predictedStates.y.uncertainties;
-   		measuredStates.z.uncertainties = predictedStates.z.uncertainties;
-   		predictedStates = measuredStates;
-    }
-    else predictedStates = se.process(dt, measuredStates.getVectPos(), predictedStates, accelerationCommand);
-
-    //Compute full state feedback control
-    accelerationCommand = fsf.process(dt, predictedStates, targetStates);
-
-    //Generate (roll, pitch, thrust) command
-    //For compatibility with different aircrafts or even terrestrial robots, this should be in its own node
-    attitudeCommand = kt.process(accelerationCommand, eulerAngles);
-
-    attitudeCommand_pub.publish(attitudeCommand);
-
-    ros::spinOnce();
-    rate.sleep();
-  }
-
 	return 0;
 }

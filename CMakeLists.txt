@@ -10,9 +10,12 @@ add_compile_options(-std=c++11)
 find_package(catkin REQUIRED COMPONENTS
   geometry_msgs
   mavros_msgs
+  nav_msgs
   roscpp
   rospy
   std_msgs
+  tf2
+  tf2_geometry_msgs
   trajectory_msgs
 )
 
@@ -108,7 +111,7 @@ find_package(Boost REQUIRED COMPONENTS system)
 catkin_package(
   INCLUDE_DIRS include
   LIBRARIES trajectory-control
-  CATKIN_DEPENDS geometry_msgs mavros_msgs roscpp rospy std_msgs trajectory_msgs
+  CATKIN_DEPENDS geometry_msgs mavros_msgs nav_msgs roscpp rospy std_msgs tf2 tf2_geometry_msgs trajectory_msgs
   DEPENDS Boost
 )
 

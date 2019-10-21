@@ -8,6 +8,6 @@
 		<!--rosparam command="load" file="$(arg config_yaml)" /-->
 	</node>
 
-  <node pkg="trajectory-control" type="trajectory_gen.py" name="trajectory_gen_node"></node>
+  <!--node pkg="trajectory-control" type="trajectory_gen.py" name="trajectory_gen_node"></node-->
 
 </launch>
