@@ -107,6 +107,7 @@ trajectory_msgs::JointTrajectoryPoint getNextTrajectoryPoint(float time){
   }
 
   ROS_INFO_STREAM("i: " << i << " time: " <<  time << " point.time_from_start:" << jointTrajectory.points[0].time_from_start);
+  ROS_INFO_STREAM("jointTrajectory.points[0]" << jointTrajectory.points[0]);
 
   return jointTrajectory.points[0];
 }
@@ -161,14 +162,14 @@ int main(int argc, char *argv[])
   ros::NodeHandle nh, nh_private("~");
 
   // Define subscribers
-  ros::Subscriber jointTrajectory_sub = nh.subscribe("mavros/JointTrajectory", 1, &jointTrajectoryAcquireCallback);
-  ros::Subscriber measuredStates_sub = nh.subscribe("/mavros/global_position/local", 1, &measuredStatesAcquireCallback);
-  ros::Subscriber state_sub = nh.subscribe<mavros_msgs::State>("mavros/state", 1, droneStateAcquireCallback);
+  ros::Subscriber jointTrajectory_sub = nh.subscribe("mavros/JointTrajectory", 10, &jointTrajectoryAcquireCallback);
+  ros::Subscriber measuredStates_sub = nh.subscribe("/mavros/global_position/local", 10, &measuredStatesAcquireCallback);
+  ros::Subscriber state_sub = nh.subscribe<mavros_msgs::State>("mavros/state", 10, droneStateAcquireCallback);
 
 
   // Define publishers
-  ros::Publisher attitudeCmd_pub = nh.advertise<mavros_msgs::AttitudeTarget>("mavros/setpoint_raw/attitude", 1);
-  ros::Publisher local_pos_pub = nh.advertise<geometry_msgs::PoseStamped>("mavros/setpoint_position/local", 1);
+  ros::Publisher attitudeCmd_pub = nh.advertise<mavros_msgs::AttitudeTarget>("mavros/setpoint_raw/attitude", 10);
+  ros::Publisher local_pos_pub = nh.advertise<geometry_msgs::PoseStamped>("mavros/setpoint_position/local", 10);
 
   // Define service client
   ros::ServiceClient arming_client = nh.serviceClient<mavros_msgs::CommandBool>("mavros/cmd/arming");
@@ -214,12 +215,12 @@ int main(int argc, char *argv[])
 
   // Kinematic Transform Parameters (= physical parameters)
   kt.param.hoverCompensation = nh_private.param<double>("hoverCompensation",0.5f);
-  kt.param.mass = nh_private.param<double>("mass",0.287f);
+  kt.param.mass = nh_private.param<double>("mass",1.5f);
   kt.param.maxAngle = nh_private.param<double>("maxAngle",45.0f);
   kt.param.maxVerticalAcceleration = nh_private.param<double>("maxVerticalAcceleration",4.0f);
 
   // Rate of the controller
-  ros::Rate rate = nh_private.param<int>("rate", 10);
+  ros::Rate rate = nh_private.param<int>("rate", 100);
 
   /** END PARAMETERS **/
 
@@ -242,7 +243,7 @@ int main(int argc, char *argv[])
   cmd.type_mask = 7; // ignore body rate
 
   //send a few setpoints before starting
-  for(int i = 100; ros::ok() && i > 0; --i){
+  for(int i = 1000; ros::ok() && i > 0; --i){
       local_pos_pub.publish(pose);
       ros::spinOnce();
       rate.sleep();

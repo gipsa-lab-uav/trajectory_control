@@ -36,7 +36,7 @@ geometry_msgs::Vector3 KinematicTransform::process(geometry_msgs::Vector3 accele
     float sinYaw = sin(droneEulerAngles.z);
 
     float thrust = param.mass * (accelerations.z + G) / (cosRoll * cosPitch);
-    
+
     //if we are going in freefall, we will do it horizontally, it will be easier to apply thrust to stabilize the drone when wanted
     if (thrust <= 0.2f * param.mass)
     {
@@ -46,8 +46,8 @@ geometry_msgs::Vector3 KinematicTransform::process(geometry_msgs::Vector3 accele
     else
     {
         // In the regular frame we have:
-        // roll = std::Asin(mass / thrust * ( cmdDrone.translation.x * sinYaw - cmdDrone.translation.y * cosYaw ) ); 
-        // pitch = std::Asin(mass / thrust * ( cmdDrone.translation.x * cosYaw + cmdDrone.translation.y * sinYaw) ) ); 
+        // roll = std::Asin(mass / thrust * ( cmdDrone.translation.x * sinYaw - cmdDrone.translation.y * cosYaw ) );
+        // pitch = std::Asin(mass / thrust * ( cmdDrone.translation.x * cosYaw + cmdDrone.translation.y * sinYaw) ) );
         // Yaw shouldn't change, so we keep the cos&sin as is, but we have x_reg = z_unity ; y_reg = -x_unity ; z_reg = y_unity
         outputCmd.x = asin(KinematicTransform::clamp(param.mass * (accelerations.x * sinYaw - accelerations.y * cosYaw) / thrust, -1.0f,1.0f));
         outputCmd.y = asin(KinematicTransform::clamp(param.mass * (accelerations.x * cosYaw + accelerations.y * sinYaw) / thrust, -1.0f,1.0f));
@@ -61,7 +61,9 @@ geometry_msgs::Vector3 KinematicTransform::process(geometry_msgs::Vector3 accele
     // Map outputs between -1 and 1.
     outputCmd.x = outputCmd.x / param.maxAngle;
     outputCmd.y = outputCmd.y / param.maxAngle;
-    outputCmd.z = outputCmd.z * (1.0f + param.hoverCompensation) / (param.mass * G) -1.0f;
+    //outputCmd.x = (outputCmd.x + param.maxAngle) / (2.0f*param.maxAngle);
+    //outputCmd.y = (outputCmd.y + param.maxAngle) / (2.0f*param.maxAngle);
+    outputCmd.z = outputCmd.z * param.hoverCompensation / (param.mass * G);
 
     return outputCmd;
 }
