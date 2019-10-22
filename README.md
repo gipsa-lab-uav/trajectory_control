@@ -15,7 +15,7 @@ The project uses external software such as Mavros. Below are the links directing
 ### Prerequisites
 Install mavros and libgstreamer
 
-```sudo apt install ros-kinetic-mavros```
+```sudo apt install ros-melodic-mavros```
 
 ```sudo apt install libgstreamer1.0-dev```
 
