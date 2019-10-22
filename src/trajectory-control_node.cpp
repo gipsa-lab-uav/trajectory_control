@@ -28,17 +28,35 @@
 #include <trajectory-control/kinematicTransform.hpp>
 #include <trajectory-control/statesEstimator.hpp>
 
-trajectory_msgs::JointTrajectory jointTrajectory;
+trajectory_msgs::JointTrajectory jointTrajectory, jointTrajectorySaved;
 DroneStates measuredStates;
 geometry_msgs::Vector3 eulerAngles;
 mavros_msgs::State drone_state;
 
 void jointTrajectoryAcquireCallback(const trajectory_msgs::JointTrajectory & msg) {
-  ROS_INFO_STREAM("trajectory_control_node: acquire callback jointTrajectory");
+  ROS_INFO_STREAM("trajectory_control_node: jointTrajectory callback");
+
+  int i = 0;
+  trajectory_msgs::JointTrajectoryPoint point = msg.points[0];
+
+  //Find the index in order to update the jointTrajectory.points from the topic
+  for (const auto & point_saved : jointTrajectory.points){
+    if (point.time_from_start == point_saved.time_from_start) break;
+    i += 1;
+  }
+
+  //Erase the values that are going to be updated
+  jointTrajectory.points.erase(jointTrajectory.points.begin() + i, jointTrajectory.points.end());
+
+  //Push the new points in jointTrajectory.points
+  for (const auto & point_new : msg.points){
+    jointTrajectory.points.push_back(point_new);
+  }
 }
 
 void measuredStatesAcquireCallback(const nav_msgs::Odometry & msg) {
 
+  //Update measured position and velocity from topic
   geometry_msgs::PoseWithCovariance pose = msg.pose;
   geometry_msgs::TwistWithCovariance twist = msg.twist;
 
@@ -52,15 +70,16 @@ void measuredStatesAcquireCallback(const nav_msgs::Odometry & msg) {
 
   measuredStates.replacePosAndSpeed(position, velocity);
 
+  //Update eulerAngles (euler) from topic (quaternion) -> convertion
   geometry_msgs::Quaternion q_msg;
-  geometry_msgs::Vector3 orientation;
   tf2::Quaternion q;
   tf2::Matrix3x3 m;
+  geometry_msgs::Vector3 orientation;
 
   q_msg = pose.pose.orientation;
-  tf2::convert(q_msg, q);
-  m.setRotation(q);
-  m.getRPY(orientation.x, orientation.y, orientation.z);
+  tf2::convert(q_msg, q); //convert geometry_msgs::Quaternion to tf2::Quaternion
+  m.setRotation(q); //compute rotation matrix from quaternion
+  m.getRPY(orientation.x, orientation.y, orientation.z); //get euler angles
 
   eulerAngles = orientation;
 
@@ -69,6 +88,14 @@ void measuredStatesAcquireCallback(const nav_msgs::Odometry & msg) {
 
 void droneStateAcquireCallback(const mavros_msgs::State::ConstPtr& msg){
     drone_state = *msg;
+}
+
+DroneStates getNextState(float time){
+
+  DroneStates nextState;
+
+  return nextState;
+
 }
 
 geometry_msgs::Quaternion EulerToQuaternion(float yaw, float pitch, float roll){
@@ -118,8 +145,8 @@ int main(int argc, char *argv[])
   StatesEstimator se;
 
   DroneStates predictedStates, targetStates;
-  mavros_msgs::AttitudeTarget cmd;
   geometry_msgs::Vector3 accelerationCmd, attitudeCmd;
+  mavros_msgs::AttitudeTarget cmd;
   float dt;
 
   /** PARAMETERS **/
@@ -214,6 +241,8 @@ int main(int argc, char *argv[])
 
       dt = (ros::Time::now().toNSec() - time.toNSec())/1000000000.0f;
       time = ros::Time::now();
+
+      targetStates = getNextState(time.toSec());
 
       // measuredStates = predictedStates; // Should be measured state, so either position from MOCAP or from px4's EKF.
       // eulerAngles = eulerAngles; // Should be measured angles (roll, pitch, yaw) from attitude estimation

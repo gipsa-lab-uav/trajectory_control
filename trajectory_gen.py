@@ -348,7 +348,7 @@ if __name__ == '__main__':
         trajectory_object.FREQUENCY = 100 # [Hz]
         trajectory_object.DELTA_L = trajectory_object.TRAJECTORY_REQUESTED_SPEED / trajectory_object.FREQUENCY # step in [m] to discretize trajectory
         trajectory_object.BOX_LIMIT = [[-4., 4.], [-4., 4.], [0., 6.]] # [[x_min, x_max], [y_min, y_max], [z_min, z_max]]
-        trajectory_object.WINDOW_FRAME = 1 # publish the n future states
+        trajectory_object.WINDOW_FRAME = 5 # publish the n future states
 
         trajectory_object.MAX_LINEAR_SPEED_XY = 10. # max. linear speed [m.s-1]
         trajectory_object.MAX_LINEAR_SPEED_Z = 15. # max. linear speed [m.s-1]
