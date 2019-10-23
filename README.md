@@ -34,7 +34,7 @@ Clone sitl_gazebo and PX4 Firmware
 
 ```git clone https://github.com/gipsa-lab-uav/trajectory-control```
 
-```cd ../../```
+```cd ..```
 
 ```catkin_make```
 
