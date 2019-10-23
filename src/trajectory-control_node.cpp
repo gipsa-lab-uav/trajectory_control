@@ -165,7 +165,7 @@ int main(int argc, char *argv[])
 
   // Define subscribers
   ros::Subscriber jointTrajectory_sub = nh.subscribe("mavros/JointTrajectory", 10, &jointTrajectoryAcquireCallback);
-  ros::Subscriber measuredStates_sub = nh.subscribe("/mavros/global_position/local", 10, &measuredStatesAcquireCallback);
+  ros::Subscriber measuredStates_sub = nh.subscribe("mavros/global_position/local", 10, &measuredStatesAcquireCallback);
   ros::Subscriber state_sub = nh.subscribe<mavros_msgs::State>("mavros/state", 10, droneStateAcquireCallback);
 
 
@@ -275,6 +275,7 @@ int main(int argc, char *argv[])
 
   while (ros::ok()) {
 
+    /****************************Manage Drone Mode*****************************/
     if( drone_state.mode != "OFFBOARD" && (ros::Time::now() - last_request > ros::Duration(5.0))) {
       if( set_mode_client.call(offb_set_mode) && offb_set_mode.response.mode_sent) ROS_INFO("offb_node: Offboard enabled");
       last_request = ros::Time::now();
@@ -284,7 +285,9 @@ int main(int argc, char *argv[])
         last_request = ros::Time::now();
       }
     }
+    /**************************************************************************/
 
+    /*******************************Update Loop********************************/
     //Consider time for trajectory only when the drone is armed
     if ( drone_state.armed ) time2 += ros::Time::now() - time;
 
@@ -305,7 +308,9 @@ int main(int argc, char *argv[])
     //Get the last measured state
     measuredStates = lastMeasuredStates;
     eulerAngles = lastEulerAngles;
+    /**************************************************************************/
 
+    /*************************Full State Feedback & KT*************************/
     //Get the estimated state from measures and previous estimation & command
     if(!useStatesObserver) {
       predictedStates = se.process(dt, measuredStates.getVectPos(), measuredStates, accelerationCmd);
@@ -321,6 +326,7 @@ int main(int argc, char *argv[])
     //Generate (roll, pitch, thrust) command
     //For compatibility with different aircrafts or even terrestrial robots, this should be in its own node
     attitudeCmd = kt.process(accelerationCmd, eulerAngles);
+    /**************************************************************************/
 
     /*************************Publish Attitude Command*************************/
     //Convert command in geometry_msgs::Vector3 to geometry_msgs::AttitudeTarget
