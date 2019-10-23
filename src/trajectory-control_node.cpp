@@ -29,9 +29,11 @@
 #include <trajectory-control/statesEstimator.hpp>
 
 trajectory_msgs::JointTrajectory jointTrajectory, jointTrajectorySaved;
-DroneStates measuredStates;
-geometry_msgs::Vector3 eulerAngles;
+DroneStates lastMeasuredStates;
+geometry_msgs::Vector3 lastEulerAngles;
 mavros_msgs::State drone_state;
+
+bool isFirstCallback = false;
 
 void jointTrajectoryAcquireCallback(const trajectory_msgs::JointTrajectory & msg) {
   ROS_INFO("trajectory_control_node: jointTrajectory callback");
@@ -68,7 +70,7 @@ void measuredStatesAcquireCallback(const nav_msgs::Odometry & msg) {
 
   velocity = twist.twist.linear;
 
-  measuredStates.replacePosAndSpeed(position, velocity);
+  lastMeasuredStates.replacePosAndSpeed(position, velocity);
 
   //Update eulerAngles (euler) from topic (quaternion) -> convertion
   geometry_msgs::Quaternion q_msg;
@@ -81,9 +83,12 @@ void measuredStatesAcquireCallback(const nav_msgs::Odometry & msg) {
   m.setRotation(q); //compute rotation matrix from quaternion
   m.getRPY(orientation.x, orientation.y, orientation.z); //get euler angles
 
-  eulerAngles = orientation;
+  lastEulerAngles = orientation;
 
-  // ROS_INFO_STREAM("trajectory_control_node: measured state callback\n position:\n" << position << "orientation:\n" << eulerAngles << "velocity:\n" << velocity);
+  //Set flag for first callback
+  if (!isFirstCallback) isFirstCallback = true;
+
+  // ROS_INFO_STREAM("trajectory_control_node: measured state callback\n position:\n" << position << "orientation:\n" << lastEulerAngles << "velocity:\n" << velocity);
 }
 
 void droneStateAcquireCallback(const mavros_msgs::State::ConstPtr& msg){
@@ -91,7 +96,7 @@ void droneStateAcquireCallback(const mavros_msgs::State::ConstPtr& msg){
 }
 
 trajectory_msgs::JointTrajectoryPoint getNextTrajectoryPoint(float time){
-  ROS_INFO("getNextTrajectoryPoint");
+  ROS_INFO_STREAM("getNextTrajectoryPoint at time2: " << time);
 
   int i = 0;
 
@@ -101,13 +106,11 @@ trajectory_msgs::JointTrajectoryPoint getNextTrajectoryPoint(float time){
     i += 1;
   }
 
-  if (i > 0){
-    //Erase the outdated values
-    jointTrajectory.points.erase(jointTrajectory.points.begin(), jointTrajectory.points.begin() + i - 1);
-  }
+  //Erase the outdated values
+  if (i > 0) jointTrajectory.points.erase(jointTrajectory.points.begin(), jointTrajectory.points.begin() + i - 1);
+  // jointTrajectory.points.erase(jointTrajectory.points.begin(), jointTrajectory.points.begin() + i);
 
-  ROS_INFO_STREAM("i: " << i << " time: " <<  time << " point.time_from_start:" << jointTrajectory.points[0].time_from_start);
-  ROS_INFO_STREAM("jointTrajectory.points[0]" << jointTrajectory.points[0]);
+  ROS_INFO_STREAM("i: " << i << "jointTrajectory.points[0]" << jointTrajectory.points[0]);
 
   return jointTrajectory.points[0];
 }
@@ -132,7 +135,6 @@ DroneStates getState(trajectory_msgs::JointTrajectoryPoint point){
   state.fillStates(position, velocity, acceleration);
 
   return state;
-
 }
 
 geometry_msgs::Quaternion EulerToQuaternion(float yaw, float pitch, float roll){
@@ -180,9 +182,9 @@ int main(int argc, char *argv[])
   KinematicTransform kt;
   StatesEstimator se;
 
-  DroneStates predictedStates, targetStates;
+  DroneStates predictedStates, targetStates, measuredStates;
   trajectory_msgs::JointTrajectoryPoint trajectoryPoint;
-  geometry_msgs::Vector3 accelerationCmd, attitudeCmd;
+  geometry_msgs::Vector3 eulerAngles, accelerationCmd, attitudeCmd;
   mavros_msgs::AttitudeTarget cmd;
   ros::Time time, time2, last_request;
   float yaw, dt;
@@ -224,99 +226,129 @@ int main(int argc, char *argv[])
 
   /** END PARAMETERS **/
 
+  //Initialize time
   ros::Duration(rate.expectedCycleTime()).sleep();
   time = ros::Time::now() - rate.expectedCycleTime();
 
+  //Wait for the drone to connect
   while(ros::ok() && !drone_state.connected){
       ros::spinOnce();
       rate.sleep();
   }
 
-  geometry_msgs::PoseStamped pose;
-  pose.pose.position.x = 0;
-  pose.pose.position.y = 0;
-  pose.pose.position.z = 0;
-
-  cmd.orientation = EulerToQuaternion(0, 0.5, 0); // (yaw, pitch, roll)
-  cmd.body_rate = geometry_msgs::Vector3();
-  cmd.thrust = 0.7;
-  cmd.type_mask = 7; // ignore body rate
-
-  //send a few setpoints before starting
-  for(int i = 1000; ros::ok() && i > 0; --i){
-      local_pos_pub.publish(pose);
-      ros::spinOnce();
-      rate.sleep();
+  //Wait for the first state measure callback
+  while (ros::ok() && !isFirstCallback){
+    ros::spinOnce();
+    rate.sleep();
   }
 
+  //Wait for better measure accuracy (GPS/MOCAP) -> sleep for 2 seconds
+  ros::Duration(2.).sleep();
+
+  //Initialize first trajectory point as the measured position
+  trajectory_msgs::JointTrajectoryPoint firstPoint;
+
+  geometry_msgs::Vector3 position = lastMeasuredStates.getVectPos();
+
+  firstPoint.positions.push_back(position.x);
+  firstPoint.positions.push_back(position.y);
+  firstPoint.positions.push_back(position.z);
+  firstPoint.velocities.push_back(0.);
+  firstPoint.velocities.push_back(0.);
+  firstPoint.velocities.push_back(0.);
+  firstPoint.accelerations.push_back(0.);
+  firstPoint.accelerations.push_back(0.);
+  firstPoint.accelerations.push_back(0.);
+  firstPoint.time_from_start = ros::Duration(.0);
+
+  jointTrajectory.points.push_back(firstPoint);
+
+  //Request OFFBOARD mode
   mavros_msgs::SetMode offb_set_mode;
   offb_set_mode.request.custom_mode = "OFFBOARD";
 
+  //Request arming
   mavros_msgs::CommandBool arm_cmd;
   arm_cmd.request.value = true;
 
   last_request = ros::Time::now();
 
-  while(ros::ok()){
+  while (ros::ok()) {
 
-      if( drone_state.mode != "OFFBOARD" && (ros::Time::now() - last_request > ros::Duration(5.0))) {
-          if( set_mode_client.call(offb_set_mode) && offb_set_mode.response.mode_sent) ROS_INFO("offb_node: Offboard enabled");
-          last_request = ros::Time::now();
-      } else {
-          if( !drone_state.armed && (ros::Time::now() - last_request > ros::Duration(5.0))) {
-              if( arming_client.call(arm_cmd) && arm_cmd.response.success) ROS_INFO("offb_node: Vehicle armed");
-              last_request = ros::Time::now();
-          }
+    if( drone_state.mode != "OFFBOARD" && (ros::Time::now() - last_request > ros::Duration(5.0))) {
+      if( set_mode_client.call(offb_set_mode) && offb_set_mode.response.mode_sent) ROS_INFO("offb_node: Offboard enabled");
+      last_request = ros::Time::now();
+    } else {
+      if( !drone_state.armed && (ros::Time::now() - last_request > ros::Duration(5.0))) {
+        if( arming_client.call(arm_cmd) && arm_cmd.response.success) ROS_INFO("offb_node: Vehicle armed");
+        last_request = ros::Time::now();
       }
+    }
 
-      //Consider time for trajectory only when the drone is armed
-      if ( drone_state.armed ) time2 += ros::Time::now() - time;
+    //Consider time for trajectory only when the drone is armed
+    if ( drone_state.armed ) time2 += ros::Time::now() - time;
 
-      //Compute dt and save time
-      dt = (ros::Time::now().toNSec() - time.toNSec())/1000000000.0f;
-      time = ros::Time::now();
+    //Compute dt and save time
+    dt = (ros::Time::now().toNSec() - time.toNSec())/1000000000.0f;
+    time = ros::Time::now();
 
-      //Get the next trajectory point and update the target state
-      trajectoryPoint = getNextTrajectoryPoint(time2.toSec());
-      targetStates = getState(trajectoryPoint);
+    //Get the next trajectory point and update the target state
+    trajectoryPoint = getNextTrajectoryPoint(time2.toSec());
+    targetStates = getState(trajectoryPoint);
 
-      //Save the next trajectory point to jointTrajectorySaved
-      jointTrajectorySaved.points.push_back(trajectoryPoint);
+    //Save the next trajectory point to jointTrajectorySaved
+    jointTrajectorySaved.points.push_back(trajectoryPoint);
 
-      //Store the yaw
-      yaw = trajectoryPoint.positions[3];
+    //Get the yaw from the trajectoryPoint
+    yaw = trajectoryPoint.positions[3];
 
-      // measuredStates = predictedStates; // Should be measured state, so either position from MOCAP or from px4's EKF.
-      // eulerAngles = eulerAngles; // Should be measured angles (roll, pitch, yaw) from attitude estimation
+    //Get the last measured state
+    measuredStates = lastMeasuredStates;
+    eulerAngles = lastEulerAngles;
 
-      //Get the estimated state from measures and previous estimation & command
-      if(!useStatesObserver)
-      {
-        predictedStates = se.process(dt, measuredStates.getVectPos(), measuredStates, accelerationCmd);
-        measuredStates.x.uncertainties = predictedStates.x.uncertainties;
-        measuredStates.y.uncertainties = predictedStates.y.uncertainties;
-        measuredStates.z.uncertainties = predictedStates.z.uncertainties;
-        predictedStates = measuredStates;
-      }
-      else predictedStates = se.process(dt, measuredStates.getVectPos(), predictedStates, accelerationCmd);
+    //Get the estimated state from measures and previous estimation & command
+    if(!useStatesObserver) {
+      predictedStates = se.process(dt, measuredStates.getVectPos(), measuredStates, accelerationCmd);
+      measuredStates.x.uncertainties = predictedStates.x.uncertainties;
+      measuredStates.y.uncertainties = predictedStates.y.uncertainties;
+      measuredStates.z.uncertainties = predictedStates.z.uncertainties;
+      predictedStates = measuredStates;
+    } else predictedStates = se.process(dt, measuredStates.getVectPos(), predictedStates, accelerationCmd);
 
-      //Compute full state feedback control
-      accelerationCmd = fsf.process(dt, predictedStates, targetStates);
+    //Compute full state feedback control
+    accelerationCmd = fsf.process(dt, predictedStates, targetStates);
 
-      //Generate (roll, pitch, thrust) command
-      //For compatibility with different aircrafts or even terrestrial robots, this should be in its own node
-      attitudeCmd = kt.process(accelerationCmd, eulerAngles);
+    //Generate (roll, pitch, thrust) command
+    //For compatibility with different aircrafts or even terrestrial robots, this should be in its own node
+    attitudeCmd = kt.process(accelerationCmd, eulerAngles);
 
-      //Convert command in geometry_msgs::Vector3 to geometry_msgs::AttitudeTarget
-      cmd.orientation = EulerToQuaternion(yaw, attitudeCmd.y, attitudeCmd.x);
-      cmd.body_rate = geometry_msgs::Vector3();
-      cmd.thrust = attitudeCmd.z;
+    /*************************Publish Attitude Command*************************/
+    //Convert command in geometry_msgs::Vector3 to geometry_msgs::AttitudeTarget
+    cmd.orientation = EulerToQuaternion(yaw, attitudeCmd.y, attitudeCmd.x);
+    cmd.body_rate = geometry_msgs::Vector3();
+    cmd.thrust = attitudeCmd.z;
+    cmd.type_mask = 7; // ignore body rate
 
-      // local_pos_pub.publish(pose);
-      attitudeCmd_pub.publish(cmd);
+    //For Tests:
+    // cmd.orientation = EulerToQuaternion(0, 0.5, 0); // (yaw, pitch, roll)
+    // cmd.body_rate = geometry_msgs::Vector3();
+    // cmd.thrust = 0.7;
+    // cmd.type_mask = 7; // ignore body rate
 
-      ros::spinOnce();
-      rate.sleep();
+    attitudeCmd_pub.publish(cmd);
+    /**************************************************************************/
+
+    /***************************Publish Pose Command***************************/
+    // geometry_msgs::PoseStamped pose;
+    // pose.pose.position.x = 0;
+    // pose.pose.position.y = 0;
+    // pose.pose.position.z = 0;
+    //
+    // local_pos_pub.publish(pose);
+    /**************************************************************************/
+
+    ros::spinOnce();
+    rate.sleep();
   }
 	return 0;
 }
