@@ -12,6 +12,12 @@ The project uses external software such as Mavros. Below are the links directing
 [Sitl-Gazebo](https://github.com/PX4/sitl_gazebo)
 
 ## Installation
+For the installation, you need to have ROS melodic (or kinetic) installed and a catkin workspace. Follow the online documentation to set up your environement.
+
+[ROS installation](http://wiki.ros.org/melodic/Installation/Ubuntu)
+
+[catkin workspace](http://wiki.ros.org/catkin/Tutorials/create_a_workspace)
+
 ### Prerequisites
 Install mavros and libgstreamer
 
@@ -27,7 +33,7 @@ Clone sitl_gazebo and PX4 Firmware
 
 ```git clone https://github.com/PX4/Firmware px4```
 
-**Note:** If you have troubles intalling the different packages, it is strongly recommended to read the related documentation.
+**Note:** If you have troubles installing the different packages, it is strongly recommended to read the related documentation.
 
 ### Install trajectory-control
 ```cd ~/catkin_ws/src/```
@@ -44,3 +50,7 @@ Clone sitl_gazebo and PX4 Firmware
 ```roslaunch trajectory-control test.launch```
 
 A gazebo window should open with the iris model. After few seconds, the iris quadcopter should hover at 2 meters altitude. You can open QGroundControl in parallel also to check if everything is interfacing correclty.
+
+Now you are ready to go with the trajectory-control_node.
+
+```roslaunch trajectory-control trajectory-control-example.launch```
