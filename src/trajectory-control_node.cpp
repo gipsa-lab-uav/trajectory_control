@@ -165,7 +165,7 @@ int main(int argc, char *argv[])
 
   // Define subscribers
   ros::Subscriber jointTrajectory_sub = nh.subscribe("mavros/JointTrajectory", 10, &jointTrajectoryAcquireCallback);
-  ros::Subscriber measuredStates_sub = nh.subscribe("mavros/global_position/local", 10, &measuredStatesAcquireCallback);
+  ros::Subscriber measuredStates_sub = nh.subscribe("mavros/local_position/odom", 10, &measuredStatesAcquireCallback);
   ros::Subscriber state_sub = nh.subscribe<mavros_msgs::State>("mavros/state", 10, droneStateAcquireCallback);
 
 
@@ -188,6 +188,10 @@ int main(int argc, char *argv[])
   mavros_msgs::AttitudeTarget cmd;
   ros::Time time, time2, last_request;
   float yaw, dt;
+
+  accelerationCmd.x = .0;
+  accelerationCmd.y = .0;
+  accelerationCmd.z = .0;
 
   /** PARAMETERS **/
   // Full States Feedback Gains
@@ -216,7 +220,7 @@ int main(int argc, char *argv[])
   se.z.param.filterCoeff = nh_private.param<double>("se_z_Filter", 0.15f);
 
   // Kinematic Transform Parameters (= physical parameters)
-  kt.param.hoverCompensation = nh_private.param<double>("hoverCompensation",0.5f);
+  kt.param.hoverCompensation = nh_private.param<double>("hoverCompensation",0.45f);
   kt.param.mass = nh_private.param<double>("mass",1.5f);
   kt.param.maxAngle = nh_private.param<double>("maxAngle",45.0f);
   kt.param.maxVerticalAcceleration = nh_private.param<double>("maxVerticalAcceleration",4.0f);
@@ -225,10 +229,6 @@ int main(int argc, char *argv[])
   ros::Rate rate = nh_private.param<int>("rate", 100);
 
   /** END PARAMETERS **/
-
-  //Initialize time
-  ros::Duration(rate.expectedCycleTime()).sleep();
-  time = ros::Time::now() - rate.expectedCycleTime();
 
   //Wait for the drone to connect
   while(ros::ok() && !drone_state.connected){
@@ -272,6 +272,10 @@ int main(int argc, char *argv[])
   arm_cmd.request.value = true;
 
   last_request = ros::Time::now();
+
+  //Initialize time
+  ros::Duration(rate.expectedCycleTime()).sleep();
+  time = ros::Time::now() - rate.expectedCycleTime();
 
   while (ros::ok()) {
 
@@ -335,7 +339,7 @@ int main(int argc, char *argv[])
     cmd.thrust = attitudeCmd.z;
     cmd.type_mask = 7; // ignore body rate
 
-    //For Tests:
+    //For Testing:
     // cmd.orientation = EulerToQuaternion(0, 0.5, 0); // (yaw, pitch, roll)
     // cmd.body_rate = geometry_msgs::Vector3();
     // cmd.thrust = 0.7;
@@ -345,6 +349,7 @@ int main(int argc, char *argv[])
     /**************************************************************************/
 
     /***************************Publish Pose Command***************************/
+    //For Testing:
     // geometry_msgs::PoseStamped pose;
     // pose.pose.position.x = 0;
     // pose.pose.position.y = 0;

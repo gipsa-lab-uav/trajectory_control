@@ -81,6 +81,13 @@ class TrajectoryGeneration:
             y = [((sin_a*cos_b(s) + cos_a*sin_b(s))*radius + center[1]) for s in range(0,steps+1)]
             z = [(center[2]) for s in range(0,steps+1)]
 
+        elif parameters[0] == 'hover':
+            steps = int(parameters[1] * self.FREQUENCY)
+
+            x = np.linspace(x1, x1, steps, endpoint=True)
+            y = np.linspace(y1, y1, steps, endpoint=True)
+            z = np.linspace(z1, z1, steps, endpoint=True)
+
         #elif parameters[0] == 'square':
         #elif parameters[0] == 'inf':
 
@@ -352,20 +359,22 @@ if __name__ == '__main__':
         trajectory_object.BOX_LIMIT = [[-4., 4.], [-4., 4.], [0., 6.]] # [[x_min, x_max], [y_min, y_max], [z_min, z_max]]
         trajectory_object.WINDOW_FRAME = 5 # publish the n future states
 
-        trajectory_object.MAX_LINEAR_SPEED_XY = 10. # max. linear speed [m.s-1]
-        trajectory_object.MAX_LINEAR_SPEED_Z = 4. # max. linear speed [m.s-1]
-        trajectory_object.MAX_LINEAR_ACC_XY = 2. # max. linear acceleration [m.s-2]
-        trajectory_object.MAX_LINEAR_ACC_Z = 4. # max. linear acceleration [m.s-2]
+        trajectory_object.MAX_LINEAR_SPEED_XY = 0.5 # max. linear speed [m.s-1]
+        trajectory_object.MAX_LINEAR_SPEED_Z = 0.5 # max. linear speed [m.s-1]
+        trajectory_object.MAX_LINEAR_ACC_XY = 1.5 # max. linear acceleration [m.s-2]
+        trajectory_object.MAX_LINEAR_ACC_Z = 2. # max. linear acceleration [m.s-2]
         trajectory_object.MAX_LINEAR_JERK_XY = 4. # max linear jerk [m.s-3]
-        trajectory_object.MAX_LINEAR_JERK_Z = 8. # max linear jerk [m.s-3]
+        trajectory_object.MAX_LINEAR_JERK_Z = 4. # max linear jerk [m.s-3]
 
         # Define trajectory shape/vertices in NED frame
         trajectory_object.discretise_trajectory(parameters=['vector', [.0, .0, 2.]])
-        trajectory_object.discretise_trajectory(parameters=['circle', [.0, 2., 2.]])
-        trajectory_object.discretise_trajectory(parameters=['vector', [1., 2., 3.]])
-        trajectory_object.discretise_trajectory(parameters=['circle', [.0, 1., 3.]])
-        trajectory_object.discretise_trajectory(parameters=['vector', [.0, .0, 3.]])
-        trajectory_object.discretise_trajectory(parameters=['vector', [.0, .0, .0]])
+        trajectory_object.discretise_trajectory(parameters=['hover', 4.])
+        trajectory_object.discretise_trajectory(parameters=['vector', [.0, .0, 0.]])
+        # trajectory_object.discretise_trajectory(parameters=['circle', [.0, 2., 2.]])
+        # trajectory_object.discretise_trajectory(parameters=['vector', [1., 2., 3.]])
+        # trajectory_object.discretise_trajectory(parameters=['circle', [.0, 1., 3.]])
+        # trajectory_object.discretise_trajectory(parameters=['vector', [.0, .0, 3.]])
+        # trajectory_object.discretise_trajectory(parameters=['vector', [.0, .0, .0]])
         ########################################################################
 
         # Limit the trajectory to the BOX_LIMIT
