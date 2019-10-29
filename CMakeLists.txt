@@ -178,6 +178,7 @@ target_link_libraries(offb_node
 ## in contrast to setup.py, you can choose the destination
 install(PROGRAMS
   trajectory_gen.py
+  display.py
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
 

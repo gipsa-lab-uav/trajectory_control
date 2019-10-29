@@ -84,9 +84,9 @@ class TrajectoryGeneration:
         elif parameters[0] == 'hover':
             steps = int(parameters[1] * self.FREQUENCY)
 
-            x = np.linspace(x1, x1, steps, endpoint=True)
-            y = np.linspace(y1, y1, steps, endpoint=True)
-            z = np.linspace(z1, z1, steps, endpoint=True)
+            x = x1 * np.ones(steps)
+            y = y1 * np.ones(steps)
+            z = z1 * np.ones(steps)
 
         #elif parameters[0] == 'square':
         #elif parameters[0] == 'inf':
@@ -176,6 +176,7 @@ class TrajectoryGeneration:
         print('generate_states_filtered() runs in {} s'.format(time() - start))
 
     def generate_states_sg_filtered(self, window_length=5, polyorder=2, deriv=0, delta=1.0):
+        ### Info: Apply Savitzky-Golay filter to velocities ###
 
         start = time()
 
@@ -301,7 +302,7 @@ class TrajectoryGeneration:
         plt.show()
 
     def start(self):
-            self.start = rospy.Time.now()
+            start = rospy.Time.now()
             rate = rospy.Rate(self.PUBLISH_RATE)
             s = 0
             while not (rospy.is_shutdown() or s >= len(self.x_discretized)):
@@ -352,7 +353,7 @@ if __name__ == '__main__':
         ########################################################################
         # Configuration
         trajectory_object.YAW_HEADING = ['auto', [1, 1, 2]] # auto, center, axes
-        trajectory_object.TRAJECTORY_REQUESTED_SPEED = 1. # [m.s-1] to compute the step for discretized trajectory
+        trajectory_object.TRAJECTORY_REQUESTED_SPEED = 0.5 # [m.s-1] to compute the step for discretized trajectory
         trajectory_object.PUBLISH_RATE = 10 # publisher frequency
         trajectory_object.FREQUENCY = 10 # [Hz]
         trajectory_object.DELTA_L = trajectory_object.TRAJECTORY_REQUESTED_SPEED / trajectory_object.FREQUENCY # step in [m] to discretize trajectory
@@ -368,7 +369,7 @@ if __name__ == '__main__':
 
         # Define trajectory shape/vertices in NED frame
         trajectory_object.discretise_trajectory(parameters=['vector', [.0, .0, 2.]])
-        trajectory_object.discretise_trajectory(parameters=['hover', 4.])
+        trajectory_object.discretise_trajectory(parameters=['hover', 10.])
         trajectory_object.discretise_trajectory(parameters=['vector', [.0, .0, 0.]])
         # trajectory_object.discretise_trajectory(parameters=['circle', [.0, 2., 2.]])
         # trajectory_object.discretise_trajectory(parameters=['vector', [1., 2., 3.]])

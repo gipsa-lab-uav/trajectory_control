@@ -28,16 +28,17 @@
 #include <trajectory-control/kinematicTransform.hpp>
 #include <trajectory-control/statesEstimator.hpp>
 
-trajectory_msgs::JointTrajectory jointTrajectory, jointTrajectorySaved;
+/*******************************Global variables*******************************/
+trajectory_msgs::JointTrajectory jointTrajectory;
 DroneStates lastMeasuredStates;
 geometry_msgs::Vector3 lastEulerAngles;
 mavros_msgs::State drone_state;
 
 bool isFirstCallback = false;
+/******************************************************************************/
 
+/**********************************Functions***********************************/
 void jointTrajectoryAcquireCallback(const trajectory_msgs::JointTrajectory & msg) {
-  ROS_INFO("trajectory_control_node: jointTrajectory callback");
-
   int i = 0;
   trajectory_msgs::JointTrajectoryPoint point = msg.points[0];
 
@@ -96,8 +97,6 @@ void droneStateAcquireCallback(const mavros_msgs::State::ConstPtr& msg){
 }
 
 trajectory_msgs::JointTrajectoryPoint getNextTrajectoryPoint(float time){
-  ROS_INFO_STREAM("getNextTrajectoryPoint at time2: " << time);
-
   int i = 0;
 
   //Find the next trajectory point with respect to time
@@ -108,9 +107,8 @@ trajectory_msgs::JointTrajectoryPoint getNextTrajectoryPoint(float time){
 
   //Erase the outdated values
   if (i > 0) jointTrajectory.points.erase(jointTrajectory.points.begin(), jointTrajectory.points.begin() + i - 1);
-  // jointTrajectory.points.erase(jointTrajectory.points.begin(), jointTrajectory.points.begin() + i);
 
-  ROS_INFO_STREAM("i: " << i << "jointTrajectory.points[0]" << jointTrajectory.points[0]);
+  // ROS_INFO_STREAM("i: " << i << "jointTrajectory.points[0]" << jointTrajectory.points[0].positions);
 
   return jointTrajectory.points[0];
 }
@@ -157,17 +155,18 @@ geometry_msgs::Quaternion EulerToQuaternion(float yaw, float pitch, float roll){
 
   return q;
 }
+/******************************************************************************/
 
 int main(int argc, char *argv[])
 {
+  /*********************************Definitions********************************/
   ros::init(argc, argv, "trajectory_control_node");
   ros::NodeHandle nh, nh_private("~");
 
   // Define subscribers
   ros::Subscriber jointTrajectory_sub = nh.subscribe("mavros/JointTrajectory", 10, &jointTrajectoryAcquireCallback);
-  ros::Subscriber measuredStates_sub = nh.subscribe("mavros/local_position/odom", 10, &measuredStatesAcquireCallback);
+  ros::Subscriber measuredStates_sub = nh.subscribe("mavros/global_position/local", 10, &measuredStatesAcquireCallback);
   ros::Subscriber state_sub = nh.subscribe<mavros_msgs::State>("mavros/state", 10, droneStateAcquireCallback);
-
 
   // Define publishers
   ros::Publisher attitudeCmd_pub = nh.advertise<mavros_msgs::AttitudeTarget>("mavros/setpoint_raw/attitude", 10);
@@ -176,8 +175,9 @@ int main(int argc, char *argv[])
   // Define service client
   ros::ServiceClient arming_client = nh.serviceClient<mavros_msgs::CommandBool>("mavros/cmd/arming");
   ros::ServiceClient set_mode_client = nh.serviceClient<mavros_msgs::SetMode>("mavros/set_mode");
+  /****************************************************************************/
 
-  // Declare classes & variables
+  /************************Class & Variable Declarations***********************/
   FullStatesFeedback fsf;
   KinematicTransform kt;
   StatesEstimator se;
@@ -186,14 +186,14 @@ int main(int argc, char *argv[])
   trajectory_msgs::JointTrajectoryPoint trajectoryPoint;
   geometry_msgs::Vector3 eulerAngles, accelerationCmd, attitudeCmd;
   mavros_msgs::AttitudeTarget cmd;
-  ros::Time time, time2, last_request;
-  float yaw, dt;
+  ros::Time time, last_request;
+  float yaw, dt, time2;
+  /****************************************************************************/
 
-  accelerationCmd.x = .0;
-  accelerationCmd.y = .0;
-  accelerationCmd.z = .0;
+  /*********************************Parameters*********************************/
+  // Rate of the controller
+  ros::Rate rate = nh_private.param<int>("rate", 100);
 
-  /** PARAMETERS **/
   // Full States Feedback Gains
   fsf.x.param.Kp = nh_private.param<double>("fsf_x_P", 0.3f);
   fsf.x.param.Ks = nh_private.param<double>("fsf_x_S", 2.5f);
@@ -224,19 +224,18 @@ int main(int argc, char *argv[])
   kt.param.mass = nh_private.param<double>("mass",1.5f);
   kt.param.maxAngle = nh_private.param<double>("maxAngle",45.0f);
   kt.param.maxVerticalAcceleration = nh_private.param<double>("maxVerticalAcceleration",4.0f);
+  /****************************************************************************/
 
-  // Rate of the controller
-  ros::Rate rate = nh_private.param<int>("rate", 100);
-
-  /** END PARAMETERS **/
-
+  /****************************Connection & Callback***************************/
   //Wait for the drone to connect
+  ROS_INFO("Waiting for drone connection ...");
   while(ros::ok() && !drone_state.connected){
       ros::spinOnce();
       rate.sleep();
   }
 
   //Wait for the first state measure callback
+  ROS_INFO("Waiting for position measurement callback ...");
   while (ros::ok() && !isFirstCallback){
     ros::spinOnce();
     rate.sleep();
@@ -244,6 +243,13 @@ int main(int argc, char *argv[])
 
   //Wait for better measure accuracy (GPS/MOCAP) -> sleep for 2 seconds
   ros::Duration(2.).sleep();
+  /****************************************************************************/
+
+  /*******************************Initialization*******************************/
+  //Initialize acceleration command
+  accelerationCmd.x = .0;
+  accelerationCmd.y = .0;
+  accelerationCmd.z = .0;
 
   //Initialize first trajectory point as the measured position
   trajectory_msgs::JointTrajectoryPoint firstPoint;
@@ -263,19 +269,19 @@ int main(int argc, char *argv[])
 
   jointTrajectory.points.push_back(firstPoint);
 
-  //Request OFFBOARD mode
+  //Set OFFBOARD mode request
   mavros_msgs::SetMode offb_set_mode;
   offb_set_mode.request.custom_mode = "OFFBOARD";
 
-  //Request arming
+  //Set arming request
   mavros_msgs::CommandBool arm_cmd;
   arm_cmd.request.value = true;
 
-  last_request = ros::Time::now();
-
-  //Initialize time
+  //Initialize time & last_request
   ros::Duration(rate.expectedCycleTime()).sleep();
   time = ros::Time::now() - rate.expectedCycleTime();
+  last_request = ros::Time::now();
+  /****************************************************************************/
 
   while (ros::ok()) {
 
@@ -292,19 +298,16 @@ int main(int argc, char *argv[])
     /**************************************************************************/
 
     /*******************************Update Loop********************************/
-    //Consider time for trajectory only when the drone is armed
-    if ( drone_state.armed ) time2 += ros::Time::now() - time;
-
     //Compute dt and save time
     dt = (ros::Time::now().toNSec() - time.toNSec())/1000000000.0f;
     time = ros::Time::now();
 
-    //Get the next trajectory point and update the target state
-    trajectoryPoint = getNextTrajectoryPoint(time2.toSec());
-    targetStates = getState(trajectoryPoint);
+    //Consider time for trajectory only when the drone is armed
+    if ( drone_state.armed ) time2 += dt;
 
-    //Save the next trajectory point to jointTrajectorySaved
-    jointTrajectorySaved.points.push_back(trajectoryPoint);
+    //Get the next trajectory point and update the target state
+    trajectoryPoint = getNextTrajectoryPoint(time2);
+    targetStates = getState(trajectoryPoint);
 
     //Get the yaw from the trajectoryPoint
     yaw = trajectoryPoint.positions[3];
@@ -326,6 +329,8 @@ int main(int argc, char *argv[])
 
     //Compute full state feedback control
     accelerationCmd = fsf.process(dt, predictedStates, targetStates);
+    ROS_INFO_STREAM("\ntime: " << time << "\ndt: " << dt << "\n\npredictedStates:\n" << predictedStates.getVectPos() << "\ntargetStates:\n" << targetStates.getVectPos() << "\nattitudeCmd:\n" << attitudeCmd);
+    // if (attitudeCmd.z > 0.1) break;
 
     //Generate (roll, pitch, thrust) command
     //For compatibility with different aircrafts or even terrestrial robots, this should be in its own node
