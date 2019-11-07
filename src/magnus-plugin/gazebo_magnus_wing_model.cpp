@@ -1,4 +1,4 @@
-#include "gazebo_magnus_wing_model.h"
+#include "magnus_plugin/gazebo_motor_model.h"
 #include <ignition/math.hh>
 
 namespace gazebo {
