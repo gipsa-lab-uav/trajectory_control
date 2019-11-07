@@ -99,3 +99,12 @@ If Gazebo runs, but with the `--verbose` option you get an error as `[Err] [REST
  ```bash
  export GAZEBO_MODEL_PATH=$GAZEBO_MODEL_PATH:path/to/models
  ```
+
+**Note:** To make changes to path variables permanent, add the command to the `~/.bashrc` file, as example:
+```bash
+nano ~/.bashrc
+```
+And add a line as:
+```bash
+ export GAZEBO_RESOURCE_PATH=$GAZEBO_RESOURCE_PATH:/usr/share/gazebo-9
+ ```
