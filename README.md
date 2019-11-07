@@ -94,3 +94,8 @@ If Gazebo runs, but with the `--verbose` option you get an error as `[Err] [REST
  ```
  From `https://api.ignitionfuel.org/` to `https://api.ignitionrobotics.org/`.\
  More info on the topic can be found [here](http://answers.gazebosim.org/question/22263/error-in-rest-request-for-accessing-apiignitionorg/).
+
+ If some of the desired models are not automatically available on the Gazebo interface, add the path to the modules to the variable `GAZEBO_MODEL_PATH`, as:
+ ```bash
+ export GAZEBO_MODEL_PATH=$GAZEBO_MODEL_PATH:path/to/models
+ ```
