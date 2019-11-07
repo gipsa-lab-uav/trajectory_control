@@ -82,7 +82,7 @@ Now you are ready to go with the trajectory-control_node:
 If Gazebo doesn't start properly, run:
 ```gazebo --verbose```
 
-To solve `[Err] [RTShaderSystem.cc:450] Unable to find shader lib.` issue, run (changing the 'X' to the number of your Gazebo version):
+To solve `[Err] [RTShaderSystem.cc:450] Unable to find shader lib.` issue, run (replacing the 'X' for the number of your Gazebo version):
 ```bash
 export GAZEBO_RESOURCE_PATH=$GAZEBO_RESOURCE_PATH:/usr/share/gazebo-X
 ```
