@@ -392,6 +392,8 @@
           </script>
         </material>
       </visual>
+      <gravity>1</gravity>
+      <velocity_decay/>
     </link>
 
     <joint name='left_wing_joint' type='revolute'>
@@ -404,6 +406,8 @@
           <upper>1e+16</upper>
         </limit>
         <dynamics>
+          <damping>0</damping>
+          <friction>0</friction>
           <spring_reference>0</spring_reference>
           <spring_stiffness>0</spring_stiffness>
         </dynamics>
@@ -447,6 +451,8 @@
           </script>
         </material>
       </visual>
+      <gravity>1</gravity>
+      <velocity_decay/>
     </link>
 
     <joint name='right_wing_joint' type='revolute'>
@@ -459,6 +465,8 @@
           <upper>1e+16</upper>
         </limit>
         <dynamics>
+          <damping>0</damping>
+          <friction>0</friction>
           <spring_reference>0</spring_reference>
           <spring_stiffness>0</spring_stiffness>
         </dynamics>
