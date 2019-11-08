@@ -21,28 +21,27 @@ For the installation, you need to have ROS melodic (or kinetic) installed and a 
 ### Prerequisites
 Install mavros and libgstreamer
 
-```sudo apt install ros-melodic-mavros```
-
-```sudo apt install libgstreamer1.0-dev```
+```bash
+sudo apt install ros-melodic-mavros libgstreamer1.0-dev
+```
 
 Clone sitl_gazebo and PX4 Firmware
 
-```cd ~/catkin_ws/src/```
-
-```git clone --recursive https://github.com/PX4/sitl_gazebo```
-
-```git clone https://github.com/PX4/Firmware px4```
+```bash
+cd ~/catkin_ws/src/
+git clone --recursive https://github.com/PX4/sitl_gazebo
+git clone https://github.com/PX4/Firmware px4
+```
 
 **Note:** If you have troubles intalling the different packages, it is strongly recommended to read the related documentation.
 
 ### Install trajectory-control
-```cd ~/catkin_ws/src/```
-
-```git clone https://github.com/gipsa-lab-uav/trajectory-control```
-
-```cd ..```
-
-```catkin_make```
+```bash
+cd ~/catkin_ws/src/
+git clone https://github.com/gipsa-lab-uav/trajectory-control
+cd ..
+catkin_make
+```
 
 **Note:** If you run into the message `Configuring incomplete, errors occurred!`, and `Invoking "make cmake_check_build_system" failed`, an extra step might be necessary before continuing:
 
@@ -52,10 +51,15 @@ rosdep update
 rosdep install --from-paths ~/catkin_ws/src/ --ignore-src
 ```
 
-```source devel/setup.bash```
+```bash
+catkin_make
+source devel/setup.bash
+```
 
 ## Testing the installation
-```roslaunch trajectory-control test.launch```
+```bash
+roslaunch trajectory-control test.launch
+```
 
 A gazebo window should open with the iris model. After few seconds, the iris quadcopter should hover at 2 meters altitude. You can open QGroundControl in parallel also to check if everything is interfacing correclty.
 
@@ -76,11 +80,15 @@ chmod +x ./QGroundControl.AppImage
 
 Now you are ready to go with the trajectory-control_node:
 
-```roslaunch trajectory-control trajectory-control-example.launch```
+```bash
+roslaunch trajectory-control trajectory-control-example.launch
+```
 
 ### Gazebo
 If Gazebo doesn't start properly, run:
-```gazebo --verbose```
+```bash
+gazebo --verbose
+```
 
 To solve `[Err] [RTShaderSystem.cc:450] Unable to find shader lib.` issue, run (replacing the 'X' for the number of your Gazebo version):
 ```bash
