@@ -41,9 +41,10 @@ cd ~/catkin_ws/src/
 git clone https://github.com/gipsa-lab-uav/trajectory-control
 cd ..
 catkin_make
+source devel/setup.bash
 ```
 
-**Note:** If you run into the message `Configuring incomplete, errors occurred!`, and `Invoking "make cmake_check_build_system" failed`, an extra step might be necessary before continuing:
+**Note:** If you run into the message `Configuring incomplete, errors occurred!`, and `Invoking "make cmake_check_build_system" failed`, during `catkin_make`, an extra step might be necessary before continuing:
 
 ```bash
 sudo rosdep init
@@ -51,6 +52,7 @@ rosdep update
 rosdep install --from-paths ~/catkin_ws/src/ --ignore-src
 ```
 
+And then again:
 ```bash
 catkin_make
 source devel/setup.bash
