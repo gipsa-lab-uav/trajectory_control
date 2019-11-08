@@ -90,15 +90,15 @@ export GAZEBO_RESOURCE_PATH=$GAZEBO_RESOURCE_PATH:/usr/share/gazebo-X
 If Gazebo runs, but with the `--verbose` option you get an error as `[Err] [REST.cc:205] Error in REST request`, check your Gazebo version. If you can update to Gazebo >= 9.10, it should solve the issue, else, update the `server url` field on Fuel config file with:
 
 ```bash
- nano ~/.ignition/fuel/config.yaml
- ```
- From `https://api.ignitionfuel.org/` to `https://api.ignitionrobotics.org/`.\
- More info on the topic can be found [here](http://answers.gazebosim.org/question/22263/error-in-rest-request-for-accessing-apiignitionorg/).
+nano ~/.ignition/fuel/config.yaml
+```
+From `https://api.ignitionfuel.org/` to `https://api.ignitionrobotics.org/`.\
+More info on the topic can be found [here](http://answers.gazebosim.org/question/22263/error-in-rest-request-for-accessing-apiignitionorg/).
 
- If some of the desired models are not automatically available on the Gazebo interface, add the path to the modules to the variable `GAZEBO_MODEL_PATH`, as:
- ```bash
- export GAZEBO_MODEL_PATH=$GAZEBO_MODEL_PATH:path/to/models
- ```
+If some of the desired models are not automatically available on the Gazebo interface, add the path to the modules to the variable `GAZEBO_MODEL_PATH`, as:
+```bash
+export GAZEBO_MODEL_PATH=$GAZEBO_MODEL_PATH:path/to/models
+```
 
 **Note:** To make changes to path variables permanent, add the command to the `~/.bashrc` file, as example:
 ```bash
@@ -106,5 +106,46 @@ nano ~/.bashrc
 ```
 And add a line as:
 ```bash
- export GAZEBO_RESOURCE_PATH=$GAZEBO_RESOURCE_PATH:/usr/share/gazebo-9
- ```
+export GAZEBO_RESOURCE_PATH=$GAZEBO_RESOURCE_PATH:/usr/share/gazebo-9
+```
+
+### HR Drone Model and Plugin
+The model of the HR Drone is based on the Iris model, available in `sitl_gazebo`. Both the model and the plugin are available at the repository, but some adjustments must be made to ensure functionality.
+
+The next commands assume that the repositories `sitl_gazebo` and `trajectory-control` were cloned into `~/catkin/src/`, if that is not the case, change the paths accordingly.
+
+First, copy the wing model header and the plugin header to the header directory from `sitl_gazebo`:
+
+```bash
+cd ~/catkin_ws/src/
+cp -a trajectory-control/include/magnus_plugin/ sitl_gazebo/include/magnus_plugin
+cp -a trajectory-control/include/gazebo_magnus_wing_model.h sitl_gazebo/include/gazebo_magnus_wing_model.h
+```
+
+Then, copy the HR Drone model:
+```bash
+cp -a trajectory-control/models/iris_magnus/ sitl_gazebo/models/iris_magnus
+```
+
+And then the source files:
+```bash
+cp -a trajectory-control/src/magnus_plugin/ sitl_gazebo/src/magnus_plugin
+cp -a trajectory-control/src/gazebo_magnus_wing_model.cpp sitl_gazebo/src/gazebo_magnus_wing_model.cpp
+```
+
+After that, some changes must be made at the `~/catkin_ws/src/sitl_gazebo/CMakeLists.txt` file. Add the following line at the `# Plugins #` section:
+```makefile
+add_library(gazebo_magnus_plugin SHARED src/magnus_plugin/magnus_plugin.cpp)
+```
+
+And inside the `set(plugins ... ...)` command add a line:
+```makefile
+magnus_plugin
+```
+
+And to finish and use the new files:
+```bash
+cd ..
+catkin_make
+source devel/setup.bash
+```
