@@ -23,8 +23,10 @@ static const std::string kDefaultWingSide = "left";
 typedef const boost::shared_ptr<const mav_msgs::msgs::CommandMotorSpeed> CommandMotorSpeedPtr;
 
 static constexpr double kDefaulMaxRotVelocity = 1200.0;
-static constexpr double kDefaultMotorConstant = 8.54858e-06;  // relation between speed squared and force
 static constexpr double kDefaultRotorVelocitySlowdownSim = 10.0;
+static constexpr double kDefaultWingMass = 0.06;
+static constexpr double kDefaultWingRadius = 0.025;
+static constexpr double kDefaultWingLength = 0.15;
 
 class MagnusRoll : public MotorModel, public ModelPlugin {
   public:
@@ -35,7 +37,9 @@ class MagnusRoll : public MotorModel, public ModelPlugin {
           motor_failure_sub_topic_(kDefaultWingFailureNumSubTopic),
           motor_speed_pub_topic_(kDefaultWingVelocityPubTopic),
           wing_side_(kDefaultWingSide),
-          motor_constant_(kDefaultMotorConstant),
+          wing_mass_(kDefaultWingMass),
+          wing_radius_(kDefaultWingRadius),
+          wing_length(kDefaultWingLength),
           wing_number_(0),
           wing_Failure_Number_(0),
           ref_wing_rot_vel_(0.0),
@@ -63,7 +67,9 @@ class MagnusRoll : public MotorModel, public ModelPlugin {
     double max_rot_velocity_;
     double rotor_velocity_slowdown_sim_;
     double ref_wing_rot_vel_;
-    double motor_constant_;
+    double wing_mass_;
+    double wing_radius_;
+    double wing_length;
 
 };
 }

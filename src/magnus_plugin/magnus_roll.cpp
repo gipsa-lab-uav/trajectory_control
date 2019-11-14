@@ -1,5 +1,5 @@
 #include "magnus_roll.h"
-// #include <ignition/math.hh>
+#include <ignition/math.hh>
 
 namespace gazebo  {
   MagnusRoll::~MagnusRoll() {
@@ -52,10 +52,14 @@ namespace gazebo  {
     else
       gzerr << "[gazebo_magnus_wing_model] Please specify a wingNumber.\n";
 
-    getSdfParam<double>(_sdf, "maxRotVelocity", max_rot_velocity_, max_rot_velocity_);
     getSdfParam<std::string>(_sdf, "commandSubTopic", command_sub_topic_, command_sub_topic_);
     getSdfParam<std::string>(_sdf, "motorSpeedPubTopic", motor_speed_pub_topic_, motor_speed_pub_topic_);
+
+    getSdfParam<double>(_sdf, "maxRotVelocity", max_rot_velocity_, max_rot_velocity_);
     getSdfParam<double>(_sdf, "rotorVelocitySlowdownSim", rotor_velocity_slowdown_sim_, 10);
+    getSdfParam<double>(_sdf, "wingMass", wing_mass_, wing_mass_);
+    getSdfParam<double>(_sdf, "wingRadius", wing_radius_, wing_radius_);
+    getSdfParam<double>(_sdf, "wingLength", wing_length_, wing_length_);
 
     // Listen to the update event. This event is broadcast every
     // simulation iteration.
@@ -85,10 +89,11 @@ namespace gazebo  {
   }
 
   void GazeboWingModel::UpdateForcesAndMoments() {
-    double force;
+    // double force;
     double real_wing_velocity;
-    double scalar;
+    // double scalar;
     double vel;
+    double spin_ratio;
    
     ignition::math::Pose3d pose_difference;
     ignition::math::Vector3d air_drag;
@@ -100,20 +105,22 @@ namespace gazebo  {
     ignition::math::Vector3d rolling_moment;
     physics::Link_V parent_links;
 
+    spin_ratio = wing_mass_*max_rot_velocity_/norm(WappVelMag); // update
+
     wing_rot_vel_ = joint_->GetVelocity(0);
     if (wing_rot_vel_ / (2 * M_PI) > 1 / (2 * sampling_time_)) {
       gzerr << "Aliasing on wing [" << wing_number_ << "] might occur. Consider making smaller simulation time steps or raising the rotor_velocity_slowdown_sim_ param.\n";
     }
     real_wing_velocity = wing_rot_vel_ * rotor_velocity_slowdown_sim_;
-    force = real_wing_velocity * real_wing_velocity * motor_constant_;
+    // force = real_wing_velocity * motor_constant_;
 
     body_velocity = link_->WorldLinearVel();
     vel = body_velocity.Length();
-    scalar = 1 - vel / 25.0; // at 50 m/s the rotor will not produce any force anymore
-    scalar = ignition::math::clamp(scalar, 0.0, 1.0);
-    
+    // scalar = 1 - vel / 25.0; // at 50 m/s the rotor will not produce any force anymore
+    // scalar = ignition::math::clamp(scalar, 0.0, 1.0);
+
     // Apply a force to the link.
-    link_->AddRelativeForce(ignition::math::Vector3d(0, 0, force * scalar));
+    // link_->AddRelativeForce(ignition::math::Vector3d(0, 0, force));// * scalar));
 
     // Forces from Philppe Martin's and Erwan Salaün's
     // 2010 IEEE Conference on Robotics and Automation paper
@@ -121,18 +128,19 @@ namespace gazebo  {
     // - \omega * \lambda_1 * V_A^{\perp}
     joint_axis = joint_->GlobalAxis(0);
 
-    //ignition::math::Vector3d body_velocity = link_->WorldLinearVel();
     body_velocity_perpendicular = body_velocity - (body_velocity * joint_axis) * joint_axis;
     air_drag = -std::abs(real_wing_velocity) * rotor_drag_coefficient_ * body_velocity_perpendicular;
+
     // Apply air_drag to link.
     link_->AddForce(air_drag);
+
     // Moments
     // Getting the parent link, such that the resulting torques can be applied to it.
     parent_links = link_->GetParentJointsLinks();
     // The tansformation from the parent_link to the link_.
     pose_difference = link_->WorldCoGPose() - parent_links.at(0)->WorldCoGPose();
 
-    drag_torque.Set(0, 0, -turning_direction_ * force * moment_constant_);
+    // drag_torque.Set(0, 0, -turning_direction_ * force * moment_constant_);
     // Transforming the drag torque into the parent frame to handle arbitrary rotor orientations.
     drag_torque_parent_frame = pose_difference.Rot().RotateVector(drag_torque);
     parent_links.at(0)->AddRelativeTorque(drag_torque_parent_frame);
