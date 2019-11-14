@@ -552,7 +552,7 @@
       <rotorVelocitySlowdownSim>10</rotorVelocitySlowdownSim>
     </plugin>
 
-    <plugin name='left_wing_model' filename='libgazebo_magnus_wing_model.so'>
+    <!--plugin name='left_wing_model' filename='libgazebo_magnus_wing_model.so'>
       <robotNamespace/>
       <jointName>left_wing_joint</jointName>
       <linkName>left_wing</linkName>
@@ -568,9 +568,33 @@
       <rollingMomentCoefficient>1e-06</rollingMomentCoefficient>
       <motorSpeedPubTopic>/wing_speed/0</motorSpeedPubTopic>
       <rotorVelocitySlowdownSim>10</rotorVelocitySlowdownSim>
+    </plugin-->
+
+     <plugin name='left_wing_model' filename='libmagnus_roll.so'>
+      <robotNamespace/>
+      <jointName>left_wing_joint</jointName>
+      <linkName>left_wing</linkName>
+      <maxRotVelocity>1100</maxRotVelocity>
+      <commandSubTopic>/gazebo/command/wing_speed</commandSubTopic>
+      <wingSide>left</wingSide>
+      <wingNumber>0<wingNumber/>
+      <motorSpeedPubTopic>/wing_speed/0</motorSpeedPubTopic>
+      <rotorVelocitySlowdownSim>10</rotorVelocitySlowdownSim>
     </plugin>
 
-    <plugin name='right_wing_model' filename='libgazebo_magnus_wing_model.so'>
+    <plugin name='right_wing_model' filename='libmagnus_roll.so'>
+      <robotNamespace/>
+      <jointName>right_wing_joint</jointName>
+      <linkName>right_wing</linkName>
+      <maxRotVelocity>1100</maxRotVelocity>
+      <commandSubTopic>/gazebo/command/wing_speed</commandSubTopic>
+      <wingSide>right</wingSide>
+      <wingNumber>1<wingNumber/>
+      <motorSpeedPubTopic>/wing_speed/1</motorSpeedPubTopic>
+      <rotorVelocitySlowdownSim>10</rotorVelocitySlowdownSim>
+    </plugin>
+
+    <!--plugin name='right_wing_model' filename='libgazebo_magnus_wing_model.so'>
       <robotNamespace/>
       <jointName>right_wing_joint</jointName>
       <linkName>right_wing</linkName>
@@ -586,7 +610,7 @@
       <rollingMomentCoefficient>1e-06</rollingMomentCoefficient>
       <motorSpeedPubTopic>/wing_speed/1</motorSpeedPubTopic>
       <rotorVelocitySlowdownSim>10</rotorVelocitySlowdownSim>
-    </plugin>
+    </plugin-->
 
     <plugin name='gps_plugin' filename='libgazebo_gps_plugin.so'>
       <robotNamespace/>
