@@ -41,9 +41,9 @@ static constexpr double kDefaultRotorDragCoefficient = 1.0e-4;
 static constexpr double kDefaultRollingMomentCoefficient = 1.0e-6;
 static constexpr double kDefaultRotorVelocitySlowdownSim = 10.0;
 
-class GazeboMotorModel : public MotorModel, public ModelPlugin {
+class GazeboWingModel : public MotorModel, public ModelPlugin {
  public:
-  GazeboMotorModel()
+  GazeboWingModel()
       : ModelPlugin(),
         MotorModel(),
         command_sub_topic_(kDefaultCommandSubTopic),
@@ -65,7 +65,7 @@ class GazeboMotorModel : public MotorModel, public ModelPlugin {
         time_constant_up_(kDefaultTimeConstantUp) {
   }
 
-  virtual ~GazeboMotorModel();
+  virtual ~GazeboWingModel();
 
   virtual void InitializeParams();
   virtual void Publish();
