@@ -159,3 +159,22 @@ cd ..
 catkin_make
 source devel/setup.bash
 ```
+
+#### SDF Model
+To apply changes to SDF models (as those in the various directories in `~/catkin_ws/src/sitl_gazebo/models`), it is advisable to create a new model, with its own proper name and settings. A new model must follow the same structure as the previous ones so, for example, if we wanted to create a model named `new_model`, we would create a directory in `~/catkin_ws/src/sitl_gazebo/models`, named `new_model`, and it would be like:
+
+```
+.
+├── ...
+├── new_model
+│   ├── new_model.sdf
+│   └── model.config
+└── ...
+```
+If it happens that a lot of tags have repeated values, or values that are calculated based on other values also in the SDF model file, it can be used [embedded ruby](https://en.wikipedia.org/wiki/ERuby) to generate parametrized models. If this is the case, a new file would be created. Following the example, we could name it `new_model.rsdf`, and it would include embedded ruby code. A nice example of this feature can be found in [this file](https://bitbucket.org/osrf/gazebo_models/src/b237ea45262f51ff8d72aaa96ef19f1288723c42/cart_rigid_suspension/model.rsdf). To then transform a RSDF file to the desired SDF model file, run the following command:
+
+```bash
+erb new_model.rsdf > new_model.sdf
+```
+
+Details and more options for this command `erb` can be found [here](https://www.commandlinux.com/man-page/man1/erb.1.html).
