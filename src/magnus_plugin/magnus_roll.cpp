@@ -102,7 +102,18 @@ namespace gazebo  {
     // double scalar;
     double vel;
     double spin_ratio;
-   
+    double abs_wind_app_vel;
+    double drag_coeff_XZ;
+    double lift_coeff;
+    double drag_coeff_Y;
+    double drag_force_XZ;
+    double drag_force_Y;
+    double wing_inertia;
+
+    double rho_air = 1.2041;
+    double surface_area = 2.0*wing_radius_*wing_length_;
+    double lat_surface_area = M_PI*std::pow(wing_radius_,2);
+
     ignition::math::Pose3d pose_difference;
     ignition::math::Vector3d air_drag;
     ignition::math::Vector3d air_lift;
@@ -112,18 +123,30 @@ namespace gazebo  {
     ignition::math::Vector3d drag_torque_parent_frame;
     ignition::math::Vector3d joint_axis;
     ignition::math::Vector3d rolling_moment;
+
+    ignition::math::Vector3d wind_app_vel_inertial;
+    ignition::math::Vector3d wind_app_vel;
+    ignition::math::Vector3d vel_dir;
+    ignition::math::Vector3d vel_dir_perpendicular;
+    ignition::math::Vector3d lift_force;
+    ignition::math::Vector3d drag_force;
+    ignition::math::Vector3d gyro_torque;
+
     physics::Link_V parent_links;
 
-    rho_air = 1.2041;
-    surface_area = 2.0*wing_radius_*wing_length_;
-    lat_surface_area = M_PI*std::pow(wing_radius_,2);
+
+    wind_vel = link_->RelativeWindLinearVel();
+    omega = link_->RelativeAngularVel();
+    vel_inertial = link__->WorldLinearVel();
+    wind_vel_inertial = link_->WorldWindLinearVel();
+
 
     wind_app_vel_inertial = wind_vel - vel_inertial;
-    wind_app_vel = wind_app_vel_inertial * foo(); // transform inertial to body
+    wind_app_vel = wind_app_vel_inertial * foo();     // transform inertial to body
     abs_wind_app_vel = ignition::math::Vector3d(wind_app_vel.X(), 0, wind_app_vel.Z()).Length();
 
-    if (abs_wind_app_speed > 0)
-      spin_ratio = wing_mass_*max_rot_velocity_/abs_wind_app_speed; // update
+    if (abs_wind_app_vel > 0)
+      spin_ratio = wing_radius_*max_rot_velocity_/abs_wind_app_vel;
     else
       spin_ratio = 0;
 
@@ -134,7 +157,7 @@ namespace gazebo  {
     drag_coeff_Y = 0.8;
 
     vel_dir = vel_inertial.Normalize();
-    vel_dir_perpendicular = vel_dir.Perpendicular().Normalize();
+    vel_dir_perpendicular = vel_dir.Perpendicular().Normalize();  // Should use cross product to find lift direction
 
     lift_force = 0.5*rho_air*surface_area*lift_coeff*(std::pow(wind_app_vel_inertial.Length(), 2))*vel_dir_perpendicular;
     drag_force_XZ = 0.5*rho_air*surface_area*drag_coeff_XZ*(std::pow(wind_app_vel_inertial.Length(), 2));
@@ -152,8 +175,8 @@ namespace gazebo  {
     real_wing_velocity = wing_rot_vel_ * rotor_velocity_slowdown_sim_;
     // force = real_wing_velocity * motor_constant_;
 
-    body_velocity = link_->WorldLinearVel();
-    vel = body_velocity.Length();
+    // body_velocity = link_->WorldLinearVel();
+    // vel = body_velocity.Length();
 
     // Apply a force to the link.
     // link_->AddRelativeForce(ignition::math::Vector3d(0, 0, force));
