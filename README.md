@@ -177,4 +177,4 @@ If it happens that a lot of tags have repeated values, or values that are calcul
 erb new_model.rsdf > new_model.sdf
 ```
 
-Details and more options for this command `erb` can be found [here](https://www.commandlinux.com/man-page/man1/erb.1.html).
+Details and more options for the command `erb` can be found [here](https://www.commandlinux.com/man-page/man1/erb.1.html).
