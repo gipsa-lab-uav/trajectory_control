@@ -44,13 +44,21 @@ namespace gazebo  {
 
     if (_sdf->HasElement("wingSide"))
       wing_side_ = _sdf->GetElement("wingSide")->Get<std::string>();
+      if !(wing_side_ == "left" || wing_side_ == "right")
+        gzerr << "[gazebo_magnus_wing_model] Please only use 'left' or 'right' as wingSide.\n";
     else
       gzerr << "[gazebo_magnus_wing_model] Please specify a wingSide.\n";
 
     if (_sdf->HasElement("wingNumber"))
       wing_number_ = _sdf->GetElement("wingNumber")->Get<int>();
-    else
-      gzerr << "[gazebo_magnus_wing_model] Please specify a wingNumber.\n";
+    else {
+      gzwarn << "[gazebo_magnus_wing_model] No wingNumber found, default used: 0 for 'left' wingSide, 1 for 'right' wingSide.\n";
+      if (wing_side_ == "left")
+        wing_number_ = 0;
+      else if (wing_side_ == "right")
+        wing_number_ = 1;
+      gzwarn << "[gazebo_magnus_wing_model] wingNumber is (default == " << wing_number_ << ") for the wingSide (" << wing_side_ << ").\n";
+    }
 
     getSdfParam<std::string>(_sdf, "commandSubTopic", command_sub_topic_, command_sub_topic_);
     getSdfParam<std::string>(_sdf, "motorSpeedPubTopic", motor_speed_pub_topic_, motor_speed_pub_topic_);
@@ -97,6 +105,7 @@ namespace gazebo  {
    
     ignition::math::Pose3d pose_difference;
     ignition::math::Vector3d air_drag;
+    ignition::math::Vector3d air_lift;
     ignition::math::Vector3d body_velocity;
     ignition::math::Vector3d body_velocity_perpendicular;
     ignition::math::Vector3d drag_torque;
@@ -105,7 +114,36 @@ namespace gazebo  {
     ignition::math::Vector3d rolling_moment;
     physics::Link_V parent_links;
 
-    spin_ratio = wing_mass_*max_rot_velocity_/norm(WappVelMag); // update
+    rho_air = 1.2041;
+    surface_area = 2.0*wing_radius_*wing_length_;
+    lat_surface_area = M_PI*std::pow(wing_radius_,2);
+
+    wind_app_vel_inertial = wind_vel - vel_inertial;
+    wind_app_vel = wind_app_vel_inertial * foo(); // transform inertial to body
+    abs_wind_app_vel = ignition::math::Vector3d(wind_app_vel.X(), 0, wind_app_vel.Z()).Length();
+
+    if (abs_wind_app_speed > 0)
+      spin_ratio = wing_mass_*max_rot_velocity_/abs_wind_app_speed; // update
+    else
+      spin_ratio = 0;
+
+    spin_ratio = ignition::math::clamp(spin_ratio, 0.0, 8.0);
+
+    drag_coeff_XZ = -0.0211*std::pow(spin_ratio, 3) + 0.1873*std::pow(spin_ratio, 2) + 0.1183*spin_ratio + 0.5;
+    lift_coeff = 0.0126*std::pow(spin_ratio, 4) - 0.2004*std::pow(spin_ratio, 3) + 0.7482*std::pow(spin_ratio, 2) + 1.3447*spin_ratio;
+    drag_coeff_Y = 0.8;
+
+    vel_dir = vel_inertial.Normalize();
+    vel_dir_perpendicular = vel_dir.Perpendicular().Normalize();
+
+    lift_force = 0.5*rho_air*surface_area*lift_coeff*(std::pow(wind_app_vel_inertial.Length(), 2))*vel_dir_perpendicular;
+    drag_force_XZ = 0.5*rho_air*surface_area*drag_coeff_XZ*(std::pow(wind_app_vel_inertial.Length(), 2));
+    drag_force_Y = 0.5*rho_air*lat_surface_area*drag_coeff_Y*(std::pow(wind_app_vel_inertial.Length(), 2));
+    drag_force.Set(drag_force_XZ*vel_dir.X(), drag_force_Y, drag_force_XZ*vel_dir.Z());
+
+    // Omega is angular speed on roll, pitch and yaw as (1,2,3) - respectively
+    wing_inertia  = (wing_mass_*std::pow(wing_radius_, 2))/4.0 + (wing_mass_*std::pow(wing_length_, 2))/12.0;
+    gyro_torque.Set(wing_inertia*max_rot_velocity_*Omega(3), 0, wing_inertia*max_rot_velocity_*Omega(1));
 
     wing_rot_vel_ = joint_->GetVelocity(0);
     if (wing_rot_vel_ / (2 * M_PI) > 1 / (2 * sampling_time_)) {
@@ -116,16 +154,10 @@ namespace gazebo  {
 
     body_velocity = link_->WorldLinearVel();
     vel = body_velocity.Length();
-    // scalar = 1 - vel / 25.0; // at 50 m/s the rotor will not produce any force anymore
-    // scalar = ignition::math::clamp(scalar, 0.0, 1.0);
 
     // Apply a force to the link.
-    // link_->AddRelativeForce(ignition::math::Vector3d(0, 0, force));// * scalar));
+    // link_->AddRelativeForce(ignition::math::Vector3d(0, 0, force));
 
-    // Forces from Philppe Martin's and Erwan Salaün's
-    // 2010 IEEE Conference on Robotics and Automation paper
-    // The True Role of Accelerometer Feedback in Quadrotor Control
-    // - \omega * \lambda_1 * V_A^{\perp}
     joint_axis = joint_->GlobalAxis(0);
 
     body_velocity_perpendicular = body_velocity - (body_velocity * joint_axis) * joint_axis;
