@@ -25,9 +25,9 @@ Install mavros and libgstreamer
 
 ```sudo apt install libgstreamer1.0-dev```
 
-Install jinja2 library for Python2
+Install the following libraries for Python2
 
-```pip install jinja2```
+```pip install jinja2 numpy toml```
 
 Clone sitl_gazebo and PX4 Firmware
 
