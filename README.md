@@ -41,6 +41,18 @@ cd ~/catkin_ws/src/
 git clone https://github.com/gipsa-lab-uav/trajectory-control
 cd ..
 catkin_make
+```
+
+**Note:** If performance issues don't allow for the computer to finish `catkin_make`, it is possible to reduce the compiler usage on the computer, using the `-j` option. Use the `nproc` command to get the number of CPU cores/threads available. Example:
+
+```bash
+nproc
+>> 8
+catkin_make -j2
+```
+
+And then continue with:
+```
 source devel/setup.bash
 ```
 
@@ -64,6 +76,20 @@ roslaunch trajectory-control test.launch
 ```
 
 A gazebo window should open with the iris model. After few seconds, the iris quadcopter should hover at 2 meters altitude. You can open QGroundControl in parallel also to check if everything is interfacing correclty.
+
+**Note:** If the test file doesn't launch a proper Gazebo environment, with a related error such as `[FATAL]: UAS: GeographicLib exception: File not readable /usr/share/GeographicLib/geoids/egm96-5.pgm`, some additional steps are required. First, check whether or not the directories `geoids`, `gravity` and `magnetic` already exist on the path `/usr/local/share/GeographicLib/`. If they don't, follow the next steps, otherwise, skip the following commands:
+
+```bash
+wget https://raw.githubusercontent.com/mavlink/mavros/master/mavros/scripts/install_geographiclib_datasets.sh
+chmod +x install_geographiclib_datasets.sh
+sudo ./install_geographiclib_datasets.sh
+```
+
+And then, in any case, copy the desired contents from `/usr/local/share/` to `/usr/share/`, running the following command:
+
+```bash
+sudo cp -a /usr/local/share/GeographicLib/* /usr/share/GeographicLib/
+```
 
 ### Install QGroundControl
 Refer to [Official Documentation](https://docs.qgroundcontrol.com/en/getting_started/download_and_install.html) if any problems.
