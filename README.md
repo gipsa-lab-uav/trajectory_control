@@ -25,6 +25,10 @@ Install mavros and libgstreamer
 
 ```sudo apt install libgstreamer1.0-dev```
 
+Install jinja2 library for Python2
+
+```pip install jinja2```
+
 Clone sitl_gazebo and PX4 Firmware
 
 ```cd ~/catkin_ws/src/```
