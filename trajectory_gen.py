@@ -147,7 +147,7 @@ class TrajectoryGeneration:
 
     def generate_states_filtered(self):
 
-        start = time()
+        startTime = time()
 
         self.is_filtered = True
 
@@ -174,10 +174,10 @@ class TrajectoryGeneration:
             self.y_filtered.append(self.y_filtered[-1] + (self.vy_filtered[-1] / self.FREQUENCY))
             self.z_filtered.append(self.z_filtered[-1] + (self.vz_filtered[-1] / self.FREQUENCY))
 
-        print('generate_states_filtered() runs in {} s'.format(time() - start))
+        print('generate_states_filtered() runs in {} s'.format(time() - startTime))
 
     def generate_states_sg_filtered(self, window_length=5, polyorder=2, deriv=0, delta=1.0):
-        # Info: Apply Savitzky-Golay filter to velocities ###
+        # Info: Apply Savitzky-Golay filter to velocities #
 
         startTime = time()
 
@@ -352,7 +352,6 @@ if __name__ == '__main__':
     try:
         trajectory_object = TrajectoryGeneration(node_name=node_name, subscriber=subscriber, publisher=publisher)
 
-        ########################################################################
         # Configuration
         trajectory_object.YAW_HEADING = ['auto', [1, 1, 2]]  # auto, center, axes
         trajectory_object.TRAJECTORY_REQUESTED_SPEED = 1.  # [m.s-1] to compute the step for discretized trajectory
@@ -378,7 +377,6 @@ if __name__ == '__main__':
         # trajectory_object.discretise_trajectory(parameters=['circle', [.0, 1., 3.]])
         # trajectory_object.discretise_trajectory(parameters=['vector', [.0, .0, 3.]])
         # trajectory_object.discretise_trajectory(parameters=['vector', [.0, .0, .0]])
-        ########################################################################
 
         # Limit the trajectory to the BOX_LIMIT
         trajectory_object.constraint_trajectory_to_box()
