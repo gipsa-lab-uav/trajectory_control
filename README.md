@@ -19,6 +19,12 @@ For the installation, you need to have ROS melodic (or kinetic) installed and a 
 [catkin workspace](http://wiki.ros.org/catkin/Tutorials/create_a_workspace)
 
 ### Prerequisites
+Install the following libraries for Python2:
+
+```bash
+pip install jinja2 numpy toml scipy
+```
+
 Install mavros and libgstreamer
 
 ```bash
@@ -33,9 +39,10 @@ git clone --recursive https://github.com/PX4/sitl_gazebo
 git clone https://github.com/PX4/Firmware px4
 ```
 
-**Note:** If you have troubles intalling the different packages, it is strongly recommended to read the related documentation.
+**Note:** If you have troubles installing the different packages, it is strongly recommended to read the related documentation.
 
 ### Install trajectory-control
+<<<<<<< HEAD
 ```bash
 cd ~/catkin_ws/src/
 git clone https://github.com/gipsa-lab-uav/trajectory-control
@@ -69,6 +76,17 @@ And then again:
 catkin_make
 source devel/setup.bash
 ```
+=======
+```cd ~/catkin_ws/src/```
+
+```git clone https://github.com/gipsa-lab-uav/trajectory-control```
+
+```cd ..```
+
+```catkin_make```
+
+```source devel/setup.bash```
+>>>>>>> master
 
 ## Testing the installation
 ```bash
@@ -77,6 +95,7 @@ roslaunch trajectory-control test.launch
 
 A gazebo window should open with the iris model. After few seconds, the iris quadcopter should hover at 2 meters altitude. You can open QGroundControl in parallel also to check if everything is interfacing correclty.
 
+<<<<<<< HEAD
 **Note:** If the test file doesn't launch a proper Gazebo environment, with a related error such as `[FATAL]: UAS: GeographicLib exception: File not readable /usr/share/GeographicLib/geoids/egm96-5.pgm`, some additional steps are required. First, check whether or not the directories `geoids`, `gravity` and `magnetic` already exist on the path `/usr/local/share/GeographicLib/`. If they don't, follow the next steps, otherwise, skip the following commands:
 
 ```bash
@@ -204,3 +223,8 @@ erb new_model.rsdf > new_model.sdf
 ```
 
 Details and more options for the command `erb` can be found [here](https://www.commandlinux.com/man-page/man1/erb.1.html).
+=======
+Now you are ready to go with the trajectory-control_node.
+
+```roslaunch trajectory-control trajectory-control-example.launch```
+>>>>>>> master

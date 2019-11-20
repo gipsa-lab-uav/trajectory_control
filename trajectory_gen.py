@@ -84,6 +84,13 @@ class TrajectoryGeneration:
             y = [((sin_a*cos_b(s) + cos_a*sin_b(s)) * radius + center[1]) for s in range(0, steps+1)]
             z = [(center[2]) for _ in range(0, steps+1)]
 
+        elif parameters[0] == 'hover':
+            steps = int(parameters[1] * self.FREQUENCY)
+
+            x = x1 * np.ones(steps)
+            y = y1 * np.ones(steps)
+            z = z1 * np.ones(steps)
+
         # elif parameters[0] == 'square':
         # elif parameters[0] == 'lemniscate':
 
@@ -170,6 +177,7 @@ class TrajectoryGeneration:
         print('generate_states_filtered() runs in {} s'.format(time() - start))
 
     def generate_states_sg_filtered(self, window_length=5, polyorder=2, deriv=0, delta=1.0):
+        # Info: Apply Savitzky-Golay filter to velocities ###
 
         startTime = time()
 
@@ -292,7 +300,7 @@ class TrajectoryGeneration:
         plt.show()
 
     def start(self):
-        self.start = rospy.Time.now()
+        # startTime = rospy.Time.now()
         rate = rospy.Rate(self.PUBLISH_RATE)
         s = 0
         while not (rospy.is_shutdown() or s >= len(self.x_discretized)):
@@ -363,11 +371,13 @@ if __name__ == '__main__':
 
         # Define trajectory shape/vertices in NED frame
         trajectory_object.discretise_trajectory(parameters=['vector', [.0, .0, 2.]])
-        trajectory_object.discretise_trajectory(parameters=['circle', [.0, 2., 2.]])
-        trajectory_object.discretise_trajectory(parameters=['vector', [1., 2., 3.]])
-        trajectory_object.discretise_trajectory(parameters=['circle', [.0, 1., 3.]])
-        trajectory_object.discretise_trajectory(parameters=['vector', [.0, .0, 3.]])
-        trajectory_object.discretise_trajectory(parameters=['vector', [.0, .0, .0]])
+        trajectory_object.discretise_trajectory(parameters=['hover', 10.])
+        trajectory_object.discretise_trajectory(parameters=['vector', [.0, .0, 0.]])
+        # trajectory_object.discretise_trajectory(parameters=['circle', [.0, 2., 2.]])
+        # trajectory_object.discretise_trajectory(parameters=['vector', [1., 2., 3.]])
+        # trajectory_object.discretise_trajectory(parameters=['circle', [.0, 1., 3.]])
+        # trajectory_object.discretise_trajectory(parameters=['vector', [.0, .0, 3.]])
+        # trajectory_object.discretise_trajectory(parameters=['vector', [.0, .0, .0]])
         ########################################################################
 
         # Limit the trajectory to the BOX_LIMIT

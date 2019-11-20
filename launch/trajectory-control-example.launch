@@ -1,13 +1,17 @@
 <launch>
-	<!--arg name="arg_with_default" default="default" /-->
-	<include file="$(find px4)/launch/mavros_posix_sitl.launch"/>
-	<node pkg="trajectory-control" type="trajectory-control_node" name="trajectory_control_node" output="screen">
-		<!--param name="param_with_default" value="$(arg arg_with_default)" /-->
+	<arg name="simulated-env" default="true" />
+	<arg name="rosbag-record" default="false" />
 
-		<!-- load blacklist, config -->
-		<!--rosparam command="load" file="$(arg config_yaml)" /-->
-	</node>
+	<include file="$(find px4)/launch/mavros_posix_sitl.launch" if="$(arg simulated-env)"/>
+
+	<node pkg="trajectory-control" type="trajectory-control_node" name="trajectory_control_node" output="screen"></node>
 
   <node pkg="trajectory-control" type="trajectory_gen.py" name="trajectory_gen_node"></node>
+
+	<node pkg="rosbag" type="record" name="rosbag_record_cam"
+		args="record -o $(find trajectory-control)/rosbag/bag mavros/global_position/local mavros/imu/data mavros/rc/out mavros/setpoint_raw/attitude"
+		if="$(arg rosbag-record)" />
+
+	<node pkg="trajectory-control" type="display.py" name="display_node"></node>
 
 </launch>
