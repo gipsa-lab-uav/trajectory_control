@@ -13,7 +13,7 @@ class Display:
     def __init__(self):
         self.node_name = 'display_node'
         self.command_sub = 'mavros/setpoint_raw/attitude'
-        self.position_sub = 'mavros/global_position/local'
+        self.position_sub = 'mavros/local_position/odom'
         self.trajectory_sub = 'mavros/JointTrajectory'
 
         self.time_window = 10 # [s]

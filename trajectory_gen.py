@@ -369,13 +369,13 @@ if __name__ == '__main__':
 
         # Define trajectory shape/vertices in NED frame
         trajectory_object.discretise_trajectory(parameters=['vector', [.0, .0, 2.]])
-        trajectory_object.discretise_trajectory(parameters=['hover', 10.])
-        trajectory_object.discretise_trajectory(parameters=['vector', [.0, .0, 0.]])
-        # trajectory_object.discretise_trajectory(parameters=['circle', [.0, 2., 2.]])
-        # trajectory_object.discretise_trajectory(parameters=['vector', [1., 2., 3.]])
-        # trajectory_object.discretise_trajectory(parameters=['circle', [.0, 1., 3.]])
-        # trajectory_object.discretise_trajectory(parameters=['vector', [.0, .0, 3.]])
-        # trajectory_object.discretise_trajectory(parameters=['vector', [.0, .0, .0]])
+        # trajectory_object.discretise_trajectory(parameters=['hover', 30.])
+        # trajectory_object.discretise_trajectory(parameters=['vector', [.0, .0, 0.]])
+        trajectory_object.discretise_trajectory(parameters=['circle', [.0, 2., 2.]])
+        trajectory_object.discretise_trajectory(parameters=['vector', [1., 2., 3.]])
+        trajectory_object.discretise_trajectory(parameters=['circle', [.0, 1., 3.]])
+        trajectory_object.discretise_trajectory(parameters=['vector', [.0, .0, 3.]])
+        trajectory_object.discretise_trajectory(parameters=['vector', [.0, .0, .0]])
         ########################################################################
 
         # Limit the trajectory to the BOX_LIMIT

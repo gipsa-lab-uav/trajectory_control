@@ -1,4 +1,4 @@
-# trajectory-control
+# Trajectory Control
 Trajectory generation and control algorithms for UAVs with ROS wrapping.
 
 The project uses external software such as Mavros. Below are the links directing to their documentations.
@@ -35,10 +35,10 @@ Clone sitl_gazebo and PX4 Firmware
 
 **Note:** If you have troubles installing the different packages, it is strongly recommended to read the related documentation.
 
-### Install trajectory-control
+### Install trajectory_control
 ```cd ~/catkin_ws/src/```
 
-```git clone https://github.com/gipsa-lab-uav/trajectory-control```
+```git clone https://github.com/gipsa-lab-uav/trajectory_control```
 
 ```cd ..```
 
@@ -47,10 +47,10 @@ Clone sitl_gazebo and PX4 Firmware
 ```source devel/setup.bash```
 
 ## Testing the installation
-```roslaunch trajectory-control test.launch```
+```roslaunch trajectory_control test.launch```
 
 A gazebo window should open with the iris model. After few seconds, the iris quadcopter should hover at 2 meters altitude. You can open QGroundControl in parallel also to check if everything is interfacing correclty.
 
-Now you are ready to go with the trajectory-control_node.
+Now you are ready to go with the trajectory_control_node.
 
-```roslaunch trajectory-control trajectory-control-example.launch```
+```roslaunch trajectory_control trajectory_control_example.launch```
