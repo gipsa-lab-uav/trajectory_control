@@ -16,7 +16,7 @@
 
 #include "common.h"
 
-#define M_PI = 3.14159265358979323846
+#define M_PI 3.14159265358979323846
 
 namespace gazebo {
 // Default values
@@ -81,7 +81,7 @@ class MagnusRoll : public MotorModel, public ModelPlugin {
     double ref_wing_rot_vel_;
     double wing_mass_;
     double wing_radius_;
-    double wing_length;
+    double wing_length_;
 
     transport::NodePtr node_handle_;
     transport::PublisherPtr motor_velocity_pub_;

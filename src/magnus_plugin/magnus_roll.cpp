@@ -77,7 +77,7 @@ namespace gazebo  {
     motor_velocity_pub_ = node_handle_->Advertise<std_msgs::msgs::Float>("~/" + model_->GetName() + motor_speed_pub_topic_, 1);
   }
 
-  void MagnusRoll::OnUpdate(const common::UpdateInfo& _info) {
+  void MagnusRoll::OnUpdate(const common::UpdateInfo & _info) {
     sampling_time_ = _info.simTime.Double() - prev_sim_time_;
     prev_sim_time_ = _info.simTime.Double();
     UpdateForcesAndMoments();
@@ -96,7 +96,7 @@ namespace gazebo  {
     wing_Failure_Number_ = fail_msg->data();
   }
 
-  void GazeboWingModel::UpdateForcesAndMoments() {
+  void MagnusRoll::UpdateForcesAndMoments() {
     // double force;
     double real_wing_velocity;
     // double scalar;
