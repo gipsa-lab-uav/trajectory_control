@@ -12,13 +12,21 @@ The project uses external software such as Mavros. Below are the links directing
 [Sitl-Gazebo](https://github.com/PX4/sitl_gazebo)
 
 ## Installation
-For the installation, you need to have ROS melodic (or kinetic) installed and a catkin workspace. Follow the online documentation to set up your environement.
+For the installation, you need to have ROS melodic (or kinetic) installed, a catkin workspace and Gazebo. Follow the online documentation to set up your environement.
 
 [ROS installation](http://wiki.ros.org/melodic/Installation/Ubuntu)
 
 [catkin workspace](http://wiki.ros.org/catkin/Tutorials/create_a_workspace)
 
+[Gazebo](http://gazebosim.org/tutorials?tut=install_ubuntu&cat=install)
+
 ### Prerequisites
+Install the requested Python2 libraries:
+
+```bash
+pip install -r requirements.txt
+```
+
 Install mavros and libgstreamer
 
 ```sudo apt install ros-melodic-mavros```
@@ -27,22 +35,34 @@ Install mavros and libgstreamer
 
 Clone sitl_gazebo and PX4 Firmware
 
-```cd ~/catkin_ws/src/```
+```bash
+cd ~/catkin_ws/src/
+```
 
 ```git clone --recursive https://github.com/PX4/sitl_gazebo```
 
-```git clone https://github.com/PX4/Firmware px4```
+```git clone --recursive https://github.com/PX4/Firmware px4```
 
 **Note:** If you have troubles installing the different packages, it is strongly recommended to read the related documentation.
 
 ### Install trajectory_control
-```cd ~/catkin_ws/src/```
+```bash
+cd ~/catkin_ws/src/
+```
 
 ```git clone https://github.com/gipsa-lab-uav/trajectory_control```
 
-```cd ..```
+```bash
+cd ..
+```
 
 ```catkin_make```
+
+**Note:** If catkin_make freeze the terminal and is not finishing, you may have a performance issue with your computer. In that case try to re-launch catkin_make with a job option.
+
+```catkin_make -j2```
+
+Then just source your setup.bash as usual
 
 ```source devel/setup.bash```
 
