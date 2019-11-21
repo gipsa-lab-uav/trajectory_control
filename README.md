@@ -27,9 +27,18 @@ Install the requested Python2 libraries:
 pip install -r requirements.txt
 ```
 
-Install mavros and libgstreamer
+Install mavros
 
-```sudo apt install ros-melodic-mavros```
+```sudo apt install ros-melodic-mavros ros-kinetic-mavros-extras```
+
+Mavros request the GeographicLib datasets, install it by running the install_geographiclib_datasets.sh script
+
+```bash
+wget https://raw.githubusercontent.com/mavlink/mavros/master/mavros/scripts/install_geographiclib_datasets.sh
+./install_geographiclib_datasets.sh
+```
+
+Install libgstreamer
 
 ```sudo apt install libgstreamer1.0-dev```
 
