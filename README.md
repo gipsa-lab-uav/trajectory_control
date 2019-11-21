@@ -29,18 +29,25 @@ pip install -r requirements.txt
 
 Install mavros
 
-```sudo apt install ros-melodic-mavros ros-kinetic-mavros-extras```
+```sudo apt install ros-melodic-mavros ros-melodic-mavros-extras```
 
 Mavros request the GeographicLib datasets, install it by running the install_geographiclib_datasets.sh script
 
 ```bash
 wget https://raw.githubusercontent.com/mavlink/mavros/master/mavros/scripts/install_geographiclib_datasets.sh
-./install_geographiclib_datasets.sh
+chmod +x install_geographiclib_datasets.sh
+sudo ./install_geographiclib_datasets.sh
 ```
-
 Install libgstreamer
 
 ```sudo apt install libgstreamer1.0-dev```
+
+Initialize and update rosdep
+
+```bash
+sudo rosdep init
+rosdep update
+```
 
 Clone sitl_gazebo and PX4 Firmware
 
