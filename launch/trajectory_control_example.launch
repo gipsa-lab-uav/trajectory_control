@@ -1,5 +1,5 @@
 <launch>
-	<arg name="simulated-env" default="false" />
+	<arg name="simulated-env" default="true" />
 	<arg name="trajectory-gen" default="true" />
 	<arg name="rosbag-record" default="false" />
 
