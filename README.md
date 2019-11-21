@@ -12,17 +12,19 @@ The project uses external software such as Mavros. Below are the links directing
 [Sitl-Gazebo](https://github.com/PX4/sitl_gazebo)
 
 ## Installation
-For the installation, you need to have ROS melodic (or kinetic) installed and a catkin workspace. Follow the online documentation to set up your environement.
+For the installation, you need to have ROS melodic (or kinetic) installed, a catkin workspace and Gazebo. Follow the online documentation to set up your environement.
 
 [ROS installation](http://wiki.ros.org/melodic/Installation/Ubuntu)
 
 [catkin workspace](http://wiki.ros.org/catkin/Tutorials/create_a_workspace)
 
+[Gazebo](http://gazebosim.org/tutorials?tut=install_ubuntu&cat=install)
+
 ### Prerequisites
-Install the following libraries for Python2:
+Install the requested Python2 libraries:
 
 ```bash
-pip install jinja2 numpy toml scipy
+pip install -r requirements.txt
 ```
 
 Install mavros and libgstreamer
