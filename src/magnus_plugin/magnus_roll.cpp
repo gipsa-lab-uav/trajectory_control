@@ -68,6 +68,8 @@ namespace gazebo  {
     getSdfParam<double>(_sdf, "wingMass", wing_mass_, wing_mass_);
     getSdfParam<double>(_sdf, "wingRadius", wing_radius_, wing_radius_);
     getSdfParam<double>(_sdf, "wingLength", wing_length_, wing_length_);
+    getSdfParam<double>(_sdf, "motorConstant", motor_constant_, motor_constant_);
+    getSdfParam<double>(_sdf, "momentConstant", moment_constant_, moment_constant_);
 
     // Listen to the update event. This event is broadcast every
     // simulation iteration.
@@ -97,7 +99,7 @@ namespace gazebo  {
   }
 
   void MagnusRoll::UpdateForcesAndMoments() {
-    // double force;
+    double force;
     double real_wing_velocity;
     // double scalar;
     double vel;
@@ -190,6 +192,12 @@ namespace gazebo  {
     // The tansformation from the parent_link to the link_.
     pose_difference = link_->WorldCoGPose() - parent_links.at(0)->WorldCoGPose();
     parent_links.at(0)->AddRelativeTorque(gyro_torque);
+
+    // Reactive Torque - NEEDS CORRECT IMPLEMENTATION
+    force = std::pow(real_wing_velocity, 2) * motor_constant_;
+    ignition::math::Vector3d reactive_torque(0, 0, force * moment_constant_);
+    ignition::math::Vector3d drag_torque_parent_frame = pose_difference.Rot().RotateVector(reactive_torque);
+    parent_links.at(0)->AddRelativeTorque(drag_torque_parent_frame);
 
     joint_->SetVelocity(0, ref_wing_rot_vel_ / rotor_velocity_slowdown_sim_);
   }

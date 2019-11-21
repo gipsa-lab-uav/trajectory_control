@@ -33,6 +33,8 @@ static constexpr double kDefaultRotorVelocitySlowdownSim = 10.0;
 static constexpr double kDefaultWingMass = 0.06;
 static constexpr double kDefaultWingRadius = 0.025;
 static constexpr double kDefaultWingLength = 0.15;
+static constexpr double kDefaultMomentConstant = 0.016;
+static constexpr double kDefaultMotorConstant = 8.54858e-06;
 
 class MagnusRoll : public MotorModel, public ModelPlugin {
   public:
@@ -46,6 +48,8 @@ class MagnusRoll : public MotorModel, public ModelPlugin {
           wing_mass_(kDefaultWingMass),
           wing_radius_(kDefaultWingRadius),
           wing_length_(kDefaultWingLength),
+          moment_constant_(kDefaultMomentConstant),
+          motor_constant_(kDefaultMotorConstant),
           wing_number_(0),
           wing_Failure_Number_(0),
           ref_wing_rot_vel_(0.0),
@@ -82,6 +86,8 @@ class MagnusRoll : public MotorModel, public ModelPlugin {
     double wing_mass_;
     double wing_radius_;
     double wing_length_;
+    double moment_constant_;
+    double motor_constant_;
 
     transport::NodePtr node_handle_;
     transport::PublisherPtr motor_velocity_pub_;
