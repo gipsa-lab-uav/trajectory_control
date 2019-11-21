@@ -7,7 +7,12 @@
 #include "gazebo/msgs/msgs.hh"
 #include <gazebo/physics/physics.hh>
 #include "gazebo/transport/transport.hh"
+
+#include <Eigen/Eigen>
 #include <rotors_model/motor_model.hpp>
+#include "CommandMotorSpeed.pb.h"
+#include "MotorSpeed.pb.h"
+#include "Float.pb.h"
 
 #include "common.h"
 
