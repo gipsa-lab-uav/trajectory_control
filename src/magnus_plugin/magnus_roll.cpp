@@ -126,8 +126,11 @@ namespace gazebo  {
 
     ignition::math::Vector3d wind_app_vel_inertial;
     ignition::math::Vector3d wind_app_vel;
+    ignition::math::Vector3d wind_vel_inertial;
     ignition::math::Vector3d vel_dir;
     ignition::math::Vector3d vel_dir_perpendicular;
+    ignition::math::Vector3d ang_speed;   // angular speed of the body in the body frame
+    ignition::math::Vector3d vel_inertial;  // linear speed of the CoG of the body in the world frame
     ignition::math::Vector3d lift_force;
     ignition::math::Vector3d drag_force;
     ignition::math::Vector3d gyro_torque;
@@ -135,14 +138,12 @@ namespace gazebo  {
     physics::Link_V parent_links;
 
 
-    wind_vel = link_->RelativeWindLinearVel();
-    omega = link_->RelativeAngularVel();
-    vel_inertial = link__->WorldLinearVel();
+    ang_speed = link_->RelativeAngularVel();
+    vel_inertial = link_->WorldCoGLinearVel();
     wind_vel_inertial = link_->WorldWindLinearVel();
 
-
-    wind_app_vel_inertial = wind_vel - vel_inertial;
-    wind_app_vel = wind_app_vel_inertial * foo();     // transform inertial to body
+    wind_app_vel_inertial = wind_vel_inertial - vel_inertial;
+    wind_app_vel = link_->WorldCoGPose().Rot().RotateVector(wind_app_vel_inertial);   // transform from inertial to body frame
     abs_wind_app_vel = ignition::math::Vector3d(wind_app_vel.X(), 0, wind_app_vel.Z()).Length();
 
     if (abs_wind_app_vel > 0)
@@ -155,56 +156,42 @@ namespace gazebo  {
     drag_coeff_XZ = -0.0211*std::pow(spin_ratio, 3) + 0.1873*std::pow(spin_ratio, 2) + 0.1183*spin_ratio + 0.5;
     lift_coeff = 0.0126*std::pow(spin_ratio, 4) - 0.2004*std::pow(spin_ratio, 3) + 0.7482*std::pow(spin_ratio, 2) + 1.3447*spin_ratio;
     drag_coeff_Y = 0.8;
+    
+    if (vel_inertial.Length() > 0) 
+      vel_dir = vel_inertial.Normalized();
+    else
+      vel_dir.Set(1.0, 0, 0);
+    
+    vel_dir_perpendicular = vel_dir.Cross(ignition::math::Vector3d(0, 1.0, 0));
 
-    vel_dir = vel_inertial.Normalize();
-    vel_dir_perpendicular = vel_dir.Perpendicular().Normalize();  // Should use cross product to find lift direction
-
+    // Lift and Drag forces
     lift_force = 0.5*rho_air*surface_area*lift_coeff*(std::pow(wind_app_vel_inertial.Length(), 2))*vel_dir_perpendicular;
     drag_force_XZ = 0.5*rho_air*surface_area*drag_coeff_XZ*(std::pow(wind_app_vel_inertial.Length(), 2));
     drag_force_Y = 0.5*rho_air*lat_surface_area*drag_coeff_Y*(std::pow(wind_app_vel_inertial.Length(), 2));
     drag_force.Set(drag_force_XZ*vel_dir.X(), drag_force_Y, drag_force_XZ*vel_dir.Z());
 
-    // Omega is angular speed on roll, pitch and yaw as (1,2,3) - respectively
+    // Gyroscopic torques
     wing_inertia  = (wing_mass_*std::pow(wing_radius_, 2))/4.0 + (wing_mass_*std::pow(wing_length_, 2))/12.0;
-    gyro_torque.Set(wing_inertia*max_rot_velocity_*Omega(3), 0, wing_inertia*max_rot_velocity_*Omega(1));
+    gyro_torque.Set(wing_inertia*max_rot_velocity_*ang_speed.Z(), 0, wing_inertia*max_rot_velocity_*ang_speed.X());
 
     motor_rot_vel_ = joint_->GetVelocity(0);
     if (motor_rot_vel_ / (2 * M_PI) > 1 / (2 * sampling_time_)) {
       gzerr << "Aliasing on wing [" << wing_number_ << "] might occur. Consider making smaller simulation time steps or raising the rotor_velocity_slowdown_sim_ param.\n";
     }
     real_wing_velocity = motor_rot_vel_ * rotor_velocity_slowdown_sim_;
-    // force = real_wing_velocity * motor_constant_;
 
-    // body_velocity = link_->WorldLinearVel();
-    // vel = body_velocity.Length();
-
-    // Apply a force to the link.
-    // link_->AddRelativeForce(ignition::math::Vector3d(0, 0, force));
-
-    joint_axis = joint_->GlobalAxis(0);
-
-    body_velocity_perpendicular = body_velocity - (body_velocity * joint_axis) * joint_axis;
-    air_drag = -std::abs(real_wing_velocity) * rotor_drag_coefficient_ * body_velocity_perpendicular;
-
-    // Apply air_drag to link.
-    link_->AddForce(air_drag);
+    // Apply wing lift and drag to link.
+    link_->AddForce(drag_force);
+    link_->AddForce(lift_force);
 
     // Moments
     // Getting the parent link, such that the resulting torques can be applied to it.
     parent_links = link_->GetParentJointsLinks();
     // The tansformation from the parent_link to the link_.
     pose_difference = link_->WorldCoGPose() - parent_links.at(0)->WorldCoGPose();
+    parent_links.at(0)->AddRelativeTorque(gyro_torque);
 
-    // drag_torque.Set(0, 0, -turning_direction_ * force * moment_constant_);
-    // Transforming the drag torque into the parent frame to handle arbitrary rotor orientations.
-    drag_torque_parent_frame = pose_difference.Rot().RotateVector(drag_torque);
-    parent_links.at(0)->AddRelativeTorque(drag_torque_parent_frame);
-    
-    // - \omega * \mu_1 * V_A^{\perp}
-    rolling_moment = -std::abs(real_wing_velocity) * rolling_moment_coefficient_ * body_velocity_perpendicular;
-    parent_links.at(0)->AddTorque(rolling_moment);
-
-    joint_->SetVelocity(0, turning_direction_ * ref_wing_rot_vel_ / rotor_velocity_slowdown_sim_);
+    joint_->SetVelocity(0, ref_wing_rot_vel_ / rotor_velocity_slowdown_sim_);
   }
 
 
@@ -215,7 +202,7 @@ namespace gazebo  {
       std::cout << "Wing number [" << wing_Failure_Number_ <<"] failed!  [Wing speed = 0]" << std::endl;
       tmp_motor_num = wing_Failure_Number_;
       
-    }else if (wing_Failure_Number_ == 0 && motor_number_ ==  tmp_motor_num - 1){
+    }else if (wing_Failure_Number_ == 0 && wing_number_ ==  tmp_motor_num - 1){
         std::cout << "Wing number [" << tmp_motor_num <<"] running! [Wing speed = (default)]" << std::endl;
     }
   }
