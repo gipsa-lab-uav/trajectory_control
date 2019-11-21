@@ -1,7 +1,7 @@
 #include "ros/ros.h"
 #include "std_msgs/String.h"
 
-#include "trajectory-control/fsf.hpp"
+#include "trajectory_control/fsf.hpp"
 
 #include <sstream>
 

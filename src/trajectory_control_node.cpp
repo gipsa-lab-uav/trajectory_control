@@ -33,6 +33,7 @@ trajectory_msgs::JointTrajectory jointTrajectory;
 DroneStates lastMeasuredStates;
 geometry_msgs::Vector3 lastEulerAngles;
 mavros_msgs::State drone_state;
+trajectory_msgs::JointTrajectoryPoint drone_states_joint;
 
 bool isFirstCallback = false;
 /******************************************************************************/
@@ -135,6 +136,29 @@ DroneStates getState(trajectory_msgs::JointTrajectoryPoint point){
   return state;
 }
 
+trajectory_msgs::JointTrajectoryPoint getJointTrajectoryPoint(DroneStates state){
+
+  trajectory_msgs::JointTrajectoryPoint point;
+  geometry_msgs::Vector3 position, velocity, acceleration;
+  position = state.getVectPos();
+  velocity= state.getVectSpeed();
+  acceleration = state.getVectAcceleration();
+
+  point.positions.push_back(position.x);
+  point.positions.push_back(position.y);
+  point.positions.push_back(position.z);
+
+  point.velocities.push_back(velocity.x);
+  point.velocities.push_back(velocity.y);
+  point.velocities.push_back(velocity.z);
+
+  point.accelerations.push_back(acceleration.x);
+  point.accelerations.push_back(acceleration.y);
+  point.accelerations.push_back(acceleration.z);
+
+  return point;
+}
+
 geometry_msgs::Quaternion EulerToQuaternion(float yaw, float pitch, float roll){
 
   geometry_msgs::Quaternion q;
@@ -165,12 +189,13 @@ int main(int argc, char *argv[])
 
   // Define subscribers
   ros::Subscriber jointTrajectory_sub = nh.subscribe("mavros/JointTrajectory", 10, &jointTrajectoryAcquireCallback);
-  ros::Subscriber measuredStates_sub = nh.subscribe("mavros/global_position/local", 10, &measuredStatesAcquireCallback);
+  ros::Subscriber measuredStates_sub = nh.subscribe("mavros/local_position/odom", 10, &measuredStatesAcquireCallback);
   ros::Subscriber state_sub = nh.subscribe<mavros_msgs::State>("mavros/state", 10, droneStateAcquireCallback);
 
   // Define publishers
   ros::Publisher attitudeCmd_pub = nh.advertise<mavros_msgs::AttitudeTarget>("mavros/setpoint_raw/attitude", 10);
   ros::Publisher local_pos_pub = nh.advertise<geometry_msgs::PoseStamped>("mavros/setpoint_position/local", 10);
+  ros::Publisher estimated_state_pub = nh.advertise<trajectory_msgs::JointTrajectoryPoint>("mavros/estimated_state", 10);
 
   // Define service client
   ros::ServiceClient arming_client = nh.serviceClient<mavros_msgs::CommandBool>("mavros/cmd/arming");
@@ -188,6 +213,9 @@ int main(int argc, char *argv[])
   mavros_msgs::AttitudeTarget cmd;
   ros::Time time, last_request;
   float yaw, dt, time2;
+  bool useStatesObserver, reset;
+
+  reset = true;
   /****************************************************************************/
 
   /*********************************Parameters*********************************/
@@ -195,70 +223,94 @@ int main(int argc, char *argv[])
   ros::Rate rate = nh_private.param<int>("rate", 100);
 
   // Full States Feedback Gains
-  fsf.x.param.Kp = nh_private.param<double>("fsf_x_P", 0.3f);
-  fsf.x.param.Ks = nh_private.param<double>("fsf_x_S", 2.5f);
-  fsf.y.param.Kp = nh_private.param<double>("fsf_y_P", 0.3f);
-  fsf.y.param.Ks = nh_private.param<double>("fsf_y_S", 2.5f);
-  fsf.z.param.Kp = nh_private.param<double>("fsf_z_P", 0.3f);
-  fsf.z.param.Ks = nh_private.param<double>("fsf_z_S", 2.5f);
+  nh_private.param("fsf_x_P", fsf.x.param.Kp, (float) 1.0);
+  nh_private.param("fsf_x_S", fsf.x.param.Ks, (float) 1.7);
+  nh_private.param("fsf_y_P", fsf.y.param.Kp, (float) 1.0);
+  nh_private.param("fsf_y_S", fsf.y.param.Ks, (float) 1.7);
+  nh_private.param("fsf_z_P", fsf.z.param.Kp, (float) 1.56);
+  nh_private.param("fsf_z_S", fsf.z.param.Ks, (float) 2.4);
 
   // States Observer Gains
-  bool useStatesObserver = nh_private.param<bool>("use_StatesObserver", true);
-  se.x.param.Lpos = nh_private.param<double>("se_x_Lpos", 1.03f);
-  se.x.param.Lspeed = nh_private.param<double>("se_x_Lspeed", 10.7f);
-  se.x.param.Lunc = nh_private.param<double>("se_x_Lunc", 9.62f);
-  se.y.param.Lpos = nh_private.param<double>("se_y_Lpos", 1.03f);
-  se.y.param.Lspeed = nh_private.param<double>("se_y_Lspeed", 10.7f);
-  se.y.param.Lunc = nh_private.param<double>("se_y_Lunc", 9.62f);
-  se.z.param.Lpos = nh_private.param<double>("se_z_Lpos", 1.03f);
-  se.z.param.Lspeed = nh_private.param<double>("se_z_Lspeed", 10.7f);
-  se.z.param.Lunc = nh_private.param<double>("se_z_Lunc", 9.62f);
+  nh_private.param("use_StatesObserver", useStatesObserver, true);
+
+  nh_private.param("se_x_Lpos", se.x.param.Lpos, (float) 1.03);
+  nh_private.param("se_y_Lpos", se.y.param.Lpos, (float) 1.03);
+  nh_private.param("se_z_Lpos", se.z.param.Lpos, (float) 1.03);
+  nh_private.param("se_x_Lspeed", se.x.param.Lspeed, (float) 10.7);
+  nh_private.param("se_y_Lspeed", se.y.param.Lspeed, (float) 10.7);
+  nh_private.param("se_z_Lspeed", se.z.param.Lspeed, (float) 10.7);
+  nh_private.param("se_x_Lunc", se.x.param.Lunc, (float) 9.62);
+  nh_private.param("se_y_Lunc", se.y.param.Lunc, (float) 9.62);
+  nh_private.param("se_z_Lunc", se.z.param.Lunc, (float) 9.62);
 
   // Actuators Time Constant (used to filter the command fed to the observer)
-  se.x.param.filterCoeff = nh_private.param<double>("se_x_Filter", 0.95f);
-  se.y.param.filterCoeff = nh_private.param<double>("se_y_Filter", 0.95f);
-  se.z.param.filterCoeff = nh_private.param<double>("se_z_Filter", 0.15f);
+  nh_private.param("se_x_Filter", se.x.param.filterCoeff, (float) .9);
+  nh_private.param("se_y_Filter", se.y.param.filterCoeff, (float) .9);
+  nh_private.param("se_z_Filter", se.z.param.filterCoeff, (float) .15);
 
   // Kinematic Transform Parameters (= physical parameters)
-  kt.param.hoverCompensation = nh_private.param<double>("hoverCompensation",0.45f);
-  kt.param.mass = nh_private.param<double>("mass",1.5f);
-  kt.param.maxAngle = nh_private.param<double>("maxAngle",45.0f);
-  kt.param.maxVerticalAcceleration = nh_private.param<double>("maxVerticalAcceleration",4.0f);
+  nh_private.param("mass", kt.param.mass, (float) 1.);
+  nh_private.param("hoverCompensation", kt.param.hoverCompensation, (float) .3);
+  nh_private.param("maxAngle", kt.param.maxAngle, (float) 45.);
+  nh_private.param("maxVerticalAcceleration", kt.param.maxVerticalAcceleration, (float) 4.);
+
+  ROS_INFO_STREAM(
+    "\n********* System Parameters (can be defined in launchfile) *********"
+    << "\nfsf_x_P: " << fsf.x.param.Kp << " fsf_x_S: " << fsf.x.param.Ks
+    << "\nfsf_y_P: " << fsf.y.param.Kp << " fsf_y_S: " << fsf.y.param.Ks
+    << "\nfsf_z_P: " << fsf.z.param.Kp << " fsf_z_S: " << fsf.z.param.Ks
+    << "\n"
+    << "\nuse_StatesObserver: " << useStatesObserver
+    << "\nse_x_Lpos: " << se.x.param.Lpos << " nse_x_Lspeed: " << se.x.param.Lspeed << " se_x_Lunc: " << se.x.param.Lunc
+    << "\nse_y_Lpos: " << se.y.param.Lpos << " nse_y_Lspeed: " << se.y.param.Lspeed << " se_y_Lunc: " << se.y.param.Lunc
+    << "\nse_z_Lpos: " << se.z.param.Lpos << " nse_z_Lspeed: " << se.z.param.Lspeed << " se_z_Lunc: " << se.z.param.Lunc
+    << "\n"
+    << "\nse_x_Filter: " << se.x.param.filterCoeff
+    << "\nse_y_Filter: " << se.y.param.filterCoeff
+    << "\nse_z_Filter: " << se.z.param.filterCoeff
+    << "\n"
+    << "\nmass: " << kt.param.mass
+    << "\nhoverCompensation: " << kt.param.hoverCompensation
+    << "\nmaxAngle: " << kt.param.maxAngle
+    << "\nmaxVerticalAcceleration: " << kt.param.maxVerticalAcceleration
+    << "\n*******************************************************************"
+  );
   /****************************************************************************/
 
   /****************************Connection & Callback***************************/
-  //Wait for the drone to connect
+  // Wait for the drone to connect
   ROS_INFO("Waiting for drone connection ...");
   while(ros::ok() && !drone_state.connected){
       ros::spinOnce();
       rate.sleep();
   }
 
-  //Wait for the first state measure callback
+  // Wait for the first state measure callback
   ROS_INFO("Waiting for position measurement callback ...");
   while (ros::ok() && !isFirstCallback){
     ros::spinOnce();
     rate.sleep();
   }
 
-  //Wait for better measure accuracy (GPS/MOCAP) -> sleep for 2 seconds
+  // Wait for better measure accuracy (GPS/MOCAP) -> sleep for 2 seconds
   ros::Duration(2.).sleep();
   /****************************************************************************/
 
   /*******************************Initialization*******************************/
-  //Initialize acceleration command
+  // Initialize acceleration command
   accelerationCmd.x = .0;
   accelerationCmd.y = .0;
   accelerationCmd.z = .0;
 
-  //Initialize first trajectory point as the measured position
+  // Initialize first trajectory point as the measured position
   trajectory_msgs::JointTrajectoryPoint firstPoint;
 
   geometry_msgs::Vector3 position = lastMeasuredStates.getVectPos();
 
   firstPoint.positions.push_back(position.x);
   firstPoint.positions.push_back(position.y);
-  firstPoint.positions.push_back(position.z);
+  firstPoint.positions.push_back(position.z - .01f);
+  firstPoint.positions.push_back(lastEulerAngles.z);
   firstPoint.velocities.push_back(0.);
   firstPoint.velocities.push_back(0.);
   firstPoint.velocities.push_back(0.);
@@ -269,15 +321,15 @@ int main(int argc, char *argv[])
 
   jointTrajectory.points.push_back(firstPoint);
 
-  //Set OFFBOARD mode request
+  // Set OFFBOARD mode request
   mavros_msgs::SetMode offb_set_mode;
   offb_set_mode.request.custom_mode = "OFFBOARD";
 
-  //Set arming request
+  // Set arming request
   mavros_msgs::CommandBool arm_cmd;
   arm_cmd.request.value = true;
 
-  //Initialize time & last_request
+  // Initialize time & last_request
   ros::Duration(rate.expectedCycleTime()).sleep();
   time = ros::Time::now() - rate.expectedCycleTime();
   last_request = ros::Time::now();
@@ -298,63 +350,73 @@ int main(int argc, char *argv[])
     /**************************************************************************/
 
     /*******************************Update Loop********************************/
-    //Compute dt and save time
+    // Compute dt and save time
     dt = (ros::Time::now().toNSec() - time.toNSec())/1000000000.0f;
     time = ros::Time::now();
 
-    //Consider time for trajectory only when the drone is armed
-    if ( drone_state.armed ) time2 += dt;
+    // Consider time for trajectory only when the drone is armed & set reset flag to true
+    if (drone_state.armed) time2 += dt;
+    else reset = true;
 
-    //Get the next trajectory point and update the target state
+    // Get the next trajectory point and update the target state
     trajectoryPoint = getNextTrajectoryPoint(time2);
     targetStates = getState(trajectoryPoint);
 
-    //Get the yaw from the trajectoryPoint
+    // Get the yaw from the trajectoryPoint
     yaw = trajectoryPoint.positions[3];
 
-    //Get the last measured state
+    // Get the last measured state
     measuredStates = lastMeasuredStates;
     eulerAngles = lastEulerAngles;
     /**************************************************************************/
 
     /*************************Full State Feedback & KT*************************/
-    //Get the estimated state from measures and previous estimation & command
+    // Reset estimator and set reset flag to false
+    if (drone_state.armed && reset){
+      se.resetEstimations();
+      reset = false;
+    }
+
+    // Get the estimated state from measures and previous estimation & command
     if(!useStatesObserver) {
-      predictedStates = se.process(dt, measuredStates.getVectPos(), measuredStates, accelerationCmd);
+      predictedStates = se.process(dt, measuredStates.getVectPos(), predictedStates, accelerationCmd);
       measuredStates.x.uncertainties = predictedStates.x.uncertainties;
       measuredStates.y.uncertainties = predictedStates.y.uncertainties;
       measuredStates.z.uncertainties = predictedStates.z.uncertainties;
       predictedStates = measuredStates;
     } else predictedStates = se.process(dt, measuredStates.getVectPos(), predictedStates, accelerationCmd);
 
-    //Compute full state feedback control
+    drone_states_joint = getJointTrajectoryPoint(predictedStates);
+    // Compute full state feedback control
     accelerationCmd = fsf.process(dt, predictedStates, targetStates);
-    ROS_INFO_STREAM("\ntime: " << time << "\ndt: " << dt << "\n\npredictedStates:\n" << predictedStates.getVectPos() << "\ntargetStates:\n" << targetStates.getVectPos() << "\nattitudeCmd:\n" << attitudeCmd);
+    // ROS_INFO_STREAM("\ntime: " << time << "\ndt: " << dt << "\n\npredictedStates:\n" << predictedStates.getVectPos() << "\ntargetStates:\n" << targetStates.getVectPos() << "\nattitudeCmd:\n" << attitudeCmd);
+    ROS_INFO_STREAM("z.uncertainties: " << predictedStates.z.uncertainties);
     // if (attitudeCmd.z > 0.1) break;
 
-    //Generate (roll, pitch, thrust) command
-    //For compatibility with different aircrafts or even terrestrial robots, this should be in its own node
+    // Generate (roll, pitch, thrust) command
+    // For compatibility with different aircrafts or even terrestrial robots, this should be in its own node
     attitudeCmd = kt.process(accelerationCmd, eulerAngles);
     /**************************************************************************/
 
     /*************************Publish Attitude Command*************************/
-    //Convert command in geometry_msgs::Vector3 to geometry_msgs::AttitudeTarget
+    // Convert command in geometry_msgs::Vector3 to geometry_msgs::AttitudeTarget
     cmd.orientation = EulerToQuaternion(yaw, attitudeCmd.y, attitudeCmd.x);
     cmd.body_rate = geometry_msgs::Vector3();
     cmd.thrust = attitudeCmd.z;
     cmd.type_mask = 7; // ignore body rate
 
-    //For Testing:
+    // For Testing:
     // cmd.orientation = EulerToQuaternion(0, 0.5, 0); // (yaw, pitch, roll)
     // cmd.body_rate = geometry_msgs::Vector3();
     // cmd.thrust = 0.7;
     // cmd.type_mask = 7; // ignore body rate
 
     attitudeCmd_pub.publish(cmd);
+    estimated_state_pub.publish(drone_states_joint);
     /**************************************************************************/
 
     /***************************Publish Pose Command***************************/
-    //For Testing:
+    // For Testing:
     // geometry_msgs::PoseStamped pose;
     // pose.pose.position.x = 0;
     // pose.pose.position.y = 0;

@@ -1,4 +1,4 @@
-#include "trajectory-control/kinematicTransform.hpp"
+#include "trajectory_control/kinematicTransform.hpp"
 
 KTParameters::KTParameters()
 {
