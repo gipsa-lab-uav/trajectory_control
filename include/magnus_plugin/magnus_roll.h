@@ -57,6 +57,12 @@ class MagnusRoll : public MotorModel, public ModelPlugin {
     virtual void InitializeParams();
     virtual void Publish();
 
+  protected:
+    virtual void UpdateForcesAndMoments();
+    virtual void UpdateMotorFail();
+    virtual void Load(physics::ModelPtr _model, sdf::ElementPtr _sdf);
+    virtual void OnUpdate(const common::UpdateInfo&_info);
+
   private:
     std::string command_sub_topic_;
     std::string motor_failure_sub_topic_;
@@ -76,6 +82,20 @@ class MagnusRoll : public MotorModel, public ModelPlugin {
     double wing_mass_;
     double wing_radius_;
     double wing_length;
+
+    transport::NodePtr node_handle_;
+    transport::PublisherPtr motor_velocity_pub_;
+    transport::SubscriberPtr command_sub_;
+    transport::SubscriberPtr motor_failure_sub_; /*!< Subscribing to motor_failure_sub_topic_; receiving motor number to fail, as an integer */
+
+    physics::ModelPtr model_;
+    physics::JointPtr joint_;
+    physics::LinkPtr link_;
+    event::ConnectionPtr updateConnection_;
+
+    std_msgs::msgs::Float turning_velocity_msg_;
+    void VelocityCallback(CommandMotorSpeedPtr &rot_velocities);
+    void MotorFailureCallback(const boost::shared_ptr<const msgs::Int> &fail_msg);  /*!< Callback for the motor_failure_sub_ subscriber */
 
 };
 }
