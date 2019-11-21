@@ -57,13 +57,7 @@ Clone sitl_gazebo and PX4 Firmware
 
 ```bash
 cd ~/catkin_ws/src/
-```
-
-```bash
 git clone --recursive https://github.com/PX4/sitl_gazebo
-```
-
-```bash
 git clone --recursive https://github.com/PX4/Firmware px4
 ```
 
@@ -72,17 +66,8 @@ git clone --recursive https://github.com/PX4/Firmware px4
 ### Install trajectory_control
 ```bash
 cd ~/catkin_ws/src/
-```
-
-```bash
 git clone https://github.com/gipsa-lab-uav/trajectory_control
-```
-
-```bash
 cd ..
-```
-
-```bash
 catkin_make
 ```
 
@@ -127,7 +112,7 @@ If an error of type 'cannot download default sources list from: ... Website may 
 sudo apt-get install ca-certificates
 ```
 
-If it still does not work, try to update you system date/clock
+If it still does not work, try to update your system date/clock
 
 ### gazebo
 
