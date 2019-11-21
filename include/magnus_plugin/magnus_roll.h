@@ -11,6 +11,7 @@
 
 #include "common.h"
 
+#define M_PI = 3.14159265358979323846
 
 namespace gazebo {
 // Default values
@@ -27,7 +28,6 @@ static constexpr double kDefaultRotorVelocitySlowdownSim = 10.0;
 static constexpr double kDefaultWingMass = 0.06;
 static constexpr double kDefaultWingRadius = 0.025;
 static constexpr double kDefaultWingLength = 0.15;
-static constexpr double M_PI = 3.14159265358979323846;
 
 class MagnusRoll : public MotorModel, public ModelPlugin {
   public:

@@ -44,7 +44,7 @@ namespace gazebo  {
 
     if (_sdf->HasElement("wingSide"))
       wing_side_ = _sdf->GetElement("wingSide")->Get<std::string>();
-      if !(wing_side_ == "left" || wing_side_ == "right")
+      if (!(wing_side_ == "left" || wing_side_ == "right"))
         gzerr << "[gazebo_magnus_wing_model] Please only use 'left' or 'right' as wingSide.\n";
     else
       gzerr << "[gazebo_magnus_wing_model] Please specify a wingSide.\n";
