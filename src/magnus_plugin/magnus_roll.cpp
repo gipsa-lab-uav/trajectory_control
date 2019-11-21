@@ -168,11 +168,11 @@ namespace gazebo  {
     wing_inertia  = (wing_mass_*std::pow(wing_radius_, 2))/4.0 + (wing_mass_*std::pow(wing_length_, 2))/12.0;
     gyro_torque.Set(wing_inertia*max_rot_velocity_*Omega(3), 0, wing_inertia*max_rot_velocity_*Omega(1));
 
-    wing_rot_vel_ = joint_->GetVelocity(0);
-    if (wing_rot_vel_ / (2 * M_PI) > 1 / (2 * sampling_time_)) {
+    motor_rot_vel_ = joint_->GetVelocity(0);
+    if (motor_rot_vel_ / (2 * M_PI) > 1 / (2 * sampling_time_)) {
       gzerr << "Aliasing on wing [" << wing_number_ << "] might occur. Consider making smaller simulation time steps or raising the rotor_velocity_slowdown_sim_ param.\n";
     }
-    real_wing_velocity = wing_rot_vel_ * rotor_velocity_slowdown_sim_;
+    real_wing_velocity = motor_rot_vel_ * rotor_velocity_slowdown_sim_;
     // force = real_wing_velocity * motor_constant_;
 
     // body_velocity = link_->WorldLinearVel();

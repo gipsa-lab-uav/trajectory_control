@@ -45,7 +45,7 @@ class MagnusRoll : public MotorModel, public ModelPlugin {
           wing_side_(kDefaultWingSide),
           wing_mass_(kDefaultWingMass),
           wing_radius_(kDefaultWingRadius),
-          wing_length(kDefaultWingLength),
+          wing_length_(kDefaultWingLength),
           wing_number_(0),
           wing_Failure_Number_(0),
           ref_wing_rot_vel_(0.0),
