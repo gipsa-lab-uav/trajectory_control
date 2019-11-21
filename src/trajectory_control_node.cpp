@@ -23,10 +23,10 @@
 #include <trajectory_msgs/JointTrajectory.h>
 #include <trajectory_msgs/JointTrajectoryPoint.h>
 
-#include <trajectory-control/DroneStates.hpp>
-#include <trajectory-control/fsf.hpp>
-#include <trajectory-control/kinematicTransform.hpp>
-#include <trajectory-control/statesEstimator.hpp>
+#include <trajectory_control/DroneStates.hpp>
+#include <trajectory_control/fsf.hpp>
+#include <trajectory_control/kinematicTransform.hpp>
+#include <trajectory_control/statesEstimator.hpp>
 
 /*******************************Global variables*******************************/
 trajectory_msgs::JointTrajectory jointTrajectory;
