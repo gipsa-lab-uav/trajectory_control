@@ -1,4 +1,4 @@
-#include "magnus_roll.h"
+#include "magnus_plugin/magnus_roll.h"
 #include <ignition/math.hh>
 
 namespace gazebo  {
@@ -29,6 +29,7 @@ namespace gazebo  {
       joint_name_ = _sdf->GetElement("jointName")->Get<std::string>();
     else
       gzerr << "[gazebo_magnus_wing_model] Please specify a jointName, where the wing is attached.\n";
+
     // Get the pointer to the joint.
     joint_ = model_->GetJoint(joint_name_);
     if (joint_ == NULL)
@@ -42,15 +43,10 @@ namespace gazebo  {
     if (link_ == NULL)
       gzthrow("[gazebo_magnus_wing_model] Couldn't find specified link \"" << link_name_ << "\".");
 
-    if (_sdf->HasElement("wingSide"))
-      wing_side_ = _sdf->GetElement("wingSide")->Get<std::string>();
-      if (!(wing_side_ == "left" || wing_side_ == "right"))
-        gzerr << "[gazebo_magnus_wing_model] Please only use 'left' or 'right' as wingSide.\n";
-    else
-      gzerr << "[gazebo_magnus_wing_model] Please specify a wingSide.\n";
-
-    if (_sdf->HasElement("wingNumber"))
+    if (_sdf->HasElement("wingNumber")){
       wing_number_ = _sdf->GetElement("wingNumber")->Get<int>();
+      gzwarn << "[gazebo_magnus_wing_model] wingNumber found,  NOICE.\n";
+    }
     else {
       gzwarn << "[gazebo_magnus_wing_model] No wingNumber found, default used: 0 for 'left' wingSide, 1 for 'right' wingSide.\n";
       if (wing_side_ == "left")
@@ -59,6 +55,14 @@ namespace gazebo  {
         wing_number_ = 1;
       gzwarn << "[gazebo_magnus_wing_model] wingNumber is (default == " << wing_number_ << ") for the wingSide (" << wing_side_ << ").\n";
     }
+
+    if (_sdf->HasElement("wingSide")){
+      wing_side_ = _sdf->GetElement("wingSide")->Get<std::string>();
+      if (!(wing_side_ == "left" || wing_side_ == "right"))
+        gzerr << "[gazebo_magnus_wing_model] Please only use 'left' or 'right' as wingSide.\n";
+    }
+    else
+      gzerr << "[gazebo_magnus_wing_model] Please specify a wingSide.\n";
 
     getSdfParam<std::string>(_sdf, "commandSubTopic", command_sub_topic_, command_sub_topic_);
     getSdfParam<std::string>(_sdf, "motorSpeedPubTopic", motor_speed_pub_topic_, motor_speed_pub_topic_);
@@ -194,10 +198,10 @@ namespace gazebo  {
     parent_links.at(0)->AddRelativeTorque(gyro_torque);
 
     // Reactive Torque - NEEDS CORRECT IMPLEMENTATION
-    force = std::pow(real_wing_velocity, 2) * motor_constant_;
-    ignition::math::Vector3d reactive_torque(0, 0, force * moment_constant_);
-    ignition::math::Vector3d drag_torque_parent_frame = pose_difference.Rot().RotateVector(reactive_torque);
-    parent_links.at(0)->AddRelativeTorque(drag_torque_parent_frame);
+    // force = std::pow(real_wing_velocity, 2) * motor_constant_;
+    // ignition::math::Vector3d reactive_torque(0, 0, force * moment_constant_);
+    // ignition::math::Vector3d drag_torque_parent_frame = pose_difference.Rot().RotateVector(reactive_torque);
+    // parent_links.at(0)->AddRelativeTorque(drag_torque_parent_frame);
 
     joint_->SetVelocity(0, ref_wing_rot_vel_ / rotor_velocity_slowdown_sim_);
   }
