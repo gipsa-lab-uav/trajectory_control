@@ -577,7 +577,7 @@
       <maxRotVelocity>1100</maxRotVelocity>
       <commandSubTopic>/gazebo/command/wing_speed</commandSubTopic>
       <wingSide>left</wingSide>
-      <wingNumber>0<wingNumber/>
+      <wingNumber>0</wingNumber>
       <motorSpeedPubTopic>/wing_speed/0</motorSpeedPubTopic>
       <rotorVelocitySlowdownSim>10</rotorVelocitySlowdownSim>
     </plugin>
@@ -589,7 +589,7 @@
       <maxRotVelocity>1100</maxRotVelocity>
       <commandSubTopic>/gazebo/command/wing_speed</commandSubTopic>
       <wingSide>right</wingSide>
-      <wingNumber>1<wingNumber/>
+      <wingNumber>1</wingNumber>
       <motorSpeedPubTopic>/wing_speed/1</motorSpeedPubTopic>
       <rotorVelocitySlowdownSim>10</rotorVelocitySlowdownSim>
     </plugin>
