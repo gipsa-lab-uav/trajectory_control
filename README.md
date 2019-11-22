@@ -144,13 +144,14 @@ If some of the desired models are not automatically available on the Gazebo inte
 export GAZEBO_MODEL_PATH=$GAZEBO_MODEL_PATH:path/to/models
 ```
 
-**Note:** To make changes to path variables permanent, add the command to the `~/.bashrc` file, as example:
+**Note:** To make permanent changes to path variables, add the command to the `~/.bashrc` file, as example:
 ```bash
 nano ~/.bashrc
 ```
-And add a line as:
+And add lines such as:
 ```bash
 export GAZEBO_RESOURCE_PATH=$GAZEBO_RESOURCE_PATH:/usr/share/gazebo-9
+export GAZEBO_MODEL_PATH=$GAZEBO_MODEL_PATH:~/catkin_ws/src/sitl_gazebo/models
 ```
 
 ### HR Drone Model and Plugin
