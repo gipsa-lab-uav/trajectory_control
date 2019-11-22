@@ -574,6 +574,9 @@
       <robotNamespace/>
       <jointName>left_wing_joint</jointName>
       <linkName>left_wing</linkName>
+      <wingRadius>0.025</wingRadius>
+      <wingLegth>0.15</wingLegth>
+      <wingMass>0.06</wingMass>
       <maxRotVelocity>1100</maxRotVelocity>
       <commandSubTopic>/gazebo/command/wing_speed</commandSubTopic>
       <wingSide>left</wingSide>
@@ -586,6 +589,9 @@
       <robotNamespace/>
       <jointName>right_wing_joint</jointName>
       <linkName>right_wing</linkName>
+      <wingRadius>0.025</wingRadius>
+      <wingLegth>0.15</wingLegth>
+      <wingMass>0.06</wingMass>
       <maxRotVelocity>1100</maxRotVelocity>
       <commandSubTopic>/gazebo/command/wing_speed</commandSubTopic>
       <wingSide>right</wingSide>
