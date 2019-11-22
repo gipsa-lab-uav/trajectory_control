@@ -184,7 +184,7 @@ add_library(gazebo_magnus_plugin SHARED src/magnus_plugin/magnus_plugin.cpp)
 
 And inside the `set(plugins ... ...)` command add a line:
 ```makefile
-magnus_plugin
+gazebo_magnus_plugin
 ```
 
 And to finish and use the new files:
