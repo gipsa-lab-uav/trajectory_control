@@ -56,7 +56,7 @@ catkin_make
 ```bash
 nproc
 >> 8
-catkin_make -j2
+catkin_make -j4
 ```
 
 And then continue with:
@@ -80,7 +80,7 @@ source devel/setup.bash
 
 ## Testing the installation
 ```bash
-roslaunch trajectory-control test.launch
+roslaunch trajectory_control test.launch
 ```
 
 A gazebo window should open with the iris model. After few seconds, the iris quadcopter should hover at 2 meters altitude. You can open QGroundControl in parallel also to check if everything is interfacing correctly.
@@ -114,10 +114,10 @@ chmod +x ./QGroundControl.AppImage
 ./QGroundControl.AppImage
 ```
 
-Now you are ready to go with the trajectory-control_node:
+Now you are ready to go with the trajectory_control_node:
 
 ```bash
-roslaunch trajectory-control trajectory-control-example.launch
+roslaunch trajectory_control trajectory_control_example.launch
 ```
 
 ### Gazebo
@@ -150,7 +150,7 @@ nano ~/.bashrc
 ```
 And add lines such as:
 ```bash
-export GAZEBO_RESOURCE_PATH=$GAZEBO_RESOURCE_PATH:/usr/share/gazebo-9
+export GAZEBO_RESOURCE_PATH=/usr/share/gazebo-9:$GAZEBO_RESOURCE_PATH
 export GAZEBO_MODEL_PATH=$GAZEBO_MODEL_PATH:~/catkin_ws/src/sitl_gazebo/models
 ```
 
