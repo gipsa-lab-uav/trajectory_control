@@ -21,12 +21,6 @@ For the installation, you need to have ROS melodic (or kinetic) installed, a cat
 [Gazebo](http://gazebosim.org/tutorials?tut=install_ubuntu&cat=install)
 
 ### Prerequisites
-Install the requested Python2 libraries
-
-```bash
-pip install -r requirements.txt
-```
-
 Install mavros
 
 ```bash
@@ -64,9 +58,20 @@ git clone --recursive https://github.com/PX4/Firmware px4
 **Note:** If you have troubles installing the different packages, it is recommended to read the related documentation.
 
 ### Install trajectory_control
+Clone the trajectory_control repository
 ```bash
 cd ~/catkin_ws/src/
 git clone https://github.com/gipsa-lab-uav/trajectory_control
+```
+
+Install the requested Python2 libraries
+
+```bash
+pip install -r requirements.txt
+```
+
+Run catkin_make
+```bash
 cd ..
 catkin_make
 ```
