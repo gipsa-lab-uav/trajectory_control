@@ -9,6 +9,7 @@ from nav_msgs.msg import Odometry
 from mavros_msgs.msg import AttitudeTarget
 from trajectory_msgs.msg import JointTrajectory
 
+
 class Display:
     def __init__(self):
         self.node_name = 'display_node'
@@ -16,24 +17,24 @@ class Display:
         self.position_sub = 'mavros/local_position/odom'
         self.trajectory_sub = 'mavros/JointTrajectory'
 
-        self.time_window = 10 # [s]
+        self.time_window = 10  # [s]
         self.window_10 = self.time_window * 10
         self.window_100 = self.time_window * 100
         self.x_10 = np.linspace(0, self.time_window, self.window_10)
         self.x_100 = np.linspace(0, self.time_window, self.window_100)
 
-        #Attitude commands published at 100Hz
+        # Attitude commands published at 100Hz
         self.rol = np.zeros(self.x_100.size)
         self.pit = np.zeros(self.x_100.size)
         self.yaw = np.zeros(self.x_100.size)
         self.thr = np.zeros(self.x_100.size)
 
-        #EKF fusion position published at 100Hz
+        # EKF fusion position published at 100Hz
         self.x_measured = np.zeros(self.x_100.size)
         self.y_measured = np.zeros(self.x_100.size)
         self.z_measured = np.zeros(self.x_100.size)
 
-        #Trajectory points published at 10Hz
+        # Trajectory points published at 10Hz
         self.x_desired = np.zeros(self.x_10.size)
         self.y_desired = np.zeros(self.x_10.size)
         self.z_desired = np.zeros(self.x_10.size)
@@ -66,12 +67,12 @@ class Display:
         rospy.Subscriber(self.position_sub, Odometry, self.positionCallback)
         rospy.Subscriber(self.trajectory_sub, JointTrajectory, self.trajectoryCallback)
 
-        start = rospy.Time.now()
-        rate = rospy.Rate(10)
+        # start = rospy.Time.now()
+        # rate = rospy.Rate(10)
 
         plt.ion()
 
-        fig = plt.figure(figsize=(14,12))
+        fig = plt.figure(figsize=(14, 12))
         ax1 = fig.add_subplot(221)
         ax1.set_title('Thrust command')
         ax1.legend('thrust')
@@ -120,7 +121,7 @@ class Display:
             fig.canvas.draw()
             fig.canvas.flush_events()
 
-if __name__ == '__main__':
 
+if __name__ == '__main__':
     d = Display()
     d.start()
