@@ -1,6 +1,5 @@
 #!/usr/bin/env python2
 
-import sys
 import math
 import numpy as np
 from scipy import signal
@@ -10,7 +9,6 @@ from timeit import default_timer as time
 
 import rospy
 from std_msgs.msg import String, Header
-from mavros_msgs.msg import AttitudeTarget
 from trajectory_msgs.msg import JointTrajectory, JointTrajectoryPoint
 
 
@@ -176,7 +174,7 @@ class TrajectoryGeneration:
         print('generate_states_filtered() runs in {} s'.format(time() - startTime))
 
     def generate_states_sg_filtered(self, window_length=5, polyorder=2, deriv=0, delta=1.0):
-        # Info: Apply Savitzky-Golay filter to velocities #
+        # Info: Apply Savitzky-Golay filter to velocities
 
         startTime = time()
 
@@ -335,7 +333,7 @@ class TrajectoryGeneration:
     def norm(self, p1, p2=[.0, .0, .0]):
         return math.sqrt((p2[0] - p1[0]) ** 2 + (p2[1] - p1[1]) ** 2 + (p2[2] - p1[2]) ** 2)
 
-    def saturate(x, y):
+    def saturate(self, x, y):
         return math.copysign(min(x, y, key=abs), x)
 
     def callback(self, position):
