@@ -107,12 +107,11 @@ The model of the HR Drone is based on the Iris model, available in `sitl_gazebo`
 
 The next commands assume that the repositories `sitl_gazebo` and `trajectory_control` were cloned into `~/catkin/src/`, if that is not the case, change the paths accordingly.
 
-First, copy the wing model header and the plugin header to the header directory from `sitl_gazebo`:
+First, copy the plugin header to the header directory from `sitl_gazebo`:
 
 ```bash
 cd ~/catkin_ws/src/
 cp -a trajectory_control/include/magnus_plugin/ sitl_gazebo/include/magnus_plugin
-cp -a trajectory_control/include/gazebo_magnus_wing_model.h sitl_gazebo/include/gazebo_magnus_wing_model.h
 ```
 
 Then, copy the HR Drone model:
@@ -120,25 +119,27 @@ Then, copy the HR Drone model:
 cp -a trajectory_control/models/iris_magnus/ sitl_gazebo/models/iris_magnus
 ```
 
-And then the source files:
+And then the source file:
 ```bash
 cp -a trajectory_control/src/magnus_plugin/ sitl_gazebo/src/magnus_plugin
-cp -a trajectory_control/src/gazebo_magnus_wing_model.cpp sitl_gazebo/src/gazebo_magnus_wing_model.cpp
 ```
 
-After that, some changes must be made at the `~/catkin_ws/src/sitl_gazebo/CMakeLists.txt` file. Add the following line at the `# Plugins #` section:
+
+### CMake file
+After that, some changes must be made at the `~/catkin_ws/src/sitl_gazebo/CMakeLists.txt` file. Add the following lines at the `# Plugins #` section:
 ```makefile
-add_library(gazebo_magnus_plugin SHARED src/magnus_plugin/magnus_plugin.cpp)
+add_library(magnus_plugin SHARED src/magnus_plugin/magnus_plugin.cpp)
+target_link_libraries(magnus_plugin ${GAZEBO_LIBRARIES})
 ```
 
 And inside the `set(plugins ... ...)` command add a line:
 ```makefile
-gazebo_magnus_plugin
+magnus_plugin
 ```
 
 And to finish and use the new files:
 ```bash
-cd ..
+cd ~/catkin_ws
 catkin_make
 source devel/setup.bash
 ```
