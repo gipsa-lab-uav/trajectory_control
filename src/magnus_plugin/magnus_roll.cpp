@@ -198,6 +198,10 @@ namespace gazebo  {
     parent_links.at(0)->AddRelativeTorque(gyro_torque);
 
     // Reactive Torque - NEEDS CORRECT IMPLEMENTATION
+    // torque = power/ang_speed
+    // linear_power = 389.512 * throttle
+    // throttle = command/max_command
+
     // force = std::pow(real_wing_velocity, 2) * motor_constant_;
     // ignition::math::Vector3d reactive_torque(0, 0, force * moment_constant_);
     // ignition::math::Vector3d drag_torque_parent_frame = pose_difference.Rot().RotateVector(reactive_torque);
