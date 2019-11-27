@@ -21,16 +21,30 @@ For the installation, you need to have ROS melodic (or kinetic) installed, a cat
 [Gazebo](http://gazebosim.org/tutorials?tut=install_ubuntu&cat=install)
 
 ### Prerequisites
-Install the requested Python2 libraries:
+Install mavros
 
 ```bash
-pip install -r requirements.txt
+sudo apt install ros-melodic-mavros ros-melodic-mavros-extras
 ```
 
-Install mavros and libgstreamer
+Mavros request the GeographicLib datasets, install it by running the install_geographiclib_datasets.sh script
 
 ```bash
-sudo apt install ros-melodic-mavros libgstreamer1.0-dev
+wget https://raw.githubusercontent.com/mavlink/mavros/master/mavros/scripts/install_geographiclib_datasets.sh
+chmod +x install_geographiclib_datasets.sh
+sudo ./install_geographiclib_datasets.sh
+```
+Install libgstreamer
+
+```bash
+sudo apt install libgstreamer1.0-dev
+```
+
+Initialize rosdep and update it
+
+```bash
+sudo rosdep init
+rosdep update
 ```
 
 Clone sitl_gazebo and PX4 Firmware
@@ -38,34 +52,55 @@ Clone sitl_gazebo and PX4 Firmware
 ```bash
 cd ~/catkin_ws/src/
 git clone --recursive https://github.com/PX4/sitl_gazebo
-git clone https://github.com/PX4/Firmware px4
+git clone --recursive https://github.com/PX4/Firmware px4
 ```
 
-**Note:** If you have troubles installing the different packages, it is strongly recommended to read the related documentation.
+**Note:** If you have troubles installing the different packages, it is recommended to read the related documentation.
 
 ### Install trajectory-control
+Clone the trajectory_control repository
 ```bash
 cd ~/catkin_ws/src/
-git clone https://github.com/gipsa-lab-uav/trajectory-control
+git clone https://github.com/gipsa-lab-uav/trajectory_control
+```
+
+Don't forget to install the required Python packages, with:
+```bash
+pip install -r requirements.txt
+```
+
+And then continue the installation:
+```bash
 cd ..
 catkin_make
+```
+
+Then source your setup.bash
+
+```bash
 source devel/setup.bash
 ```
 
 ## Testing the installation
+On one terminal, run:
+```bash
+roscore
+```
+
+And open a new terminal to run the test script:
 ```bash
 roslaunch trajectory_control test.launch
 ```
 
-A gazebo window should open with the iris drone model. After a few seconds, the quadcopter should hover at an altitude of 2 meters. You can open QGroundControl in parallel to check if everything is interfacing correctly.
+A gazebo window should open with the iris model. After few seconds, the iris quadcopter should hover at 2 meters altitude. You can open QGroundControl in parallel also to check if everything is interfacing correctly.
 
-Another test file can be launched with:
+Now you are ready to go with the trajectory_control_node. Another, more complex example can be accessed as follows:
 
 ```bash
 roslaunch trajectory_control trajectory_control_example.launch
 ```
 
-Gazebo will open, along with a window with a trajectory plot will. After this window is closed, the iris drone should start following the trajectory.
+Gazebo will open, along with a window with a trajectory plot. After this window is closed, the iris drone should start following the trajectory.
 
 ## HR Drone Model and Plugin
 The model of the HR Drone is based on the Iris model, available in `sitl_gazebo`. Both the model and the plugin are available at the repository, but some adjustments must be made to ensure functionality.
