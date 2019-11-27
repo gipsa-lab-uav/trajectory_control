@@ -1,17 +1,13 @@
 #!/usr/bin/env python2
 
-# import sys
 import math
 import numpy as np
 from scipy import signal
 from matplotlib import pyplot as plt
-# from mpl_toolkits.mplot3d import Axes3D
 from timeit import default_timer as time
 
 import rospy
-# from dynamic_reconfigure.server import Server
 from std_msgs.msg import String, Header
-# from mavros_msgs.msg import AttitudeTarget
 from trajectory_msgs.msg import JointTrajectory, JointTrajectoryPoint
 
 
