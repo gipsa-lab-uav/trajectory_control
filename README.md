@@ -57,7 +57,7 @@ git clone --recursive https://github.com/PX4/Firmware px4
 
 **Note:** If you have troubles installing the different packages, it is recommended to read the related documentation.
 
-### Install trajectory-control
+### Install trajectory_control
 Clone the trajectory_control repository
 ```bash
 cd ~/catkin_ws/src/
@@ -105,25 +105,25 @@ Gazebo will open, along with a window with a trajectory plot. After this window 
 ## HR Drone Model and Plugin
 The model of the HR Drone is based on the Iris model, available in `sitl_gazebo`. Both the model and the plugin are available at the repository, but some adjustments must be made to ensure functionality.
 
-The next commands assume that the repositories `sitl_gazebo` and `trajectory-control` were cloned into `~/catkin/src/`, if that is not the case, change the paths accordingly.
+The next commands assume that the repositories `sitl_gazebo` and `trajectory_control` were cloned into `~/catkin/src/`, if that is not the case, change the paths accordingly.
 
 First, copy the wing model header and the plugin header to the header directory from `sitl_gazebo`:
 
 ```bash
 cd ~/catkin_ws/src/
-cp -a trajectory-control/include/magnus_plugin/ sitl_gazebo/include/magnus_plugin
-cp -a trajectory-control/include/gazebo_magnus_wing_model.h sitl_gazebo/include/gazebo_magnus_wing_model.h
+cp -a trajectory_control/include/magnus_plugin/ sitl_gazebo/include/magnus_plugin
+cp -a trajectory_control/include/gazebo_magnus_wing_model.h sitl_gazebo/include/gazebo_magnus_wing_model.h
 ```
 
 Then, copy the HR Drone model:
 ```bash
-cp -a trajectory-control/models/iris_magnus/ sitl_gazebo/models/iris_magnus
+cp -a trajectory_control/models/iris_magnus/ sitl_gazebo/models/iris_magnus
 ```
 
 And then the source files:
 ```bash
-cp -a trajectory-control/src/magnus_plugin/ sitl_gazebo/src/magnus_plugin
-cp -a trajectory-control/src/gazebo_magnus_wing_model.cpp sitl_gazebo/src/gazebo_magnus_wing_model.cpp
+cp -a trajectory_control/src/magnus_plugin/ sitl_gazebo/src/magnus_plugin
+cp -a trajectory_control/src/gazebo_magnus_wing_model.cpp sitl_gazebo/src/gazebo_magnus_wing_model.cpp
 ```
 
 After that, some changes must be made at the `~/catkin_ws/src/sitl_gazebo/CMakeLists.txt` file. Add the following line at the `# Plugins #` section:
