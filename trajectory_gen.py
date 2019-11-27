@@ -81,7 +81,7 @@ class TrajectoryGeneration:
 
             x = [((cos_a*cos_b(s) - sin_a*sin_b(s)) * radius + center[0]) for s in range(0, steps+1)]
             y = [((sin_a*cos_b(s) + cos_a*sin_b(s)) * radius + center[1]) for s in range(0, steps+1)]
-            z = [(center[2]) for _ in range(0, steps+1)]
+            z = [(center[2]) for s in range(0, steps+1)]
 
         elif parameters[0] == 'hover':
             steps = int(parameters[1] * self.FREQUENCY)
