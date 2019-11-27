@@ -145,7 +145,7 @@ namespace gazebo  {
 
 
     ang_speed = link_->RelativeAngularVel();
-    vel_inertial = link_->WorldCoGLinearVel();
+    vel_inertial = link_->WorldCoGLinearVel();  // should be WorldLinearVel?
     wind_vel_inertial = link_->WorldWindLinearVel();
 
     wind_app_vel_inertial = wind_vel_inertial - vel_inertial;
@@ -199,7 +199,7 @@ namespace gazebo  {
 
     // Reactive Torque - NEEDS CORRECT IMPLEMENTATION
     // torque = power/ang_speed
-    // linear_power = 389.512 * throttle
+    // linear_power = 2.1278 * throttle_percent
     // throttle = command/max_command
 
     // force = std::pow(real_wing_velocity, 2) * motor_constant_;
