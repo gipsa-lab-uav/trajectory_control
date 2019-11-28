@@ -36,9 +36,9 @@ static constexpr double kDefaultWingLength = 0.15;
 static constexpr double kDefaultMomentConstant = 0.016;
 static constexpr double kDefaultMotorConstant = 8.54858e-06;
 
-class MagnusRoll : public MotorModel, public ModelPlugin {
+class MagnusPlugin : public MotorModel, public ModelPlugin {
   public:
-    MagnusRoll()
+    MagnusPlugin()
         : ModelPlugin(),
           MotorModel(),
           command_sub_topic_(kDefaultCommandSubTopic), 
@@ -57,7 +57,7 @@ class MagnusRoll : public MotorModel, public ModelPlugin {
           max_rot_velocity_(kDefaulMaxRotVelocity) {
     }
 
-    virtual ~MagnusRoll();
+    virtual ~MagnusPlugin();
     virtual void InitializeParams();
     virtual void Publish();
 

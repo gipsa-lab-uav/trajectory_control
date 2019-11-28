@@ -2,18 +2,18 @@
 #include <ignition/math.hh>
 
 namespace gazebo  {
-  MagnusRoll::~MagnusRoll() {
+  MagnusPlugin::~MagnusPlugin() {
     updateConnection_->~Connection();
   }
 
-  void MagnusRoll::InitializeParams() {}
+  void MagnusPlugin::InitializeParams() {}
 
-  void MagnusRoll::Publish() {
+  void MagnusPlugin::Publish() {
     turning_velocity_msg_.set_data(joint_->GetVelocity(0));
     motor_velocity_pub_->Publish(turning_velocity_msg_);
   }
 
-  void MagnusRoll::Load(physics::ModelPtr _model, sdf::ElementPtr _sdf) {
+  void MagnusPlugin::Load(physics::ModelPtr _model, sdf::ElementPtr _sdf) {
     model_ = _model;
 
     namespace_.clear();
@@ -77,13 +77,13 @@ namespace gazebo  {
 
     // Listen to the update event. This event is broadcast every
     // simulation iteration.
-    updateConnection_ = event::Events::ConnectWorldUpdateBegin(boost::bind(&MagnusRoll::OnUpdate, this, _1));
-    // command_sub_ = node_handle_->Subscribe<mav_msgs::msgs::CommandMotorSpeed>("~/" + model_->GetName() + command_sub_topic_, &MagnusRoll::VelocityCallback, this);
-    motor_failure_sub_ = node_handle_->Subscribe<msgs::Int>(motor_failure_sub_topic_, &MagnusRoll::MotorFailureCallback, this);
+    updateConnection_ = event::Events::ConnectWorldUpdateBegin(boost::bind(&MagnusPlugin::OnUpdate, this, _1));
+    // command_sub_ = node_handle_->Subscribe<mav_msgs::msgs::CommandMotorSpeed>("~/" + model_->GetName() + command_sub_topic_, &MagnusPlugin::VelocityCallback, this);
+    motor_failure_sub_ = node_handle_->Subscribe<msgs::Int>(motor_failure_sub_topic_, &MagnusPlugin::MotorFailureCallback, this);
     motor_velocity_pub_ = node_handle_->Advertise<std_msgs::msgs::Float>("~/" + model_->GetName() + motor_speed_pub_topic_, 1);
   }
 
-  void MagnusRoll::OnUpdate(const common::UpdateInfo & _info) {
+  void MagnusPlugin::OnUpdate(const common::UpdateInfo & _info) {
     sampling_time_ = _info.simTime.Double() - prev_sim_time_;
     prev_sim_time_ = _info.simTime.Double();
     UpdateForcesAndMoments();
@@ -91,18 +91,18 @@ namespace gazebo  {
     Publish();
   }
 
-  void MagnusRoll::VelocityCallback(CommandMotorSpeedPtr &rot_velocities) {
+  void MagnusPlugin::VelocityCallback(CommandMotorSpeedPtr &rot_velocities) {
     if(rot_velocities->motor_speed_size() < wing_number_) {
       std::cout  << "You tried to access index " << wing_number_
         << " of the WingSpeed message array which is of size " << rot_velocities->motor_speed_size() << "." << std::endl;
     } else ref_wing_rot_vel_ = std::min(static_cast<double>(rot_velocities->motor_speed(wing_number_)), static_cast<double>(max_rot_velocity_));
   }
 
-  void MagnusRoll::MotorFailureCallback(const boost::shared_ptr<const msgs::Int> &fail_msg) {
+  void MagnusPlugin::MotorFailureCallback(const boost::shared_ptr<const msgs::Int> &fail_msg) {
     wing_Failure_Number_ = fail_msg->data();
   }
 
-  void MagnusRoll::UpdateForcesAndMoments() {
+  void MagnusPlugin::UpdateForcesAndMoments() {
     double force;
     double real_wing_velocity;
     // double scalar;
@@ -211,7 +211,7 @@ namespace gazebo  {
   }
 
 
-  void MagnusRoll::UpdateMotorFail() {
+  void MagnusPlugin::UpdateMotorFail() {
     if (wing_number_ == wing_Failure_Number_ - 1){
       joint_->SetVelocity(0,0);
 
@@ -223,5 +223,5 @@ namespace gazebo  {
     }
   }
 
-  GZ_REGISTER_MODEL_PLUGIN(MagnusRoll)
+  GZ_REGISTER_MODEL_PLUGIN(MagnusPlugin)
 }
