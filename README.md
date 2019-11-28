@@ -103,27 +103,23 @@ roslaunch trajectory_control trajectory_control_example.launch
 Gazebo will open, along with a window with a trajectory plot. After this window is closed, the iris drone should start following the trajectory.
 
 ## HR Drone Model and Plugin
-The model of the HR Drone is based on the Iris model, available in `sitl_gazebo`. Both the model and the plugin are available at the repository, but some adjustments must be made to ensure functionality.
+The model of the HR Drone is based on the Iris model, available in `sitl_gazebo`. Both the model and the plugin are available at the repository, but some adjustments must be made to ensure functionality. The models are composed by a `*.sdf` file and a `model.config` file. The physical model is defined in the SDF file, while general information is placed in the config file.
 
 The next commands assume that the repositories `sitl_gazebo` and `trajectory_control` were cloned into `~/catkin/src/`, if that is not the case, change the paths accordingly.
 
-First, copy the plugin header to the header directory from `sitl_gazebo`:
+First, copy the plugin header to the header directory and the source file to the source directory from `sitl_gazebo`:
 
 ```bash
 cd ~/catkin_ws/src/
 cp -a trajectory_control/include/magnus_plugin/ sitl_gazebo/include/magnus_plugin
+cp -a trajectory_control/src/magnus_plugin/ sitl_gazebo/src/magnus_plugin
 ```
 
 Then, copy the HR Drone model:
 ```bash
-cp -a trajectory_control/models/iris_magnus/ sitl_gazebo/models/iris_magnus
+mkdir -p sitl_gazebo/models/iris_magnus
+cp -a trajectory_control/models/iris_magnus/*.sdf trajectory_control/models/iris_magnus/*.config sitl_gazebo/models/iris_magnus
 ```
-
-And then the source file:
-```bash
-cp -a trajectory_control/src/magnus_plugin/ sitl_gazebo/src/magnus_plugin
-```
-
 
 ### CMake file
 After that, some changes must be made at the `~/catkin_ws/src/sitl_gazebo/CMakeLists.txt` file. Add the following lines at the `# Plugins #` section:
