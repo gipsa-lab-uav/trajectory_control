@@ -1,125 +1,107 @@
-#ifndef _GAZEBO_MAGNUS_PLUGIN_HH_
-#define _GAZEBO_MAGNUS_PLUGIN_HH_
+#include <stdio.h>
 
-#include <string>
-#include <vector>
+#include <boost/bind.hpp>
+#include <gazebo/common/common.hh>
+#include <gazebo/common/Plugin.hh>
+#include <gazebo/gazebo.hh>
+#include "gazebo/msgs/msgs.hh"
+#include <gazebo/physics/physics.hh>
+#include "gazebo/transport/transport.hh"
 
-#include "gazebo/common/Plugin.hh"
-#include "gazebo/physics/physics.hh"
-#include "gazebo/transport/TransportTypes.hh"
-#include <ignition/math.hh>
+#include <Eigen/Eigen>
+#include <rotors_model/motor_model.hpp>
+#include "CommandMotorSpeed.pb.h"
+#include "MotorSpeed.pb.h"
+#include "Float.pb.h"
 
-/// \brief: \TODO: Update to use as magnus plugin (was copied from liftdrag_plugin.h)
-namespace gazebo
-{
-  /// \brief A plugin that simulates lift and drag.
-  class GAZEBO_VISIBLE MagnusPlugin : public ModelPlugin
-  {
-    /// \brief Constructor.
-    public: MagnusPlugin();
+#include "common.h"
 
-    /// \brief Destructor.
-    public: ~MagnusPlugin();
+#define M_PI 3.14159265358979323846
 
-    // Documentation Inherited.
-    public: virtual void Load(physics::ModelPtr _model, sdf::ElementPtr _sdf);
+namespace gazebo {
+// Default values
+static const std::string kDefaultNamespace = "";
+static const std::string kDefaultCommandSubTopic = "/gazebo/command/wing_speed";
+static const std::string kDefaultWingFailureNumSubTopic = "/gazebo/wing_failure_num";
+static const std::string kDefaultWingVelocityPubTopic = "/wing_speed";
+static const std::string kDefaultWingSide = "left";
 
-    /// \brief Callback for World Update events.
-    protected: virtual void OnUpdate();
+typedef const boost::shared_ptr<const mav_msgs::msgs::CommandMotorSpeed> CommandMotorSpeedPtr;
 
-    /// \brief Connection to World Update events.
-    protected: event::ConnectionPtr updateConnection;
+static constexpr double kDefaulMaxRotVelocity = 1200.0;
+static constexpr double kDefaultRotorVelocitySlowdownSim = 10.0;
+static constexpr double kDefaultWingMass = 0.06;
+static constexpr double kDefaultWingRadius = 0.025;
+static constexpr double kDefaultWingLength = 0.15;
+static constexpr double kDefaultMomentConstant = 0.016;
+static constexpr double kDefaultMotorConstant = 8.54858e-06;
 
-    /// \brief Pointer to world.
-    protected: physics::WorldPtr world;
+class MagnusRoll : public MotorModel, public ModelPlugin {
+  public:
+    MagnusRoll()
+        : ModelPlugin(),
+          MotorModel(),
+          command_sub_topic_(kDefaultCommandSubTopic), 
+          motor_failure_sub_topic_(kDefaultWingFailureNumSubTopic),
+          motor_speed_pub_topic_(kDefaultWingVelocityPubTopic),
+          wing_side_(kDefaultWingSide),
+          wing_mass_(kDefaultWingMass),
+          wing_radius_(kDefaultWingRadius),
+          wing_length_(kDefaultWingLength),
+          moment_constant_(kDefaultMomentConstant),
+          motor_constant_(kDefaultMotorConstant),
+          wing_number_(0),
+          wing_Failure_Number_(0),
+          ref_wing_rot_vel_(0.0),
+          rotor_velocity_slowdown_sim_(kDefaultRotorVelocitySlowdownSim),
+          max_rot_velocity_(kDefaulMaxRotVelocity) {
+    }
 
-    /// \brief Pointer to physics engine.
-    protected: physics::PhysicsEnginePtr physics;
+    virtual ~MagnusRoll();
+    virtual void InitializeParams();
+    virtual void Publish();
 
-    /// \brief Pointer to model containing plugin.
-    protected: physics::ModelPtr model;
+  protected:
+    virtual void UpdateForcesAndMoments();
+    virtual void UpdateMotorFail();
+    virtual void Load(physics::ModelPtr _model, sdf::ElementPtr _sdf);
+    virtual void OnUpdate(const common::UpdateInfo&_info);
 
-    /// \brief Coefficient of Lift / alpha slope.
-    /// Lift = C_L * q * S
-    /// where q (dynamic pressure) = 0.5 * rho * v^2
-    protected: double cla;
+  private:
+    std::string command_sub_topic_;
+    std::string motor_failure_sub_topic_;
+    std::string joint_name_;
+    std::string link_name_;
+    std::string motor_speed_pub_topic_;
+    std::string namespace_;
+    std::string wing_side_;
 
-    /// \brief Coefficient of Drag / alpha slope.
-    /// Drag = C_D * q * S
-    /// where q (dynamic pressure) = 0.5 * rho * v^2
-    protected: double cda;
+    int wing_Failure_Number_;
+    int wing_number_;
+    int tmp_motor_num; // A temporary variable used to print msg
 
-    /// \brief Coefficient of Moment / alpha slope.
-    /// Moment = C_M * q * S
-    /// where q (dynamic pressure) = 0.5 * rho * v^2
-    protected: double cma;
+    double max_rot_velocity_;
+    double rotor_velocity_slowdown_sim_;
+    double ref_wing_rot_vel_;
+    double wing_mass_;
+    double wing_radius_;
+    double wing_length_;
+    double moment_constant_;
+    double motor_constant_;
 
-    /// \brief angle of attach when airfoil stalls
-    protected: double alphaStall;
+    transport::NodePtr node_handle_;
+    transport::PublisherPtr motor_velocity_pub_;
+    transport::SubscriberPtr command_sub_;
+    transport::SubscriberPtr motor_failure_sub_; /*!< Subscribing to motor_failure_sub_topic_; receiving motor number to fail, as an integer */
 
-    /// \brief Cl-alpha rate after stall
-    protected: double claStall;
+    physics::ModelPtr model_;
+    physics::JointPtr joint_;
+    physics::LinkPtr link_;
+    event::ConnectionPtr updateConnection_;
 
-    /// \brief Cd-alpha rate after stall
-    protected: double cdaStall;
+    std_msgs::msgs::Float turning_velocity_msg_;
+    void VelocityCallback(CommandMotorSpeedPtr &rot_velocities);
+    void MotorFailureCallback(const boost::shared_ptr<const msgs::Int> &fail_msg);  /*!< Callback for the motor_failure_sub_ subscriber */
 
-    /// \brief Cm-alpha rate after stall
-    protected: double cmaStall;
-
-    /// \brief: \TODO: make a stall velocity curve
-    protected: double velocityStall;
-
-    /// \brief air density
-    /// at 25 deg C it's about 1.1839 kg/m^3
-    /// At 20 °C and 101.325 kPa, dry air has a density of 1.2041 kg/m3.
-    protected: double rho;
-
-    /// \brief if the shape is aerodynamically radially symmetric about
-    /// the forward direction. Defaults to false for wing shapes.
-    /// If set to true, the upward direction is determined by the
-    /// angle of attack.
-    protected: bool radialSymmetry;
-
-    /// \brief effective planeform surface area
-    protected: double area;
-
-    /// \brief angle of sweep
-    protected: double sweep;
-
-    /// \brief initial angle of attack
-    protected: double alpha0;
-
-    /// \brief angle of attack
-    protected: double alpha;
-
-    /// \brief center of pressure in link local coordinates
-    protected: ignition::math::Vector3d cp;
-
-    /// \brief Normally, this is taken as a direction parallel to the chord
-    /// of the airfoil in zero angle of attack forward flight.
-    protected: ignition::math::Vector3d forward;
-
-    /// \brief A vector in the lift/drag plane, perpendicular to the forward
-    /// vector. Inflow velocity orthogonal to forward and upward vectors
-    /// is considered flow in the wing sweep direction.
-    protected: ignition::math::Vector3d upward;
-
-    /// \brief Smoothed velocity
-    protected: ignition::math::Vector3d velSmooth;
-
-    /// \brief Pointer to link currently targeted by mud joint.
-    protected: physics::LinkPtr link;
-
-    /// \brief Pointer to a joint that actuates a control surface for
-    /// this lifting body
-    protected: physics::JointPtr controlJoint;
-
-    /// \brief how much to change CL per radian of control surface joint
-    /// value.
-    protected: double controlJointRadToCL;
-
-    /// \brief SDF for this plugin;
-    protected: sdf::ElementPtr sdf;
-  };
+};
 }
-#endif
