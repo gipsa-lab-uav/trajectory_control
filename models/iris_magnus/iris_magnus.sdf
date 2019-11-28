@@ -570,7 +570,7 @@
       <rotorVelocitySlowdownSim>10</rotorVelocitySlowdownSim>
     </plugin-->
 
-     <plugin name='left_wing_model' filename='libmagnus_roll.so'>
+    <plugin name='left_wing_model' filename='libmagnus_roll.so'>
       <robotNamespace/>
       <jointName>left_wing_joint</jointName>
       <linkName>left_wing</linkName>
