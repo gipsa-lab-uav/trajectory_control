@@ -145,9 +145,9 @@ DroneStates StatesEstimator::process(float dt, geometry_msgs::Vector3 dronePosit
 
 	for (int i = 0; i < x.param.overSamplingFactor; i++)
 	{
-		r.x = x.process(newDt, dronePosition.x, predictedTemp.x, cmd.x);
-		r.y = y.process(newDt, dronePosition.y, predictedTemp.y, cmd.y);
-		r.z = z.process(newDt, dronePosition.z, predictedTemp.z, cmd.z);
+		r.x = x.process(newDt, dronePosition.x, predictedTemp.x, cmdApplied.x);// cmd -> cmdApplied
+		r.y = y.process(newDt, dronePosition.y, predictedTemp.y, cmdApplied.y);// cmd -> cmdApplied
+		r.z = z.process(newDt, dronePosition.z, predictedTemp.z, cmdApplied.z);// cmd -> cmdApplied
 		predictedTemp = r;
 	}
 
