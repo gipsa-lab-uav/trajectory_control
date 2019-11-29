@@ -1,4 +1,4 @@
-<sdf version='1.0'>
+<sdf version='1.4'>
   <model name='iris_magnus'>
 
     <link name='base_link'>
@@ -357,7 +357,7 @@
     </joint>
 
     <link name="left_wing">
-      <pose>0 0.1175 -0.05 1.5708 0 0 0</pose>
+      <pose frame=''>0 0.1175 -0.05 1.5708 0 0 0</pose>
       <inertial>
         <pose frame=''>0 0 0 0 -0 0</pose>
         <mass>0.06</mass>
@@ -378,7 +378,8 @@
           </cylinder>
         </geometry>
       </collision>
-      <visual name="visual">
+      <visual name="left_wing_visual">
+        <pose frame=''>0 0 0 0 -0 0</pose>
         <geometry>
           <cylinder>
             <radius>0.025</radius>
@@ -416,7 +417,7 @@
     </joint>
 
     <link name="right_wing">
-      <pose>0 -0.1175 -0.05 1.5708 0 0 0</pose>
+      <pose frame=''>0 -0.1175 -0.05 1.5708 0 0 0</pose>
       <inertial>
         <pose frame=''>0 0 0 0 -0 0</pose>
         <mass>0.06</mass>
@@ -437,7 +438,8 @@
           </cylinder>
         </geometry>
       </collision>
-      <visual name="visual">
+      <visual name="right_wing_visual">
+        <pose frame=''>0 0 0 0 -0 0</pose>
         <geometry>
           <cylinder>
             <radius>0.025</radius>
@@ -552,25 +554,8 @@
       <rotorVelocitySlowdownSim>10</rotorVelocitySlowdownSim>
     </plugin>
 
-    <!--plugin name='left_wing_model' filename='libgazebo_magnus_wing_model.so'>
-      <robotNamespace/>
-      <jointName>left_wing_joint</jointName>
-      <linkName>left_wing</linkName>
-      <turningDirection>cw</turningDirection>
-      <timeConstantUp>0.0125</timeConstantUp>
-      <timeConstantDown>0.025</timeConstantDown>
-      <maxRotVelocity>1100</maxRotVelocity>
-      <motorConstant>8.54858e-06</motorConstant>
-      <momentConstant>0.06</momentConstant>
-      <commandSubTopic>/gazebo/command/wing_speed</commandSubTopic>
-      <wingNumber>0</wingNumber>
-      <rotorDragCoefficient>0.000806428</rotorDragCoefficient>
-      <rollingMomentCoefficient>1e-06</rollingMomentCoefficient>
-      <motorSpeedPubTopic>/wing_speed/0</motorSpeedPubTopic>
-      <rotorVelocitySlowdownSim>10</rotorVelocitySlowdownSim>
-    </plugin-->
-
-    <plugin name='left_wing_model' filename='libmagnus_roll.so'>
+<!--
+    <plugin name='left_wing_model' filename='libmagnus_plugin.so'>
       <robotNamespace/>
       <jointName>left_wing_joint</jointName>
       <linkName>left_wing</linkName>
@@ -585,7 +570,7 @@
       <rotorVelocitySlowdownSim>10</rotorVelocitySlowdownSim>
     </plugin>
 
-    <plugin name='right_wing_model' filename='libmagnus_roll.so'>
+    <plugin name='right_wing_model' filename='libmagnus_plugin.so'>
       <robotNamespace/>
       <jointName>right_wing_joint</jointName>
       <linkName>right_wing</linkName>
@@ -599,24 +584,7 @@
       <motorSpeedPubTopic>/wing_speed/1</motorSpeedPubTopic>
       <rotorVelocitySlowdownSim>10</rotorVelocitySlowdownSim>
     </plugin>
-
-    <!--plugin name='right_wing_model' filename='libgazebo_magnus_wing_model.so'>
-      <robotNamespace/>
-      <jointName>right_wing_joint</jointName>
-      <linkName>right_wing</linkName>
-      <turningDirection>cw</turningDirection>
-      <timeConstantUp>0.0125</timeConstantUp>
-      <timeConstantDown>0.025</timeConstantDown>
-      <maxRotVelocity>1100</maxRotVelocity>
-      <motorConstant>8.54858e-06</motorConstant>
-      <momentConstant>0.06</momentConstant>
-      <commandSubTopic>/gazebo/command/wing_speed</commandSubTopic>
-      <wingNumber>1</wingNumber>
-      <rotorDragCoefficient>0.000806428</rotorDragCoefficient>
-      <rollingMomentCoefficient>1e-06</rollingMomentCoefficient>
-      <motorSpeedPubTopic>/wing_speed/1</motorSpeedPubTopic>
-      <rotorVelocitySlowdownSim>10</rotorVelocitySlowdownSim>
-    </plugin-->
+  -->
 
     <plugin name='gps_plugin' filename='libgazebo_gps_plugin.so'>
       <robotNamespace/>
