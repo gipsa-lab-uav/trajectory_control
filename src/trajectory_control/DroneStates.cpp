@@ -54,6 +54,20 @@ void DroneStates::replacePosAndSpeed(geometry_msgs::Vector3 position, geometry_m
     z.speed = speed.z;
 }
 
+void DroneStates::replaceSpeed(geometry_msgs::Vector3 speed)
+{
+	x.speed = speed.x;
+	y.speed = speed.y;
+	z.speed = speed.z;
+}
+
+void DroneStates::replaceAcc(geometry_msgs::Vector3 acceleration)
+{
+	x.acceleration = acceleration.x;
+	y.acceleration = acceleration.y;
+	z.acceleration = acceleration.z;
+}
+
 geometry_msgs::Vector3 DroneStates::getVectPos()
 {
     geometry_msgs::Vector3 r;
