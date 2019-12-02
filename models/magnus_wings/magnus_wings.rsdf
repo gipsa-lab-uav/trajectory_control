@@ -1,32 +1,60 @@
+<%  
+    # Geometry
+    frame_mass   = 0.01
+    frame_depth  = 0.08     # X-axis
+    frame_width  = 0.16     # Y-axis
+    frame_height = 0.01     # Z-axis
+
+    wing_mass   = 0.06
+    wing_radius = 0.025
+    wing_length = 0.15
+
+    # Position
+    frame_z = frame_height/2
+
+    wing_y = frame_width - 0.02
+    wing_z = wing_radius + frame_height
+    wing_roll = (3.14159265359/2).round(6)
+    wing_joint_z = wing_length/2
+
+    # Inertia
+    frame_ixx = ((1.0/12)*frame_mass*(frame_height**2 + frame_width**2)).round(10)
+    frame_iyy = ((1.0/12)*frame_mass*(frame_height**2 + frame_depth**2)).round(10)
+    frame_izz = ((1.0/12)*frame_mass*(frame_depth**2 + frame_width**2)).round(10)
+
+    wing_ixx  = ((1.0/12)*wing_mass*(6.0*wing_radius**2 + wing_length**2)).round(10)
+    wing_iyy  = (wing_mass*wing_radius**2).round(10)
+    wing_izz  = ((1.0/12)*wing_mass*(6.0*wing_radius**2 + wing_length**2)).round(10)
+%>
 <?xml version='1.0'?>
 <sdf version='1.4'>
     <model name='magnus_wings'>
 
         <link name="base_link">
-            <pose>0 0 0.005 0 0 0</pose>
+            <pose>0 0 <%=frame_z%> 0 0 0</pose>
             <inertial>
-                <pose>0 0 0.005 0 0 0</pose>
-                <mass>0.01</mass>
+                <pose>0 0 <%=frame_z%> 0 0 0</pose>
+                <mass><%=frame_mass%></mass>
                 <inertia>
-                    <ixx>2.14167e-05</ixx>
+                    <ixx><%=frame_ixx%></ixx>
                     <ixy>0</ixy>
                     <ixz>0</ixz>
-                    <iyy>5.4167e-06</iyy>
+                    <iyy><%=frame_iyy%></iyy>
                     <iyz>0</iyz>
-                    <izz>2.66667e-05</izz>
+                    <izz><%=frame_izz%></izz>
                 </inertia>
             </inertial>
             <collision name='base_link_collision'>
                 <geometry>
                     <box>
-                        <size>0.08 0.16 0.01</size>
+                        <size><%=frame_depth%> <%=frame_width%> <%=frame_height%></size>
                     </box>
                 </geometry>
             </collision>
             <visual name='base_link_visual'>
                 <geometry>
                     <box>
-                        <size>0.08 0.16 0.01</size>
+                        <size><%=frame_depth%> <%=frame_width%> <%=frame_height%></size>
                     </box>
                 </geometry>
                 <material>
@@ -41,31 +69,31 @@
         </link>
 
         <link name="left_wing">
-            <pose>0 0.14 0.035 1.570796 0 0</pose>
+            <pose>0 <%=wing_y%> <%=wing_z%> <%=wing_roll%> 0 0</pose>
             <inertial>
-                <mass>0.06</mass>
+                <mass><%=wing_mass%></mass>
                 <inertia>
-                    <ixx>0.00013125</ixx>
+                    <ixx><%=wing_ixx%></ixx>
                     <ixy>0</ixy>
                     <ixz>0</ixz>
-                    <iyy>3.75e-05</iyy>
+                    <iyy><%=wing_iyy%></iyy>
                     <iyz>0</iyz>
-                    <izz>0.00013125</izz>
+                    <izz><%=wing_izz%></izz>
                 </inertia>
             </inertial>
             <collision name="left_wing_collision">
                 <geometry>
                     <cylinder>
-                        <radius>0.025</radius>
-                        <length>0.15</length>
+                        <radius><%=wing_radius%></radius>
+                        <length><%=wing_length%></length>
                     </cylinder>
                 </geometry>
             </collision>
             <visual name="left_wing_visual">
                 <geometry>
                     <cylinder>
-                        <radius>0.025</radius>
-                        <length>0.15</length>
+                        <radius><%=wing_radius%></radius>
+                        <length><%=wing_length%></length>
                     </cylinder>
                 </geometry>
                 <material>
@@ -80,7 +108,7 @@
         </link>
         
         <joint name='left_wing_joint' type='revolute'>
-            <pose>0 0 0.075 0 0 0</pose>
+            <pose>0 0 <%=wing_joint_z%> 0 0 0</pose>
             <child>left_wing</child>
             <parent>base_link</parent>
             <axis>
@@ -99,31 +127,31 @@
         </joint>
 
         <link name="right_wing">
-            <pose>0 -0.14 0.035 1.570796 0 0</pose>
+            <pose>0 <%=-wing_y%> <%=wing_z%> <%=wing_roll%> 0 0</pose>
             <inertial>
-                <mass>0.06</mass>
+                <mass><%=wing_mass%></mass>
                 <inertia>
-                    <ixx>0.00013125</ixx>
+                    <ixx><%=wing_ixx%></ixx>
                     <ixy>0</ixy>
                     <ixz>0</ixz>
-                    <iyy>3.75e-05</iyy>
+                    <iyy><%=wing_iyy%></iyy>
                     <iyz>0</iyz>
-                    <izz>0.00013125</izz>
+                    <izz><%=wing_izz%></izz>
                 </inertia>
             </inertial>
             <collision name="right_wing_collision">
                 <geometry>
                     <cylinder>
-                        <radius>0.025</radius>
-                        <length>0.15</length>
+                        <radius><%=wing_radius%></radius>
+                        <length><%=wing_length%></length>
                     </cylinder>
                 </geometry>
             </collision>
             <visual name="right_wing_visual">
                 <geometry>
                     <cylinder>
-                        <radius>0.025</radius>
-                        <length>0.15</length>
+                        <radius><%=wing_radius%></radius>
+                        <length><%=wing_length%></length>
                     </cylinder>
                 </geometry>
                 <material>
@@ -138,7 +166,7 @@
         </link>
 
         <joint name='right_wing_joint' type='revolute'>
-            <pose>0 0 -0.075 0 0 0</pose>
+            <pose>0 0 <%=-wing_joint_z%> 0 0 0</pose>
             <child>right_wing</child>
             <parent>base_link</parent>
             <axis>
