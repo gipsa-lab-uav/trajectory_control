@@ -154,7 +154,7 @@ To apply changes to SDF models (as those in the various directories in `~/catkin
 If it happens that a lot of tags have repeated values, or values that are calculated based on other values also in the SDF model file, it can be used [embedded ruby](https://en.wikipedia.org/wiki/ERuby) to generate parametrized models. If this is the case, a new file would be created. Following the example, we could name it `new_model.rsdf`, and it would include embedded ruby code. A nice example of this feature can be found in [this file](https://bitbucket.org/osrf/gazebo_models/src/b237ea45262f51ff8d72aaa96ef19f1288723c42/cart_rigid_suspension/model.rsdf). To then transform a RSDF file to the desired SDF model file, run the following command:
 
 ```bash
-erb new_model.rsdf > new_model.sdf
+erb -T 1 -v new_model.rsdf > new_model.sdf
 ```
 
 Details and more options for the command `erb` can be found [here](https://www.commandlinux.com/man-page/man1/erb.1.html).
