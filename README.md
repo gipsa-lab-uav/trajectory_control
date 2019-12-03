@@ -115,10 +115,11 @@ cp -a trajectory_control/include/magnus_plugin/ sitl_gazebo/include/magnus_plugi
 cp -a trajectory_control/src/magnus_plugin/ sitl_gazebo/src/magnus_plugin
 ```
 
-Then, copy the HR Drone model:
+Then, copy the models for the HR Drone and the Magnus Wings:
 ```bash
-mkdir -p sitl_gazebo/models/iris_magnus
+mkdir -p sitl_gazebo/models/iris_magnus sitl_gazebo/models/magnus_wings
 cp -a trajectory_control/models/iris_magnus/*.sdf trajectory_control/models/iris_magnus/*.config sitl_gazebo/models/iris_magnus
+cp -a trajectory_control/models/magnus_wings/*.sdf trajectory_control/models/magnus_wings/*.config sitl_gazebo/models/magnus_wings
 ```
 
 ### CMake file
