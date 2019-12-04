@@ -24,36 +24,25 @@ class TrajectoryGeneration:
         rospy.Subscriber(subscriber, Odometry, self.callback)
         self.pub = rospy.Publisher(publisher, JointTrajectory, queue_size=10)
 
-        self.YAW_HEADING = ['center', [1, 1, 2]] # auto, center, axes
-        self.TRAJECTORY_REQUESTED_SPEED = 7. # max. linear speed [m.s-1]
-        self.MAX_LINEAR_ACC = 10. # max. linear acceleration [m.s-2]
-        self.MAX_LINEAR_JERK = 20. # max. linear jerk [m.s-3]
-        self.PUBLISH_RATE = 10 # publisher frequency
-        self.FREQUENCY = 100. # [Hz]
-        self.DELTA_L = self.TRAJECTORY_REQUESTED_SPEED / self.FREQUENCY # [m.s]
-        self.BOX_LIMIT = [[-4., 4.], [-4., 4.], [0., 6.]] # [[x_min, x_max], [y_min, y_max], [z_min, z_max]]
-        self.WINDOW_FRAME = .5 # publish future states comprise in the window time [s]
+        self.YAW_HEADING = ['auto', [1, 0]] # auto, center, axes
+        self.TRAJECTORY_REQUESTED_SPEED = 0.4 # max. linear speed [m.s-1]
+        self.PUBLISH_RATE = 10 # publisher frequency [Hz]
+        self.FREQUENCY = 10 # point trajectory frequency [Hz]
+        self.BOX_LIMIT = [[-4., 4.], [-4., 4.], [-.01, 6.]] # [[x_min, x_max], [y_min, y_max], [z_min, z_max]]
+        self.WINDOW_FRAME = .5 # publish future states comprise in the window time frame [s]
         self.EXTRA_POINTS_START = 35
         self.EXTRA_POINTS_END = 100
+
+        self.MAX_LINEAR_SPEED_XY = 0.5 # max. linear speed [m.s-1]
+        self.MAX_LINEAR_SPEED_Z = 0.5 # max. linear speed [m.s-1]
+        self.MAX_LINEAR_ACC_XY = 1.5 # max. linear acceleration [m.s-2]
+        self.MAX_LINEAR_ACC_Z = 2.0 # max. linear acceleration [m.s-2]
+
+        self.is_first_callback = False
 
         self.x_discretized = [.0] * self.EXTRA_POINTS_START
         self.y_discretized = [.0] * self.EXTRA_POINTS_START
         self.z_discretized = [.0] * self.EXTRA_POINTS_START
-
-        self.MAX_LINEAR_SPEED_XY = 10. # max. linear speed [m.s-1]
-        self.MAX_LINEAR_SPEED_Z = 15. # max. linear speed [m.s-1]
-        self.MAX_LINEAR_ACC_XY = 100. # max. linear acceleration [m.s-2]
-        self.MAX_LINEAR_ACC_Z = 150. # max. linear acceleration [m.s-2]
-        self.MAX_LINEAR_JERK_XY = 10. # max linear jerk [m.s-3]
-        self.MAX_LINEAR_JERK_Z = 20. # max linear jerk [m.s-3]
-
-        #Parameters for 2nd order filtering
-        self.COEFF_X = .9
-        self.COEFF_Y = .9
-        self.COEFF_Z = .15
-
-        self.is_filtered = False
-        self.is_first_callback = False
 
     def discretise_trajectory(self, parameters=[]):
 
@@ -63,9 +52,11 @@ class TrajectoryGeneration:
         y1 = self.y_discretized[-1]
         z1 = self.z_discretized[-1]
 
+        delta_l = self.TRAJECTORY_REQUESTED_SPEED / self.FREQUENCY
+
         if parameters[0] == 'vector':
 
-            steps = self.norm(parameters[1], [x1, y1, z1]) / self.DELTA_L
+            steps = self.norm(parameters[1], [x1, y1, z1]) / delta_l
 
             x = np.linspace(x1, parameters[1][0], steps, endpoint=True)
             y = np.linspace(y1, parameters[1][1], steps, endpoint=True)
@@ -74,7 +65,7 @@ class TrajectoryGeneration:
         elif parameters[0] == 'circle':
             center = parameters[1]
             radius = self.norm(center, [x1, y1, z1])
-            steps = int( 2 * math.pi * radius / self.DELTA_L)
+            steps = int( 2 * math.pi * radius / delta_l)
 
             cos_a = (x1 - center[0]) / radius
             sin_a = (y1 - center[1]) / radius
@@ -93,6 +84,23 @@ class TrajectoryGeneration:
             y = y1 * np.ones(steps)
             z = z1 * np.ones(steps)
 
+        elif parameters[0] == 'takeoff':
+
+            steps = int(abs(parameters[1] - z1) / delta_l)
+
+            x = x1 * np.ones(steps)
+            y = y1 * np.ones(steps)
+            z = np.linspace(z1, parameters[1], steps, endpoint=True)
+
+        elif parameters[0] == 'landing':
+
+            steps = int(abs(z1) / delta_l)
+
+            x = x1 * np.ones(steps)
+            y = y1 * np.ones(steps)
+            z = np.linspace(z1, -.01, steps, endpoint=True)
+
+        # elif parameters[0] == 'return2home':
         #elif parameters[0] == 'square':
         #elif parameters[0] == 'inf':
 
@@ -115,8 +123,8 @@ class TrajectoryGeneration:
         start = time()
 
         self.x_discretized.extend([self.x_discretized[-1]] * self.EXTRA_POINTS_END)
-        self.y_discretized.extend([self.x_discretized[-1]] * self.EXTRA_POINTS_END)
-        self.z_discretized.extend([self.x_discretized[-1]] * self.EXTRA_POINTS_END)
+        self.y_discretized.extend([self.y_discretized[-1]] * self.EXTRA_POINTS_END)
+        self.z_discretized.extend([self.z_discretized[-1]] * self.EXTRA_POINTS_END)
 
         self.ya_discretized = [.0]
         self.vx_discretized = [.0]
@@ -127,9 +135,11 @@ class TrajectoryGeneration:
         self.az_discretized = [.0]
         self.ti_discretized = [.0]
 
+        prevHeading = np.array([.0, .0])
+
         for s,_ in enumerate(self.x_discretized[1:]):
-            p1 = np.array([self.x_discretized[s], self.y_discretized[s], self.z_discretized[s]])
-            p2 = np.array([self.x_discretized[s+1], self.y_discretized[s+1], self.z_discretized[s+1]])
+            p1 = np.array([self.x_discretized[s], self.y_discretized[s]])
+            p2 = np.array([self.x_discretized[s+1], self.y_discretized[s+1]])
 
             if self.YAW_HEADING[0] == 'center':
                 heading = np.array(self.YAW_HEADING[1]) - p1
@@ -138,7 +148,8 @@ class TrajectoryGeneration:
             else:
                 heading = p2 - p1
 
-            heading = (heading / self.norm(heading)) if self.norm(heading) != 0 else np.array([.0, .0, .0])
+            heading = (heading / self.norm2(heading)) if self.norm2(heading) != 0 else prevHeading
+            prevHeading = heading
 
             self.ya_discretized.append(math.atan2(heading[1], heading[0]))
             self.vx_discretized.append((self.x_discretized[s+1] - self.x_discretized[s]) * self.FREQUENCY)
@@ -155,14 +166,14 @@ class TrajectoryGeneration:
 
         start = time()
 
-        self.is_filtered = True
+        self.x_filtered = [self.x_discretized[0]]
+        self.y_filtered = [self.y_discretized[0]]
+        self.z_filtered = [self.z_discretized[0]]
 
-        self.x_filtered = [.0]
-        self.y_filtered = [.0]
-        self.z_filtered = [.0]
         self.vx_filtered = [.0]
         self.vy_filtered = [.0]
         self.vz_filtered = [.0]
+
         self.ax_filtered = [.0]
         self.ay_filtered = [.0]
         self.az_filtered = [.0]
@@ -189,11 +200,9 @@ class TrajectoryGeneration:
 
         start = time()
 
-        self.is_filtered = True
-
-        self.x_filtered = [.0]
-        self.y_filtered = [.0]
-        self.z_filtered = [.0]
+        self.x_filtered = [self.x_discretized[0]]
+        self.y_filtered = [self.y_discretized[0]]
+        self.z_filtered = [self.z_discretized[0]]
 
         if on_filtered:
             self.vx_filtered = signal.savgol_filter(x=self.vx_filtered, window_length=window_length, polyorder=polyorder, deriv=deriv, delta=delta, mode=mode)
@@ -209,9 +218,8 @@ class TrajectoryGeneration:
         self.az_filtered = [.0]
 
         saturate = lambda x, y: math.copysign(min(x, y, key=abs), x)
-        # saturate = lambda x, y: x
 
-        for s,_ in enumerate(self.vx_discretized[1:]):
+        for s,_ in enumerate(self.vx_filtered[1:]):
             self.ax_filtered.append(saturate((self.vx_filtered[s+1] - self.vx_filtered[s]) * self.FREQUENCY, self.MAX_LINEAR_ACC_XY))
             self.ay_filtered.append(saturate((self.vy_filtered[s+1] - self.vy_filtered[s]) * self.FREQUENCY, self.MAX_LINEAR_ACC_XY))
             self.az_filtered.append(saturate((self.vz_filtered[s+1] - self.vz_filtered[s]) * self.FREQUENCY, self.MAX_LINEAR_ACC_Z))
@@ -226,71 +234,35 @@ class TrajectoryGeneration:
 
         print('generate_states_sg_filtered() runs in {} s'.format(time() - start))
 
-    def second_order_filter(self, param, cmd, cmd_last, cmd_2last):
-        cmd_2last = param * cmd_2last + (1.0 - param) * cmd_last
-        cmd_last = param * cmd_last + (1.0 - param) * cmd
+    def generate_yaw_filtered(self):
 
-        return [cmd_last, cmd_2last]
+        if not hasattr(self, 'x_filtered'): return
 
-    def generate_states_2nd_order_filtered(self):
         start = time()
 
-        self.is_filtered = True
+        self.ya_filtered = []
 
-        self.vx_discretized = [.0]
-        self.vy_discretized = [.0]
-        self.vz_discretized = [.0]
-        self.ax_discretized = [.0]
-        self.ay_discretized = [.0]
-        self.az_discretized = [.0]
+        prevHeading = np.array([.0, .0, .0])
 
-        self.x_filtered = [.0]
-        self.y_filtered = [.0]
-        self.z_filtered = [.0]
-        self.vx_filtered = [.0]
-        self.vy_filtered = [.0]
-        self.vz_filtered = [.0]
-        self.ax_filtered = [.0]
-        self.ay_filtered = [.0]
-        self.az_filtered = [.0]
+        for s,_ in enumerate(self.vx_filtered[1:]):
+            p1 = np.array([self.x_filtered[s], self.y_filtered[s]])
+            p2 = np.array([self.x_filtered[s+1], self.y_filtered[s+1]])
 
-        saturate = lambda x, y: math.copysign(min(x, y, key=abs), x)
+            if self.YAW_HEADING[0] == 'center':
+                heading = np.array(self.YAW_HEADING[1]) - p1
+            elif self.YAW_HEADING[0] == 'axes':
+                heading = np.array(self.YAW_HEADING[1])
+            else:
+                heading = p2 - p1
 
-        ax_cmd_last = .0
-        ax_cmd_2last = .0
-        ay_cmd_last = .0
-        ay_cmd_2last = .0
-        az_cmd_last = .0
-        az_cmd_2last = .0
+            heading = (heading / self.norm2(heading)) if self.norm2(heading) != 0 else prevHeading
+            prevHeading = heading
 
-        for s,_ in enumerate(self.x_discretized[1:]):
+            self.ya_filtered.append(math.atan2(heading[1], heading[0]))
 
-            self.vx_discretized.append(saturate((self.x_discretized[s+1] - self.x_discretized[s]) * self.FREQUENCY, self.MAX_LINEAR_SPEED_XY))
-            self.vy_discretized.append(saturate((self.y_discretized[s+1] - self.y_discretized[s]) * self.FREQUENCY, self.MAX_LINEAR_SPEED_XY))
-            self.vz_discretized.append(saturate((self.z_discretized[s+1] - self.z_discretized[s]) * self.FREQUENCY, self.MAX_LINEAR_SPEED_Z))
-            self.ax_discretized.append(saturate((self.vx_discretized[-1] - self.vx_discretized[-2]) * self.FREQUENCY, self.MAX_LINEAR_ACC_XY))
-            self.ay_discretized.append(saturate((self.vy_discretized[-1] - self.vy_discretized[-2]) * self.FREQUENCY, self.MAX_LINEAR_ACC_XY))
-            self.az_discretized.append(saturate((self.vz_discretized[-1] - self.vz_discretized[-2]) * self.FREQUENCY, self.MAX_LINEAR_ACC_Z))
+        self.ya_filtered.append(self.ya_filtered[-1])
 
-        for s,_ in enumerate(self.vx_discretized[1:]):
-
-            ax_cmd_last, ax_cmd_2last = self.second_order_filter(self.COEFF_X, self.ax_discretized[s], ax_cmd_last, ax_cmd_2last)
-            ay_cmd_last, ay_cmd_2last = self.second_order_filter(self.COEFF_Y, self.ay_discretized[s], ay_cmd_last, ay_cmd_2last)
-            az_cmd_last, az_cmd_2last = self.second_order_filter(self.COEFF_Z, self.az_discretized[s], az_cmd_last, az_cmd_2last)
-
-            self.ax_filtered.append(ax_cmd_2last)
-            self.ay_filtered.append(ay_cmd_2last)
-            self.az_filtered.append(az_cmd_2last)
-
-            self.vx_filtered.append(self.vx_filtered[-1] + (self.ax_filtered[-1] / self.FREQUENCY))
-            self.vy_filtered.append(self.vy_filtered[-1] + (self.ay_filtered[-1] / self.FREQUENCY))
-            self.vz_filtered.append(self.vz_filtered[-1] + (self.az_filtered[-1] / self.FREQUENCY))
-
-            self.x_filtered.append(self.x_filtered[-1] + (self.vx_filtered[-1] / self.FREQUENCY))
-            self.y_filtered.append(self.y_filtered[-1] + (self.vy_filtered[-1] / self.FREQUENCY))
-            self.z_filtered.append(self.z_filtered[-1] + (self.vz_filtered[-1] / self.FREQUENCY))
-
-        print('generate_states_2nd_order_filtered() runs in {} s'.format(time() - start))
+        print('generate_yaw_filtered() runs in {} s'.format(time() - start))
 
     def plot_trajectory_extras(self):
 
@@ -302,81 +274,61 @@ class TrajectoryGeneration:
         fig = plt.figure(figsize=(16,8))
 
         ax1 = fig.add_subplot(121, projection='3d')
-        ax1.scatter(self.x_discretized, self.y_discretized, self.z_discretized, label='trajectory', color='blue')
-        ax1.quiver(
-            self.x_discretized[0::n], self.y_discretized[0::n], self.z_discretized[0::n],
-            self.vx_discretized[0::n], self.vy_discretized[0::n], self.vz_discretized[0::n],
-            length=.05, color='red', alpha=alpha, label='velocity')
-        ax1.quiver(
-            self.x_discretized[0::n], self.y_discretized[0::n], self.z_discretized[0::n],
-            [math.cos(a) for a in self.ya_discretized[0::n]], [math.sin(a) for a in self.ya_discretized[0::n]], [.0 for a in self.ya_discretized[0::n]],
-            length=.3, color='green', alpha=alpha, label='heading')
-        ax1.axis('equal')
-        plt.legend()
-        plt.title('Trajectory')
-
-        ax2 = fig.add_subplot(222)
-        ax2.plot(self.vx_discretized, color='red', label='vx_desired')
-        ax2.plot(self.vy_discretized, color='green', label='vy_desired')
-        ax2.plot(self.vz_discretized, color='blue', label='vz_desired')
-        plt.legend()
-        plt.title('Velocity')
-
-        ax3 = fig.add_subplot(224)
-        ax3.plot(self.ax_discretized, color='red', label='ax_desired')
-        ax3.plot(self.ay_discretized, color='green', label='ay_desired')
-        ax3.plot(self.az_discretized, color='blue', label='az_desired')
-        plt.legend()
-        plt.title('Acceleration')
-
-        print('plot_trajectory_extras() runs in {} s'.format(time() - start))
-
-        fig.tight_layout()
-        plt.show()
-
-    def plot_trajectory_extras_filtered(self):
-
-        start = time()
-
-        n = 3 # Plot velocity and heading every n points to get a clearer graph
-        alpha = .3 # Transparancy for velocity and heading arrows
-
-        fig = plt.figure(figsize=(16,8))
-
-        ax1 = fig.add_subplot(121, projection='3d')
         ax1.scatter(self.x_discretized, self.y_discretized, self.z_discretized, label='trajectory_desired', color='blue')
-        ax1.scatter(self.x_filtered, self.y_filtered, self.z_filtered, label='trajectory_filtered', color='red')
-        ax1.quiver(
-            self.x_filtered[0::n], self.y_filtered[0::n], self.z_filtered[0::n],
-            self.vx_filtered[0::n], self.vy_filtered[0::n], self.vz_filtered[0::n],
-            length=.05, color='red', alpha=alpha, label='velocity')
-        ax1.quiver(
-            self.x_filtered[0::n], self.y_filtered[0::n], self.z_filtered[0::n],
-            [math.cos(a) for a in self.ya_discretized[0::n]], [math.sin(a) for a in self.ya_discretized[0::n]], [.0 for a in self.ya_discretized[0::n]],
-            length=.3, color='green', alpha=alpha, label='heading')
-        # ax1.axis('equal')
+        if hasattr(self, 'x_filtered'):
+            ax1.scatter(self.x_filtered, self.y_filtered, self.z_filtered, label='trajectory_filtered', color='red')
+            ax1.quiver(
+                self.x_filtered[0::n], self.y_filtered[0::n], self.z_filtered[0::n],
+                self.vx_filtered[0::n], self.vy_filtered[0::n], self.vz_filtered[0::n],
+                length=.05, color='red', alpha=alpha, label='velocity_filtered')
+            if hasattr(self, 'ya_filtered'):
+                ax1.quiver(
+                    self.x_filtered[0::n], self.y_filtered[0::n], self.z_filtered[0::n],
+                    [math.cos(a) for a in self.ya_filtered[0::n]], [math.sin(a) for a in self.ya_filtered[0::n]], [.0 for a in self.ya_filtered[0::n]],
+                    length=.3, color='green', alpha=alpha, label='heading_filtered')
+            else:
+                ax1.quiver(
+                    self.x_filtered[0::n], self.y_filtered[0::n], self.z_filtered[0::n],
+                    [math.cos(a) for a in self.ya_discretized[0::n]], [math.sin(a) for a in self.ya_discretized[0::n]], [.0 for a in self.ya_discretized[0::n]],
+                    length=.3, color='green', alpha=alpha, label='heading_discretized')
+        else:
+            ax1.quiver(
+                self.x_discretized[0::n], self.y_discretized[0::n], self.z_discretized[0::n],
+                self.vx_discretized[0::n], self.vy_discretized[0::n], self.vz_discretized[0::n],
+                length=.05, color='red', alpha=alpha, label='velocity')
+            ax1.quiver(
+                self.x_discretized[0::n], self.y_discretized[0::n], self.z_discretized[0::n],
+                [math.cos(a) for a in self.ya_discretized[0::n]], [math.sin(a) for a in self.ya_discretized[0::n]], [.0 for a in self.ya_discretized[0::n]],
+                length=.3, color='green', alpha=alpha, label='heading')
         plt.legend()
         plt.title('Trajectory')
 
-        ax2 = fig.add_subplot(222)
+        ax2 = fig.add_subplot(322)
         ax2.plot(self.vx_discretized, color='red', label='vx_desired')
         ax2.plot(self.vy_discretized, color='green', label='vy_desired')
         ax2.plot(self.vz_discretized, color='blue', label='vz_desired')
-        ax2.plot(self.vx_filtered, color='red', label='vx_filtered', linestyle='--')
-        ax2.plot(self.vy_filtered, color='green', label='vy_filtered', linestyle='--')
-        ax2.plot(self.vz_filtered, color='blue', label='vz_filtered', linestyle='--')
+        if hasattr(self, 'vx_filtered'): ax2.plot(self.vx_filtered, color='red', label='vx_filtered', linestyle='--')
+        if hasattr(self, 'vy_filtered'): ax2.plot(self.vy_filtered, color='green', label='vy_filtered', linestyle='--')
+        if hasattr(self, 'vz_filtered'): ax2.plot(self.vz_filtered, color='blue', label='vz_filtered', linestyle='--')
         plt.legend()
         plt.title('Velocity')
 
-        ax3 = fig.add_subplot(224)
+        ax3 = fig.add_subplot(324)
         ax3.plot(self.ax_discretized, color='red', label='ax_desired')
         ax3.plot(self.ay_discretized, color='green', label='ay_desired')
         ax3.plot(self.az_discretized, color='blue', label='az_desired')
-        ax3.plot(self.ax_filtered, color='red', label='ax_filtered', linestyle='--')
-        ax3.plot(self.ay_filtered, color='green', label='ay_filtered', linestyle='--')
-        ax3.plot(self.az_filtered, color='blue', label='az_filtered', linestyle='--')
+        if hasattr(self, 'ax_filtered'): ax3.plot(self.ax_filtered, color='red', label='ax_filtered', linestyle='--')
+        if hasattr(self, 'ay_filtered'): ax3.plot(self.ay_filtered, color='green', label='ay_filtered', linestyle='--')
+        if hasattr(self, 'az_filtered'): ax3.plot(self.az_filtered, color='blue', label='az_filtered', linestyle='--')
+        ax3.set_ylim([-max(self.MAX_LINEAR_ACC_XY, self.MAX_LINEAR_ACC_Z), max(self.MAX_LINEAR_ACC_XY, self.MAX_LINEAR_ACC_Z)])
         plt.legend()
         plt.title('Acceleration')
+
+        ax4 = fig.add_subplot(326)
+        ax4.plot(self.ya_discretized, color='red', label='ya_desired')
+        if hasattr(self, 'ya_filtered'): ax4.plot(self.ya_filtered, color='red', label='ya_filtered', linestyle='--')
+        plt.legend()
+        plt.title('Yaw')
 
         print('plot_trajectory_extras_filtered() runs in {} s'.format(time() - start))
 
@@ -384,9 +336,21 @@ class TrajectoryGeneration:
         plt.show()
 
     def start(self):
+
             start = rospy.Time.now()
             rate = rospy.Rate(self.PUBLISH_RATE)
             s = 0
+
+            x = self.x_filtered if hasattr(self, 'x_filtered') else self.x_discretized
+            y = self.y_filtered if hasattr(self, 'y_filtered') else self.y_discretized
+            z = self.z_filtered if hasattr(self, 'z_filtered') else self.z_discretized
+            ya = self.ya_filtered if hasattr(self, 'ya_filtered') else self.ya_discretized
+            vx = self.vx_filtered if hasattr(self, 'vx_filtered') else self.vx_discretized
+            vy = self.vy_filtered if hasattr(self, 'vy_filtered') else self.vy_discretized
+            vz = self.vz_filtered if hasattr(self, 'vz_filtered') else self.vz_discretized
+            ax = self.ax_filtered if hasattr(self, 'ax_filtered') else self.ax_discretized
+            ay = self.ay_filtered if hasattr(self, 'ay_filtered') else self.ay_discretized
+            az = self.az_filtered if hasattr(self, 'az_filtered') else self.az_discretized
 
             while not (rospy.is_shutdown() or s >= len(self.x_discretized)):
 
@@ -401,11 +365,11 @@ class TrajectoryGeneration:
                 joint_trajectory_msg.joint_names = ['t', 't1']
 
                 # Build JointTrajectoryPoint
-                for i in range(min(self.WINDOW_FRAME, len(self.x_filtered) - s)):
+                for i in range(min(self.WINDOW_FRAME, len(self.x_discretized) - s)):
                     joint_trajectory_point = JointTrajectoryPoint()
-                    joint_trajectory_point.positions = [self.x_filtered[s+i], self.y_filtered[s+i], self.z_filtered[s+i], self.ya_discretized[s+i]]
-                    joint_trajectory_point.velocities = [self.vx_filtered[s+i], self.vy_filtered[s+i], self.vz_filtered[s+i]] #if i != (self.WINDOW_FRAME - 1) else [.0, .0, .0]
-                    joint_trajectory_point.accelerations = [self.ax_filtered[s+i], self.ay_filtered[s+i], self.az_filtered[s+i]] #if i != (self.WINDOW_FRAME - 1) else [.0, .0, .0]
+                    joint_trajectory_point.positions = [x[s+i], y[s+i], z[s+i], ya[s+i]]
+                    joint_trajectory_point.velocities = [vx[s+i], vy[s+i], vz[s+i]] #if i != (self.WINDOW_FRAME - 1) else [.0, .0, .0]
+                    joint_trajectory_point.accelerations = [ax[s+i], ay[s+i], az[s+i]] #if i != (self.WINDOW_FRAME - 1) else [.0, .0, .0]
                     joint_trajectory_point.effort = []
                     joint_trajectory_point.time_from_start = rospy.Duration.from_sec(self.ti_discretized[s+i])
 
@@ -421,12 +385,13 @@ class TrajectoryGeneration:
     def norm(self, p1, p2=[.0, .0, .0]):
         return math.sqrt((p2[0] - p1[0]) ** 2 + (p2[1] - p1[1]) ** 2 + (p2[2] - p1[2]) ** 2)
 
+    def norm2(self, p1, p2=[.0, .0]):
+        return math.sqrt((p2[0] - p1[0]) ** 2 + (p2[1] - p1[1]) ** 2)
+
     def callback(self, odom):
         if not self.is_first_callback:
 
             position = odom.pose.pose.position
-
-            print('position {} s'.format(position))
 
             self.x_discretized = [position.x] * self.EXTRA_POINTS_START
             self.y_discretized = [position.y] * self.EXTRA_POINTS_START
@@ -438,6 +403,7 @@ class TrajectoryGeneration:
         rospy.loginfo("Waiting for position measurement callback ...")
         while not (rospy.is_shutdown() or self.is_first_callback):
             pass
+        rospy.loginfo("Position measurement callback ok.")
 
 if __name__ == '__main__':
 
@@ -448,50 +414,65 @@ if __name__ == '__main__':
     try:
         trajectory_object = TrajectoryGeneration(node_name=node_name, subscriber=subscriber , publisher=publisher)
 
-        ########################################################################
-        # Configuration
-        trajectory_object.YAW_HEADING = ['auto', [1, 1, 2]] # auto, center, axes
-        trajectory_object.TRAJECTORY_REQUESTED_SPEED = 0.4 # [m.s-1] to compute the step for discretized trajectory
-        trajectory_object.PUBLISH_RATE = 10 # publisher frequency
-        trajectory_object.FREQUENCY = 10 # [Hz]
-        trajectory_object.DELTA_L = trajectory_object.TRAJECTORY_REQUESTED_SPEED / trajectory_object.FREQUENCY # step in [m] to discretize trajectory
-        trajectory_object.BOX_LIMIT = [[-4., 4.], [-4., 4.], [0., 6.]] # [[x_min, x_max], [y_min, y_max], [z_min, z_max]]
-        trajectory_object.WINDOW_FRAME = 5 # publish the n future states
-
-        trajectory_object.MAX_LINEAR_SPEED_XY = 0.5 # max. linear speed [m.s-1]
-        trajectory_object.MAX_LINEAR_SPEED_Z = 0.5 # max. linear speed [m.s-1]
-        trajectory_object.MAX_LINEAR_ACC_XY = 1.5 # max. linear acceleration [m.s-2]
-        trajectory_object.MAX_LINEAR_ACC_Z = 2. # max. linear acceleration [m.s-2]
-        trajectory_object.MAX_LINEAR_JERK_XY = 4. # max linear jerk [m.s-3]
-        trajectory_object.MAX_LINEAR_JERK_Z = 4. # max linear jerk [m.s-3]
-
         # Wait for the first measurement callback to initialize the starting position of the trajectory
         trajectory_object.check_callback()
 
-        # Define trajectory shape/vertices in NED frame
-        trajectory_object.discretise_trajectory(parameters=['vector', [.0, .0, 2.0]])
-        trajectory_object.discretise_trajectory(parameters=['hover', 15.])
-        # trajectory_object.discretise_trajectory(parameters=['vector', [.0, .0, 0.]])
+        ########################################################################
+        # Configuration
+        trajectory_object.YAW_HEADING = ['auto', [1, 0]] # auto, center, axes
+
+        trajectory_object.TRAJECTORY_REQUESTED_SPEED = 0.4 # [m.s-1] to compute the step to discretized trajectory
+
+        trajectory_object.MAX_LINEAR_ACC_XY = 1.5 # max. linear acceleration [m.s-2]
+        trajectory_object.MAX_LINEAR_ACC_Z = 2. # max. linear acceleration [m.s-2]
+
+        trajectory_object.PUBLISH_RATE = 10 # publisher frequency
+        trajectory_object.FREQUENCY = 10 # [Hz]
+        trajectory_object.BOX_LIMIT = [[-4., 4.], [-4., 4.], [-.01, 6.]] # [[x_min, x_max], [y_min, y_max], [z_min, z_max]]
+        trajectory_object.WINDOW_FRAME = 5 # publish the n future states
+        ########################################################################
+
+        ########################################################################
+        # Trajectory definition - shape/vertices in inertial frame (x, y, z - up)
+
+        # trajectory_object.discretise_trajectory(parameters=['takeoff', [.0, .0, 1.]])
+        # trajectory_object.discretise_trajectory(parameters=['hover', 15.])
+        # trajectory_object.discretise_trajectory(parameters=['landing'])
+
+        # trajectory_object.discretise_trajectory(parameters=['takeoff', 1.])
+        # trajectory_object.discretise_trajectory(parameters=['hover', 5.])
+        # trajectory_object.discretise_trajectory(parameters=['vector', [0., -.2, 1.]])
+        # trajectory_object.discretise_trajectory(parameters=['hover', 5.])
+        # trajectory_object.discretise_trajectory(parameters=['circle', [.0, .5, 1.]])
+        # trajectory_object.discretise_trajectory(parameters=['circle', [.0, .5, 1.]])
+        # trajectory_object.discretise_trajectory(parameters=['circle', [.0, .5, 1.]])
+        # trajectory_object.discretise_trajectory(parameters=['hover', 5.])
+        # trajectory_object.discretise_trajectory(parameters=['landing'])
+
+        trajectory_object.discretise_trajectory(parameters=['takeoff', 2.])
+        trajectory_object.discretise_trajectory(parameters=['hover', 2.])
         trajectory_object.discretise_trajectory(parameters=['circle', [.0, 2., 2.]])
+        trajectory_object.discretise_trajectory(parameters=['hover', 2.])
         trajectory_object.discretise_trajectory(parameters=['vector', [1., 2., 3.]])
+        trajectory_object.discretise_trajectory(parameters=['hover', 2.])
         trajectory_object.discretise_trajectory(parameters=['circle', [.0, 1., 3.]])
+        trajectory_object.discretise_trajectory(parameters=['hover', 2.])
         trajectory_object.discretise_trajectory(parameters=['vector', [.0, .0, 3.]])
-        trajectory_object.discretise_trajectory(parameters=['vector', [.0, .0, .0]])
+        trajectory_object.discretise_trajectory(parameters=['hover', 2.])
+        trajectory_object.discretise_trajectory(parameters=['landing'])
         ########################################################################
 
         # Limit the trajectory to the BOX_LIMIT
-        trajectory_object.constraint_trajectory_to_box()
+        # trajectory_object.constraint_trajectory_to_box()
 
         # Generate the list of states - start by generating the states and then filter them
         trajectory_object.generate_states()
-        # trajectory_object.generate_states_filtered()
-        trajectory_object.generate_states_sg_filtered(window_length=31, polyorder=1, mode='mirror')
-        trajectory_object.generate_states_sg_filtered(window_length=31, polyorder=1, mode='mirror', on_filtered=True)
-        # trajectory_object.generate_states_2nd_order_filtered()
+        trajectory_object.generate_states_sg_filtered(window_length=13, polyorder=1, mode='mirror')
+        trajectory_object.generate_states_sg_filtered(window_length=13, polyorder=1, mode='mirror', on_filtered=True)
+        trajectory_object.generate_yaw_filtered()
 
         # Plot the trajectory
-        # trajectory_object.plot_trajectory_extras()
-        trajectory_object.plot_trajectory_extras_filtered()
+        trajectory_object.plot_trajectory_extras()
 
         # Publish trajectory states
         trajectory_object.start()
