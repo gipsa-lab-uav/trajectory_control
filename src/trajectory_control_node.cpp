@@ -32,10 +32,10 @@
 trajectory_msgs::JointTrajectory jointTrajectory;
 DroneStates lastMeasuredStates;
 geometry_msgs::Vector3 lastEulerAngles;
-mavros_msgs::State drone_state;
-double alpha_vx, alpha_vy, alpha_vz, alpha_ax, alpha_ay, alpha_az;
+mavros_msgs::State droneState;
 
-bool isFirstCallback = false;
+bool isMeasuredStatesFirstCallback = false;
+bool isjointTrajectoryFirstCallback = false;
 /******************************************************************************/
 
 /**********************************Functions***********************************/
@@ -56,6 +56,9 @@ void jointTrajectoryAcquireCallback(const trajectory_msgs::JointTrajectory & msg
   for (const auto & point_new : msg.points){
     jointTrajectory.points.push_back(point_new);
   }
+
+  //Set flag for first callback
+  if (!isjointTrajectoryFirstCallback) isjointTrajectoryFirstCallback = true;
 }
 
 void measuredStatesAcquireCallback(const nav_msgs::Odometry & msg) {
@@ -88,13 +91,12 @@ void measuredStatesAcquireCallback(const nav_msgs::Odometry & msg) {
   lastEulerAngles = orientation;
 
   //Set flag for first callback
-  if (!isFirstCallback) isFirstCallback = true;
+  if (!isMeasuredStatesFirstCallback) isMeasuredStatesFirstCallback = true;
 
-  // ROS_INFO_STREAM("trajectory_control_node: measured state callback\n position:\n" << position << "orientation:\n" << lastEulerAngles << "velocity:\n" << velocity);
 }
 
 void droneStateAcquireCallback(const mavros_msgs::State::ConstPtr& msg){
-    drone_state = *msg;
+    droneState = *msg;
 }
 
 trajectory_msgs::JointTrajectoryPoint getNextTrajectoryPoint(float time){
@@ -108,8 +110,6 @@ trajectory_msgs::JointTrajectoryPoint getNextTrajectoryPoint(float time){
 
   //Erase the outdated values
   if (i > 0) jointTrajectory.points.erase(jointTrajectory.points.begin(), jointTrajectory.points.begin() + i - 1);
-
-  // ROS_INFO_STREAM("i: " << i << "jointTrajectory.points[0]" << jointTrajectory.points[0].positions);
 
   return jointTrajectory.points[0];
 }
@@ -136,27 +136,6 @@ DroneStates getState(trajectory_msgs::JointTrajectoryPoint point){
   return state;
 }
 
-DroneStates getReference(DroneStates stateEstimated, DroneStates stateReference, DroneStates stateReferenceNext, double dt){
-
-  DroneStates state;
-  geometry_msgs::Vector3 velocity, acceleration;
-
-  state = stateReference;
-
-  velocity.x = alpha_vx * (stateReferenceNext.x.position - stateEstimated.x.position) / dt + (1. - alpha_vx) * stateReference.x.speed;
-  velocity.y = alpha_vy * (stateReferenceNext.y.position - stateEstimated.y.position) / dt + (1. - alpha_vy) * stateReference.y.speed;
-  velocity.z = alpha_vz * (stateReferenceNext.z.position - stateEstimated.z.position) / dt + (1. - alpha_vz) * stateReference.z.speed;
-
-  acceleration.x = alpha_ax * (stateReferenceNext.x.speed - stateEstimated.x.speed) / dt + (1. - alpha_ax) * stateReference.x.acceleration;
-  acceleration.y = alpha_ay * (stateReferenceNext.y.speed - stateEstimated.y.speed) / dt + (1. - alpha_ay) * stateReference.y.acceleration;
-  acceleration.z = alpha_az * (stateReferenceNext.z.speed - stateEstimated.z.speed) / dt + (1. - alpha_az) * stateReference.z.acceleration;
-
-  state.replaceSpeed(velocity);
-  state.replaceAcc(acceleration);
-
-  return state;
-}
-
 trajectory_msgs::JointTrajectoryPoint getJointTrajectoryPoint(DroneStates state){
 
   trajectory_msgs::JointTrajectoryPoint point;
@@ -168,6 +147,7 @@ trajectory_msgs::JointTrajectoryPoint getJointTrajectoryPoint(DroneStates state)
   point.positions.push_back(position.x);
   point.positions.push_back(position.y);
   point.positions.push_back(position.z);
+  point.positions.push_back(state.heading);
 
   point.velocities.push_back(velocity.x);
   point.velocities.push_back(velocity.y);
@@ -181,6 +161,7 @@ trajectory_msgs::JointTrajectoryPoint getJointTrajectoryPoint(DroneStates state)
 }
 
 DroneStates getLastMeasuredStates() { return lastMeasuredStates; }
+
 geometry_msgs::Vector3 getLastEulerAngles() { return lastEulerAngles; }
 
 geometry_msgs::Quaternion EulerToQuaternion(float yaw, float pitch, float roll){
@@ -240,7 +221,6 @@ int main(int argc, char *argv[])
   ros::Time time, last_request;
   float yaw, dt, time2;
   int ctrl_freq;
-  double dt_raw;
   bool simulated_env, useStatesObserver, reset;
 
   reset = true;
@@ -279,14 +259,6 @@ int main(int argc, char *argv[])
   nh_private.param("se_y_Filter", se.y.param.filterCoeff, (float) .9);
   nh_private.param("se_z_Filter", se.z.param.filterCoeff, (float) .15);
 
-  // Weigthed coefficient for velocity and acceleration reference
-  nh_private.param("alpha_vx", alpha_vx, .1);
-  nh_private.param("alpha_vy", alpha_vy, .1);
-  nh_private.param("alpha_vz", alpha_vz, .1);
-  nh_private.param("alpha_ax", alpha_ax, .1);
-  nh_private.param("alpha_ay", alpha_ay, .1);
-  nh_private.param("alpha_az", alpha_az, .1);
-
   // Kinematic Transform Parameters (= physical parameters)
   nh_private.param("mass", kt.param.mass, (float) 1.);
   nh_private.param("hoverCompensation", kt.param.hoverCompensation, (float) .3);
@@ -294,7 +266,7 @@ int main(int argc, char *argv[])
   nh_private.param("maxVerticalAcceleration", kt.param.maxVerticalAcceleration, (float) 4.);
 
   ROS_INFO_STREAM(
-    "\n********* System Parameters (can be defined in launchfile) *********"
+       "\n********* System Parameters (can be defined in launchfile) *********"
     << "\nsimulated_env: " << simulated_env
     << "\n"
     << "\nctrl_freq: " << ctrl_freq
@@ -304,12 +276,10 @@ int main(int argc, char *argv[])
     << "\nfsf_z_P: " << fsf.z.param.Kp << " fsf_z_S: " << fsf.z.param.Ks
     << "\n"
     << "\nuse_StatesObserver: " << useStatesObserver
+    << "\n"
     << "\nse_x_Lpos: " << se.x.param.Lpos << " nse_x_Lspeed: " << se.x.param.Lspeed << " se_x_Lunc: " << se.x.param.Lunc
     << "\nse_y_Lpos: " << se.y.param.Lpos << " nse_y_Lspeed: " << se.y.param.Lspeed << " se_y_Lunc: " << se.y.param.Lunc
     << "\nse_z_Lpos: " << se.z.param.Lpos << " nse_z_Lspeed: " << se.z.param.Lspeed << " se_z_Lunc: " << se.z.param.Lunc
-    << "\n"
-    << "\alpha_vx: " << alpha_vx << " alpha_vy: " << alpha_vy << " alpha_vz: " << alpha_vz
-    << "\alpha_ax: " << alpha_ax << " alpha_ay: " << alpha_ay << " alpha_az: " << alpha_az
     << "\n"
     << "\nse_x_Filter: " << se.x.param.filterCoeff
     << "\nse_y_Filter: " << se.y.param.filterCoeff
@@ -323,24 +293,24 @@ int main(int argc, char *argv[])
   );
 
   ros::Rate rate = nh_private.param<int>("rate", ctrl_freq);
-  dt_raw = 1. / (double) ctrl_freq;
-  ROS_INFO_STREAM("dt_raw: " << dt_raw);
   /****************************************************************************/
 
   /****************************Connection & Callback***************************/
   // Wait for the drone to connect
   ROS_INFO("Waiting for drone connection ...");
-  while(ros::ok() && !drone_state.connected){
+  while(ros::ok() && !droneState.connected){
       ros::spinOnce();
       rate.sleep();
   }
+  ROS_INFO("Drone connected.");
 
   // Wait for the first state measure callback
   ROS_INFO("Waiting for position measurement callback ...");
-  while (ros::ok() && !isFirstCallback){
+  while (ros::ok() && !isMeasuredStatesFirstCallback){
     ros::spinOnce();
     rate.sleep();
   }
+  ROS_INFO("Position measurement callback ok.");
 
   // Wait for better measure accuracy (GPS/MOCAP) -> sleep for 2 seconds
   ros::Duration(2.).sleep();
@@ -387,17 +357,20 @@ int main(int argc, char *argv[])
   last_request = ros::Time::now();
   /****************************************************************************/
 
+  ROS_INFO("Real test: enable the offboard control and arm the drone with the remote controller");
+  ROS_INFO("Have a safe flight.");
+
   while (ros::ok()) {
 
     /****************************Manage Drone Mode*****************************/
     // Only in simulated environment
     //In real world, the mode are managed by the pilot with the controller
     if (simulated_env) {
-      if( drone_state.mode != "OFFBOARD" && (ros::Time::now() - last_request > ros::Duration(5.0))) {
+      if( droneState.mode != "OFFBOARD" && (ros::Time::now() - last_request > ros::Duration(5.0))) {
         if( set_mode_client.call(offb_set_mode) && offb_set_mode.response.mode_sent) ROS_INFO("offb_node: Offboard enabled");
         last_request = ros::Time::now();
       } else {
-        if( !drone_state.armed && (ros::Time::now() - last_request > ros::Duration(5.0))) {
+        if( !droneState.armed && (ros::Time::now() - last_request > ros::Duration(5.0))) {
           if( arming_client.call(arm_cmd) && arm_cmd.response.success) ROS_INFO("offb_node: Vehicle armed");
           last_request = ros::Time::now();
         }
@@ -410,8 +383,9 @@ int main(int argc, char *argv[])
     dt = (ros::Time::now().toNSec() - time.toNSec())/1000000000.0f;
     time = ros::Time::now();
 
-    // Consider time for trajectory only when the drone is armed & if not set reset flag to true
-    if (drone_state.armed) time2 += dt;
+    // Consider time for trajectory only when the drone is armed && first trajectory point received
+    // if not set reset flag to true
+    if (droneState.armed && isjointTrajectoryFirstCallback) time2 += dt;
     else reset = true;
 
     // Get the last measured state
@@ -433,26 +407,23 @@ int main(int argc, char *argv[])
     // Get the next trajectory point and update the target state
     trajectoryPoint = getNextTrajectoryPoint(time2);
     targetStates = getState(trajectoryPoint);
-    // trajectoryPointNext = getNextTrajectoryPoint(time2 + dt_raw);
-    // targetStatesNext = getState(trajectoryPointNext);
-    // targetStates = getReference(predictedStates, targetStates, targetStatesNext, dt_raw);
 
     // Get the yaw from the trajectoryPoint
     yaw = trajectoryPoint.positions[3];
+
+    // Replace heading in estimatedStates by the measured one (used by display.py)
+    estimatedStates.replaceHeading(eulerAngles.z);
     /**************************************************************************/
 
     /*************************Full State Feedback & KT*************************/
     // Reset estimator and set reset flag to false
-    if (drone_state.armed && reset){
+    if (reset){
       se.resetEstimations();
       reset = false;
     }
 
     // Compute full state feedback control
     accelerationCmd = fsf.process(dt, estimatedStates, targetStates);
-    // ROS_INFO_STREAM("\ntime: " << time << "\ndt: " << dt << "\n\npredictedStates:\n" << predictedStates.getVectPos() << "\ntargetStates:\n" << targetStates.getVectPos() << "\nattitudeCmd:\n" << attitudeCmd);
-    // ROS_INFO_STREAM("z.uncertainties: " << predictedStates.z.uncertainties);
-    // if (attitudeCmd.z > 0.1) break;
 
     // Generate (roll, pitch, thrust) command
     // For compatibility with different aircrafts or even terrestrial robots, this should be in its own node
