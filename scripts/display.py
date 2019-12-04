@@ -60,6 +60,8 @@ class Display:
         self.y_estimated = np.zeros(self.x_100.size)
         self.z_estimated = np.zeros(self.x_100.size)
 
+        self.ya_estimated = np.zeros(self.x_100.size)
+
         self.vx_estimated = np.zeros(self.x_100.size)
         self.vy_estimated = np.zeros(self.x_100.size)
         self.vz_estimated = np.zeros(self.x_100.size)
@@ -109,6 +111,8 @@ class Display:
         self.x_estimated = np.append(self.x_estimated, positions[0])[-self.window_100:]
         self.y_estimated = np.append(self.y_estimated, positions[1])[-self.window_100:]
         self.z_estimated = np.append(self.z_estimated, positions[2])[-self.window_100:]
+
+        self.ya_estimated = np.append(self.ya_estimated, positions[3])[-self.window_100:]
 
         self.vx_estimated = np.append(self.vx_estimated, velocities[0])[-self.window_100:]
         self.vy_estimated = np.append(self.vy_estimated, velocities[1])[-self.window_100:]
@@ -183,13 +187,18 @@ class Display:
         line_azref, = ax_acc.plot(self.x_100, self.az_reference, 'b--')
 
         ax_tra = fig.add_subplot(325)
-        ax_tra.set_title('Trajectory')
-        ax_tra.legend(['x_desired', 'y_desired', 'z_desired'])
+        # ax_tra.set_title('Trajectory')
+        # ax_tra.legend(['x_desired', 'y_desired', 'z_desired'])
+        # ax_tra.set_xlim(0, self.time_window)
+        # ax_tra.set_ylim(-4, 4)
+        # line_xdes, = ax_tra.plot(self.x_10, self.x_desired, 'r--')
+        # line_ydes, = ax_tra.plot(self.x_10, self.y_desired, 'g--')
+        # line_zdes, = ax_tra.plot(self.x_10, self.z_desired, 'b--')
+        ax_tra.set_title('Yaw measured (-)')
+        ax_tra.legend(['ya_estimated'])
         ax_tra.set_xlim(0, self.time_window)
         ax_tra.set_ylim(-4, 4)
-        line_xdes, = ax_tra.plot(self.x_10, self.x_desired, 'r--')
-        line_ydes, = ax_tra.plot(self.x_10, self.y_desired, 'g--')
-        line_zdes, = ax_tra.plot(self.x_10, self.z_desired, 'b--')
+        line_yaest, = ax_tra.plot(self.x_100, self.ya_estimated, 'r-')
 
         while not rospy.is_shutdown():
             line_thr.set_ydata(self.thr)
@@ -199,9 +208,9 @@ class Display:
             line_xmea.set_ydata(self.x_measured)
             line_ymea.set_ydata(self.y_measured)
             line_zmea.set_ydata(self.z_measured)
-            line_xdes.set_ydata(self.x_desired)
-            line_ydes.set_ydata(self.y_desired)
-            line_zdes.set_ydata(self.z_desired)
+            # line_xdes.set_ydata(self.x_desired)
+            # line_ydes.set_ydata(self.y_desired)
+            # line_zdes.set_ydata(self.z_desired)
             line_xref.set_ydata(self.x_reference)
             line_yref.set_ydata(self.y_reference)
             line_zref.set_ydata(self.z_reference)
@@ -214,6 +223,7 @@ class Display:
             line_xest.set_ydata(self.x_estimated)
             line_yest.set_ydata(self.y_estimated)
             line_zest.set_ydata(self.z_estimated)
+            line_yaest.set_ydata(self.ya_estimated)
             line_vxest.set_ydata(self.vx_estimated)
             line_vyest.set_ydata(self.vy_estimated)
             line_vzest.set_ydata(self.vz_estimated)
