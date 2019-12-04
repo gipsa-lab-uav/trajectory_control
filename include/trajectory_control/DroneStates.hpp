@@ -29,6 +29,7 @@ class DroneStates {
 		DS1D x;
 		DS1D y;
 		DS1D z;
+    float heading;
 
 		DroneStates();
 		DroneStates(DS1D xNew, DS1D yNew, DS1D zNew);
@@ -38,6 +39,7 @@ class DroneStates {
 		void replacePosAndSpeed(geometry_msgs::Vector3 position, geometry_msgs::Vector3 speed);
     void replaceSpeed(geometry_msgs::Vector3 speed);
     void replaceAcc(geometry_msgs::Vector3 acceleration);
+    void replaceHeading(float newHeading);
 		geometry_msgs::Vector3 getVectPos();
 		geometry_msgs::Vector3 getVectSpeed();
 		geometry_msgs::Vector3 getVectAcceleration();

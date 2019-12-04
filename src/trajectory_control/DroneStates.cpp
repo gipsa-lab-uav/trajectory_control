@@ -6,7 +6,6 @@ DS1D::DS1D()
 	speed = 0.0f;
 	acceleration = 0.0f;
 	uncertainties = 0.0f;
-
 }
 DS1D::DS1D(float pos, float speedC, float acc, float unc)
 {
@@ -26,13 +25,14 @@ DS1D::~DS1D(){}
 
 DroneStates::DroneStates()
 {
-
+	heading = 0.0f;
 }
 DroneStates::DroneStates(DS1D xNew, DS1D yNew, DS1D zNew)
 {
 	x = xNew;
 	y = yNew;
 	z = zNew;
+	heading = 0.0f;
 }
 DroneStates::~DroneStates(){}
 
@@ -66,6 +66,11 @@ void DroneStates::replaceAcc(geometry_msgs::Vector3 acceleration)
 	x.acceleration = acceleration.x;
 	y.acceleration = acceleration.y;
 	z.acceleration = acceleration.z;
+}
+
+void DroneStates::replaceHeading(float newHeading)
+{
+	heading = newHeading;
 }
 
 geometry_msgs::Vector3 DroneStates::getVectPos()
