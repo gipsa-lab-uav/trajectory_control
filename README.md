@@ -111,8 +111,8 @@ First, copy the plugin header to the header directory and the source file to the
 
 ```bash
 cd ~/catkin_ws/src/
-cp -a trajectory_control/include/magnus_plugin/ sitl_gazebo/include/magnus_plugin
-cp -a trajectory_control/src/magnus_plugin/ sitl_gazebo/src/magnus_plugin
+cp -a trajectory_control/include/magnus_plugin/ sitl_gazebo/include/
+cp -a trajectory_control/src/magnus_plugin/ sitl_gazebo/src/
 ```
 
 Then, copy the models for the HR Drone and the Magnus Wings:
