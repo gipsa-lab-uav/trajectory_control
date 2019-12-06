@@ -173,7 +173,7 @@ target_link_libraries(offb_node ${catkin_LIBRARIES})
 ## Mark executable scripts (Python etc.) for installation
 ## in contrast to setup.py, you can choose the destination
 install(
-  PROGRAMS trajectory_gen.py display.py
+  PROGRAMS scripts/trajectory_gen.py scripts/display.py
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
 
