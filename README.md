@@ -117,9 +117,12 @@ cp -a trajectory_control/src/magnus_plugin/ sitl_gazebo/src/
 
 Then, copy the models for the HR Drone and the Magnus Wings:
 ```bash
-mkdir -p sitl_gazebo/models/iris_magnus sitl_gazebo/models/magnus_wings
+mkdir -p sitl_gazebo/models/iris_magnus sitl_gazebo/models/magnus_wings px4/Tools/sitl_gazebo/models/iris_magnus px4/Tools/sitl_gazebo/models/magnus_wings
 cp -a trajectory_control/models/iris_magnus/*.sdf trajectory_control/models/iris_magnus/*.config sitl_gazebo/models/iris_magnus
 cp -a trajectory_control/models/magnus_wings/*.sdf trajectory_control/models/magnus_wings/*.config sitl_gazebo/models/magnus_wings
+cp -a trajectory_control/models/iris_magnus/*.sdf trajectory_control/models/iris_magnus/*.config px4/Tools/sitl_gazebo/models/iris_magnus
+cp -a trajectory_control/models/magnus_wings/*.sdf trajectory_control/models/magnus_wings/*.config px4/Tools/sitl_gazebo/models/magnus_wings
+cp -a px4/ROMFS/px4fmu_common/init.d-posix/10016_iris px4/ROMFS/px4fmu_common/init.d-posix/10017_iris_magnus
 ```
 
 ### CMake file
@@ -160,6 +163,17 @@ erb -T 1 -v new_model.rsdf > new_model.sdf
 
 Details and more options for the command `erb` can be found [here](https://www.commandlinux.com/man-page/man1/erb.1.html).
 
+### Testing the Model
+To check that the model is working as it should, run the `model_test.launch`:
+```bash
+roscore # on one terminal window
+roslaunch trajectory_control model_test.launch trajectory-gen:=false # on another terminal window
+```
+
+It should open Gazebo with the new model, and it should just stand still. On the terminal window watch for any unusual errors. To test if it can follow a trajectory, call the same launch file without the `trajectory-gen` parameter (since it defaults to `true`):
+```bash
+roslaunch trajectory_control model_test.launch
+```
 
 ## Troubleshooting
 
