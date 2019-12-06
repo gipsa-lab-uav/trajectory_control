@@ -14,9 +14,11 @@ The project uses external software such as Mavros. Below are the links directing
 ## Installation
 For the installation, you need to have ROS melodic (or kinetic) installed, a catkin workspace and Gazebo. Follow the online documentation to set up your environement.
 
-[ROS installation](http://wiki.ros.org/melodic/Installation/Ubuntu)
+[ROS Installation](http://wiki.ros.org/melodic/Installation/Ubuntu)
 
-[catkin workspace](http://wiki.ros.org/catkin/Tutorials/create_a_workspace)
+[Catkin Workspace](http://wiki.ros.org/catkin/Tutorials/create_a_workspace)
+
+[Gazebo](http://gazebosim.org/tutorials?tut=install_ubuntu&cat=install)
 
 [Gazebo](http://gazebosim.org/tutorials?tut=install_ubuntu&cat=install)
 
