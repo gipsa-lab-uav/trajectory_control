@@ -390,7 +390,7 @@ int main(int argc, char *argv[])
     // Compute full state feedback control
     accelerationCmd = fsf.process(dt, predictedStates, targetStates);
     // ROS_INFO_STREAM("\ntime: " << time << "\ndt: " << dt << "\n\npredictedStates:\n" << predictedStates.getVectPos() << "\ntargetStates:\n" << targetStates.getVectPos() << "\nattitudeCmd:\n" << attitudeCmd);
-    ROS_INFO_STREAM("z.uncertainties: " << predictedStates.z.uncertainties);
+    // ROS_INFO_STREAM("z.uncertainties: " << predictedStates.z.uncertainties);
     // if (attitudeCmd.z > 0.1) break;
 
     // Generate (roll, pitch, thrust) command

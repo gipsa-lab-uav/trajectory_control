@@ -99,7 +99,7 @@ namespace gazebo  {
   }
 
   void MagnusPlugin::MotorFailureCallback(const boost::shared_ptr<const msgs::Int> &fail_msg) {
-    wing_Failure_Number_ = fail_msg->data();
+    wing_failure_number_ = fail_msg->data();
   }
 
   void MagnusPlugin::UpdateForcesAndMoments() {
@@ -212,13 +212,13 @@ namespace gazebo  {
 
 
   void MagnusPlugin::UpdateMotorFail() {
-    if (wing_number_ == wing_Failure_Number_ - 1){
+    if (wing_number_ == wing_failure_number_ - 1){
       joint_->SetVelocity(0,0);
 
-      std::cout << "Wing number [" << wing_Failure_Number_ <<"] failed!  [Wing speed = 0]" << std::endl;
-      tmp_motor_num = wing_Failure_Number_;
+      std::cout << "Wing number [" << wing_failure_number_ <<"] failed!  [Wing speed = 0]" << std::endl;
+      tmp_motor_num = wing_failure_number_;
       
-    }else if (wing_Failure_Number_ == 0 && wing_number_ ==  tmp_motor_num - 1){
+    }else if (wing_failure_number_ == 0 && wing_number_ ==  tmp_motor_num - 1){
         std::cout << "Wing number [" << tmp_motor_num <<"] running! [Wing speed = (default)]" << std::endl;
     }
   }

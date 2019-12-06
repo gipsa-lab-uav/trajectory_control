@@ -51,7 +51,7 @@ class MagnusPlugin : public MotorModel, public ModelPlugin {
           moment_constant_(kDefaultMomentConstant),
           motor_constant_(kDefaultMotorConstant),
           wing_number_(0),
-          wing_Failure_Number_(0),
+          wing_failure_number_(0),
           ref_wing_rot_vel_(0.0),
           rotor_velocity_slowdown_sim_(kDefaultRotorVelocitySlowdownSim),
           max_rot_velocity_(kDefaulMaxRotVelocity) {
@@ -76,7 +76,7 @@ class MagnusPlugin : public MotorModel, public ModelPlugin {
     std::string namespace_;
     std::string wing_side_;
 
-    int wing_Failure_Number_;
+    int wing_failure_number_;
     int wing_number_;
     int tmp_motor_num; // A temporary variable used to print msg
 
@@ -92,7 +92,7 @@ class MagnusPlugin : public MotorModel, public ModelPlugin {
     transport::NodePtr node_handle_;
     transport::PublisherPtr motor_velocity_pub_;
     transport::SubscriberPtr command_sub_;
-    transport::SubscriberPtr motor_failure_sub_; /*!< Subscribing to motor_failure_sub_topic_; receiving motor number to fail, as an integer */
+    transport::SubscriberPtr motor_failure_sub_; 
 
     physics::ModelPtr model_;
     physics::JointPtr joint_;
@@ -101,7 +101,7 @@ class MagnusPlugin : public MotorModel, public ModelPlugin {
 
     std_msgs::msgs::Float turning_velocity_msg_;
     void VelocityCallback(CommandMotorSpeedPtr &rot_velocities);
-    void MotorFailureCallback(const boost::shared_ptr<const msgs::Int> &fail_msg);  /*!< Callback for the motor_failure_sub_ subscriber */
+    void MotorFailureCallback(const boost::shared_ptr<const msgs::Int> &fail_msg);
 
 };
 }
