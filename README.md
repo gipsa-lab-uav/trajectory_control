@@ -21,12 +21,6 @@ For the installation, you need to have ROS melodic (or kinetic) installed, a cat
 [Gazebo](http://gazebosim.org/tutorials?tut=install_ubuntu&cat=install)
 
 ### Prerequisites
-Install the requested Python2 libraries
-
-```bash
-pip install -r requirements.txt
-```
-
 Install mavros
 
 ```bash
@@ -64,9 +58,19 @@ git clone --recursive https://github.com/PX4/Firmware px4
 **Note:** If you have troubles installing the different packages, it is recommended to read the related documentation.
 
 ### Install trajectory_control
+Clone the trajectory_control repository
 ```bash
 cd ~/catkin_ws/src/
 git clone https://github.com/gipsa-lab-uav/trajectory_control
+```
+
+Don't forget to install the required Python packages, with:
+```bash
+pip install -r requirements.txt
+```
+
+And then continue the installation:
+```bash
 cd ..
 catkin_make
 ```
@@ -78,13 +82,19 @@ source devel/setup.bash
 ```
 
 ## Testing the installation
+On one terminal, run:
+```bash
+roscore
+```
+
+And open a new terminal to run the test script:
 ```bash
 roslaunch trajectory_control test.launch
 ```
 
-A gazebo window should open with the iris model. After few seconds, the iris quadcopter should hover at 2 meters altitude. You can open QGroundControl in parallel also to check if everything is interfacing correclty.
+A gazebo window should open with the iris model. After few seconds, the iris quadcopter should hover at 2 meters altitude. You can open QGroundControl in parallel also to check if everything is interfacing correctly.
 
-Now you are ready to go with the trajectory_control_node.
+Now you are ready to go with the trajectory_control_node. Another, more complex example can be accessed as follows:
 
 ```bash
 roslaunch trajectory_control trajectory_control_example.launch
@@ -114,9 +124,9 @@ sudo apt-get install ca-certificates
 
 If it still does not work, try to update your system date/clock
 
-### gazebo
+### Gazebo
 
-If gazebo process dies at the start, it might be a symbol lookup error. Upgrade all your package and try again
+Run Gazebo with the verbose option to get more information on issues `gazebo --verbose`. If Gazebo process dies at the start, it might be a symbol lookup error. Upgrade all your package and try again.
 
 ```bash
 sudo apt upgrade

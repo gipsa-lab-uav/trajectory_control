@@ -45,7 +45,6 @@ trajectory_msgs::JointTrajectory jointTrajectory;
 DroneStates lastMeasuredStates;
 geometry_msgs::Vector3 lastEulerAngles;
 mavros_msgs::State drone_state;
-trajectory_msgs::JointTrajectoryPoint drone_states_joint;
 
 bool isFirstCallback = false;
 /******************************************************************************/
@@ -167,7 +166,7 @@ geometry_msgs::Quaternion EulerToQuaternion(float yaw, float pitch, float roll){
 int main(int argc, char *argv[])
 {
   /*********************************Definitions********************************/
-  ros::init(argc, argv, "trajectory_control_node");
+  ros::init(argc, argv, "awe_trajectory_control_node");
   ros::NodeHandle nh, nh_private("~");
 
   // Define subscribers
@@ -178,7 +177,6 @@ int main(int argc, char *argv[])
   // Define publishers
   ros::Publisher attitudeCmd_pub = nh.advertise<mavros_msgs::AttitudeTarget>("mavros/setpoint_raw/attitude", 10);
   ros::Publisher local_pos_pub = nh.advertise<geometry_msgs::PoseStamped>("mavros/setpoint_position/local", 10);
-  ros::Publisher estimated_state_pub = nh.advertise<trajectory_msgs::JointTrajectoryPoint>("mavros/estimated_state", 10);
 
   // Define service client
   ros::ServiceClient arming_client = nh.serviceClient<mavros_msgs::CommandBool>("mavros/cmd/arming");
@@ -196,7 +194,7 @@ int main(int argc, char *argv[])
   mavros_msgs::AttitudeTarget cmd;
   ros::Time time, last_request;
   float yaw, dt, time2;
-  bool useStatesObserver, reset;
+  bool reset;
 
   double r, r_last, r_dot, r_dot_last, r_ddot, b, b_last, b_dot, u_r, u_b, u_t0, delta, delta_dot;
   double m_m, m_d, wn_r, wn_b, t0;
@@ -204,7 +202,6 @@ int main(int argc, char *argv[])
   double thrust, phi;
   State state_c;
 
-  reset = true;
   /****************************************************************************/
 
   /*********************************Parameters*********************************/
@@ -286,7 +283,7 @@ int main(int argc, char *argv[])
   geometry_msgs::Vector3 position = lastMeasuredStates.getVectPos();
   geometry_msgs::Vector3 velocity = lastMeasuredStates.getVectSpeed();
 
-  firstPoint.positions.push_back(0.2);
+  firstPoint.positions.push_back(0.);
   firstPoint.positions.push_back(M_PI/2);
   firstPoint.velocities.push_back(0.);
   firstPoint.velocities.push_back(0.);
@@ -402,7 +399,6 @@ int main(int argc, char *argv[])
     // cmd.type_mask = 7; // ignore body rate
 
     attitudeCmd_pub.publish(cmd);
-    estimated_state_pub.publish(drone_states_joint);
     /**************************************************************************/
 
     /***************************Publish Pose Command***************************/
