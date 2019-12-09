@@ -1,0 +1,36 @@
+<launch>
+	<arg name="simulated_env" default="true" />
+	<arg name="trajectory_gen" default="true" />
+	<arg name="display" default="true" />
+	<arg name="rosbag_record" default="false" />
+
+	<arg name="world" default="$(find mavlink_sitl_gazebo)/worlds/empty.world"/>
+
+	<include file="$(find px4)/launch/mavros_posix_sitl.launch" if="$(arg simulated_env)">
+		<arg name="world" value="$(arg world)"/>
+		<arg name="z" default="0.2"/>
+	</include>
+
+	<node pkg="trajectory_control" type="awe_control_node" name="awe_control_node_sitl" output="screen" if="$(arg simulated_env)">
+		<param name="m_m" value="0.11" />
+		<param name="m_d" value="0.0481" />
+		<param name="wn_r" value="0.01" />
+		<param name="t0" value="1.0" />
+	</node>
+
+	<node pkg="trajectory_control" type="awe_control_node" name="awe_control_node_real" output="screen" unless="$(arg simulated_env)">
+		<param name="m_m" value="0.11" />
+		<param name="m_d" value="0.0481" />
+		<param name="wn_r" value="0.01" />
+		<param name="t0" value="1.0" />
+	</node>
+
+  <node pkg="trajectory_control" type="reference_gen.py" name="reference_gen_node" if="$(arg trajectory_gen)"></node>
+
+	<node pkg="rosbag" type="record" name="rosbag_record_cam"
+		args="record -o $(find trajectory_control)/rosbag/bag mavros/local_position/pose mavros/imu/data mavros/rc/out mavros/setpoint_raw/attitude"
+		if="$(arg rosbag_record)"></node>
+
+	<node pkg="trajectory_control" type="awe_display.py" name="display_node" if="$(arg display)"></node>
+
+</launch>
