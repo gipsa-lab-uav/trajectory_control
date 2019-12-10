@@ -62,8 +62,8 @@ class Display:
 
     def trajectoryCallback(self, trajectory):
         positions = trajectory.points[0].positions
-        velocities = trajectory.points[0].positions
-        accelerations = trajectory.points[0].positions
+        velocities = trajectory.points[0].velocities
+        accelerations = trajectory.points[0].accelerations
 
         self.r_desired = np.append(self.r_desired, positions[0])[-self.window_10:]
         self.b_desired = np.append(self.b_desired, positions[1])[-self.window_10:]
