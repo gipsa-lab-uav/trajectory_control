@@ -3,6 +3,7 @@
 import rospy
 import numpy as np
 import matplotlib.pyplot as plt
+from Tkinter import TclError
 
 import tf.transformations
 from nav_msgs.msg import Odometry
@@ -149,7 +150,7 @@ class Display:
                 fig.canvas.draw()
                 fig.canvas.flush_events()
 
-            except Exception:
+            except TclError:
                 break
 
 

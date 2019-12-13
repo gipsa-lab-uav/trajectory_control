@@ -1,0 +1,49 @@
+<?xml version='1.0'?>
+<sdf version='1.0'>
+
+  <model name='iris_awe'>
+
+    <include>
+      <uri>model://iris</uri>
+      <pose>0 0 1.0 0 0 0</pose>
+    </include>
+
+    <include>
+      <uri>model://station_cable</uri>
+      <pose>0 0 0.5 0 0 0</pose>
+    </include>
+
+    <!-- <include>
+      <uri>model://magnus_wings</uri>
+      <pose>0 0 1.1 0 -0 0</pose>
+    </include> -->
+
+    <!-- <joint name="magnus_iris_joint" type="fixed">
+      <parent>iris::base_link</parent>
+      <child>station_cable::cable_link</child>
+    </joint> -->
+
+    <joint name="cable_iris_joint" type="fixed">
+      <parent>iris::base_link</parent>
+      <child>station_cable::cable_link</child>
+    </joint>
+
+    <!-- <joint name="cable_magnus_joint" type="ball">
+      <parent>station_cable::cable_link</parent>
+      <child>magnus_wings::base_link</child>
+    </joint> -->
+    <include>
+      <uri>model://iris</uri>
+    </include>
+
+    <include>
+      <uri>model://magnus_wings</uri>
+      <pose>0 0 -0.045 0 -0 0</pose>
+    </include>
+
+    <joint name="magnus_fixation_joint" type="fixed">
+      <child>magnus_wings::base_link</child>
+      <parent>iris::base_link</parent>
+    </joint>
+  </model>
+</sdf>
