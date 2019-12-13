@@ -71,7 +71,7 @@
 		<param name="se_z_Filter" value="0.15" />
 
 		<param name="mass" value="1.0" />
-		<param name="hoverCompensation" value="0.3" />
+		<param name="hoverCompensation" value="0.4" />
 		<param name="maxAngle" value="45.0" />
 		<param name="maxVerticalAcceleration" value="4.0" />
 	</node>
