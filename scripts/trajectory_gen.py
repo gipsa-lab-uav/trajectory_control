@@ -431,32 +431,61 @@ if __name__ == '__main__':
 
         ########################################################################
         # Trajectory definition - shape/vertices in inertial frame (x, y, z - up)
+        #
+        # Define trajectory by using:
+        # trajectory_object.discretise_trajectory(parameters=['name', param])
+        #
+        # Possible parameters:
+        # parameters=['takeoff', z] with z in meters
+        # parameters=['hover', time] with time in seconds
+        # parameters=['vector', [x, y, z]] with x, y, z the target position
+        # parameters=['circle', [x, y, z]] with x, y, z the center of the circle. Circle defined by the drone position when starting the circle trajectory and the center. The drone will turn around this point.
+        # parameters=['landing']
 
-        # trajectory_object.discretise_trajectory(parameters=['takeoff', [.0, .0, 1.]])
-        # trajectory_object.discretise_trajectory(parameters=['hover', 15.])
-        # trajectory_object.discretise_trajectory(parameters=['landing'])
-
+        # Takeoff trajectory example:
         # trajectory_object.discretise_trajectory(parameters=['takeoff', 1.])
-        # trajectory_object.discretise_trajectory(parameters=['hover', 5.])
-        # trajectory_object.discretise_trajectory(parameters=['vector', [0., -.2, 1.]])
-        # trajectory_object.discretise_trajectory(parameters=['hover', 5.])
-        # trajectory_object.discretise_trajectory(parameters=['circle', [.0, .5, 1.]])
-        # trajectory_object.discretise_trajectory(parameters=['circle', [.0, .5, 1.]])
-        # trajectory_object.discretise_trajectory(parameters=['circle', [.0, .5, 1.]])
+        # trajectory_object.discretise_trajectory(parameters=['hover', 30.])
+        # trajectory_object.discretise_trajectory(parameters=['landing'])
+
+        # Square trajectory example:
+        # trajectory_object.discretise_trajectory(parameters=['takeoff', 1.])
+        # trajectory_object.discretise_trajectory(parameters=['hover', 10.])
+        # trajectory_object.discretise_trajectory(parameters=['vector', [1., -.5, 1.]])
+        # trajectory_object.discretise_trajectory(parameters=['hover', 2.])
+        # trajectory_object.discretise_trajectory(parameters=['vector', [1., 1.5, 1.]])
+        # trajectory_object.discretise_trajectory(parameters=['hover', 2.])
+        # trajectory_object.discretise_trajectory(parameters=['vector', [-1., 1.5, 1.]])
+        # trajectory_object.discretise_trajectory(parameters=['hover', 2.])
+        # trajectory_object.discretise_trajectory(parameters=['vector', [-1., -.5, 1.]])
+        # trajectory_object.discretise_trajectory(parameters=['hover', 2.])
+        # trajectory_object.discretise_trajectory(parameters=['vector', [1., -.5, 1.]])
+        # trajectory_object.discretise_trajectory(parameters=['hover', 2.])
+        # trajectory_object.discretise_trajectory(parameters=['vector', [0., 0., 1.]])
         # trajectory_object.discretise_trajectory(parameters=['hover', 5.])
         # trajectory_object.discretise_trajectory(parameters=['landing'])
 
-        trajectory_object.discretise_trajectory(parameters=['takeoff', 2.])
-        trajectory_object.discretise_trajectory(parameters=['hover', 2.])
-        trajectory_object.discretise_trajectory(parameters=['circle', [.0, 2., 2.]])
-        trajectory_object.discretise_trajectory(parameters=['hover', 2.])
-        trajectory_object.discretise_trajectory(parameters=['vector', [1., 2., 3.]])
-        trajectory_object.discretise_trajectory(parameters=['hover', 2.])
-        trajectory_object.discretise_trajectory(parameters=['circle', [.0, 1., 3.]])
-        trajectory_object.discretise_trajectory(parameters=['hover', 2.])
-        trajectory_object.discretise_trajectory(parameters=['vector', [.0, .0, 3.]])
-        trajectory_object.discretise_trajectory(parameters=['hover', 2.])
+        # Circle trajectory example:
+        trajectory_object.discretise_trajectory(parameters=['takeoff', 1.])
+        trajectory_object.discretise_trajectory(parameters=['hover', 5.])
+        trajectory_object.discretise_trajectory(parameters=['vector', [0., -.5, 1.]])
+        trajectory_object.discretise_trajectory(parameters=['hover', 5.])
+        trajectory_object.discretise_trajectory(parameters=['circle', [.0, .5, 1.]])
+        trajectory_object.discretise_trajectory(parameters=['circle', [.0, .5, 1.]])
+        trajectory_object.discretise_trajectory(parameters=['hover', 5.])
         trajectory_object.discretise_trajectory(parameters=['landing'])
+
+        # More complex trajectory example:
+        # trajectory_object.discretise_trajectory(parameters=['takeoff', 2.])
+        # trajectory_object.discretise_trajectory(parameters=['hover', 2.])
+        # trajectory_object.discretise_trajectory(parameters=['circle', [.0, 2., 2.]])
+        # trajectory_object.discretise_trajectory(parameters=['hover', 2.])
+        # trajectory_object.discretise_trajectory(parameters=['vector', [1., 2., 3.]])
+        # trajectory_object.discretise_trajectory(parameters=['hover', 2.])
+        # trajectory_object.discretise_trajectory(parameters=['circle', [.0, 1., 3.]])
+        # trajectory_object.discretise_trajectory(parameters=['hover', 2.])
+        # trajectory_object.discretise_trajectory(parameters=['vector', [.0, .0, 3.]])
+        # trajectory_object.discretise_trajectory(parameters=['hover', 2.])
+        # trajectory_object.discretise_trajectory(parameters=['landing'])
         ########################################################################
 
         # Limit the trajectory to the BOX_LIMIT
