@@ -125,6 +125,13 @@ cp -a trajectory_control/models/magnus_wings/*.sdf trajectory_control/models/mag
 cp -a trajectory_control/models/iris_magnus/*.sdf trajectory_control/models/iris_magnus/*.config px4/Tools/sitl_gazebo/models/iris_magnus
 cp -a trajectory_control/models/magnus_wings/*.sdf trajectory_control/models/magnus_wings/*.config px4/Tools/sitl_gazebo/models/magnus_wings
 cp -a px4/ROMFS/px4fmu_common/init.d-posix/10016_iris px4/ROMFS/px4fmu_common/init.d-posix/10017_iris_magnus
+
+mkdir -p sitl_gazebo/models/iris_awe sitl_gazebo/models/station_cable px4/Tools/sitl_gazebo/models/iris_awe px4/Tools/sitl_gazebo/models/station_cable
+cp -a trajectory_control/models/iris_awe/* sitl_gazebo/models/iris_awe
+cp -a trajectory_control/models/station_cable/* sitl_gazebo/models/station_cable
+cp -a trajectory_control/models/iris_awe/* px4/Tools/sitl_gazebo/models/iris_awe
+cp -a trajectory_control/models/station_cable/* px4/Tools/sitl_gazebo/models/station_cable
+cp -a px4/ROMFS/px4fmu_common/init.d-posix/10016_iris px4/ROMFS/px4fmu_common/init.d-posix/10018_iris_awe
 ```
 
 ### CMake file
