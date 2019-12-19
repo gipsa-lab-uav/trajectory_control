@@ -370,8 +370,8 @@ class TrajectoryGeneration:
 
             s = s + int(self.FREQUENCY/self.PUBLISH_RATE)
 
-            rospy.loginfo('##########################################')
-            rospy.loginfo(joint_trajectory_msg)
+            # rospy.loginfo('##########################################')
+            # rospy.loginfo(joint_trajectory_msg)
             self.pub.publish(joint_trajectory_msg)
             rate.sleep()
 
@@ -385,6 +385,8 @@ class TrajectoryGeneration:
         return math.copysign(min(x, y, key=abs), x)
 
     def callback(self, odom):
+        rospy.loginfo('##################### ODOM #####################')
+        rospy.loginfo(odom)
         if not self.is_first_callback:
 
             position = odom.pose.pose.position

@@ -1,49 +1,40 @@
 <?xml version='1.0'?>
-<sdf version='1.0'>
+<sdf version='1.4'>
 
   <model name='iris_awe'>
 
+    <self_collide>true</self_collide>
+
     <include>
       <uri>model://iris</uri>
-      <pose>0 0 1.0 0 0 0</pose>
+      <pose>0 0 1.06 0 0 0</pose>
     </include>
 
     <include>
-      <uri>model://station_cable</uri>
+      <uri>model://anchor_point</uri>
+      <pose>0 0 1.01 0 0 0</pose>
+    </include>
+
+    <include>
+      <uri>model://winch_station</uri>
       <pose>0 0 0.5 0 0 0</pose>
     </include>
 
-    <!-- <include>
-      <uri>model://magnus_wings</uri>
-      <pose>0 0 1.1 0 -0 0</pose>
-    </include> -->
-
-    <!-- <joint name="magnus_iris_joint" type="fixed">
+    <joint name="anchor_joint" type="fixed">
       <parent>iris::base_link</parent>
-      <child>station_cable::cable_link</child>
-    </joint> -->
-
-    <joint name="cable_iris_joint" type="fixed">
-      <parent>iris::base_link</parent>
-      <child>station_cable::cable_link</child>
+      <child>anchor_point::base_link</child>
     </joint>
 
-    <!-- <joint name="cable_magnus_joint" type="ball">
-      <parent>station_cable::cable_link</parent>
-      <child>magnus_wings::base_link</child>
+    <!-- <joint name="cable_joint" type="universal">
+      <parent>winch_station::base_link</parent>
+      <child>anchor_point::base_link</child>
     </joint> -->
-    <include>
-      <uri>model://iris</uri>
-    </include>
 
-    <include>
-      <uri>model://magnus_wings</uri>
-      <pose>0 0 -0.045 0 -0 0</pose>
-    </include>
+    <!-- <plugin name='cable_model' filename='libcable_plugin.so'>
+      <robotNamespace/>
+      <jointName>cable_joint</jointName>
+      <linkName>anchor_point::base_link</linkName>
+    </plugin> -->
 
-    <joint name="magnus_fixation_joint" type="fixed">
-      <child>magnus_wings::base_link</child>
-      <parent>iris::base_link</parent>
-    </joint>
   </model>
 </sdf>

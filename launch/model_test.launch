@@ -1,8 +1,9 @@
 <launch>
 	<arg name="simulated-env" 	default="true"	/>
 	<arg name="trajectory-gen" 	default="true"	/>
+	<arg name="display" default="true" />
 	<arg name="world" default="$(find mavlink_sitl_gazebo)/worlds/empty.world"/>
-	<arg name="vehicle" default="iris_magnus"/>
+	<arg name="vehicle" default="iris_awe"/>
 
     <!-- STARTS CODE FROM mavros_posix_sitl.launch -->
 		<arg name="x" default="0"/>
@@ -83,6 +84,8 @@
 		<param name="maxVerticalAcceleration" value="4.0" />
 	</node>
 
-  	<node pkg="trajectory_control" type="trajectory_gen.py" name="trajectory_gen_node" if="$(arg trajectory-gen)"></node>
+  	<node pkg="trajectory_control" type="trajectory_gen.py" name="trajectory_gen_node" output="screen" if="$(arg trajectory-gen)"></node>
+
+		<node pkg="trajectory_control" type="display.py" name="display_node" if="$(arg display)"></node>
 
 </launch>

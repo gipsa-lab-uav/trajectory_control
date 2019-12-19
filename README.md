@@ -113,37 +113,31 @@ First, copy the plugin header to the header directory and the source file to the
 
 ```bash
 cd ~/catkin_ws/src/
-cp -a trajectory_control/include/magnus_plugin/ sitl_gazebo/include/
-cp -a trajectory_control/src/magnus_plugin/ sitl_gazebo/src/
+cp -a trajectory_control/include/cable_plugin/ sitl_gazebo/include/
+cp -a trajectory_control/src/cable_plugin/ sitl_gazebo/src/
 ```
 
-Then, copy the models for the HR Drone and the Magnus Wings:
+Then, copy the models:
 ```bash
-mkdir -p sitl_gazebo/models/iris_magnus sitl_gazebo/models/magnus_wings px4/Tools/sitl_gazebo/models/iris_magnus px4/Tools/sitl_gazebo/models/magnus_wings
-cp -a trajectory_control/models/iris_magnus/*.sdf trajectory_control/models/iris_magnus/*.config sitl_gazebo/models/iris_magnus
-cp -a trajectory_control/models/magnus_wings/*.sdf trajectory_control/models/magnus_wings/*.config sitl_gazebo/models/magnus_wings
-cp -a trajectory_control/models/iris_magnus/*.sdf trajectory_control/models/iris_magnus/*.config px4/Tools/sitl_gazebo/models/iris_magnus
-cp -a trajectory_control/models/magnus_wings/*.sdf trajectory_control/models/magnus_wings/*.config px4/Tools/sitl_gazebo/models/magnus_wings
-cp -a px4/ROMFS/px4fmu_common/init.d-posix/10016_iris px4/ROMFS/px4fmu_common/init.d-posix/10017_iris_magnus
-
-mkdir -p sitl_gazebo/models/iris_awe sitl_gazebo/models/station_cable px4/Tools/sitl_gazebo/models/iris_awe px4/Tools/sitl_gazebo/models/station_cable
+mkdir -p sitl_gazebo/models/iris_awe sitl_gazebo/models/anchor_point sitl_gazebo/models/winch_station px4/Tools/sitl_gazebo/models/iris_awe px4/Tools/sitl_gazebo/models/winch_station px4/Tools/sitl_gazebo/models/anchor_point
 cp -a trajectory_control/models/iris_awe/* sitl_gazebo/models/iris_awe
-cp -a trajectory_control/models/station_cable/* sitl_gazebo/models/station_cable
+cp -a trajectory_control/models/winch_station/* sitl_gazebo/models/winch_station
+cp -a trajectory_control/models/anchor_point/* sitl_gazebo/models/anchor_point
 cp -a trajectory_control/models/iris_awe/* px4/Tools/sitl_gazebo/models/iris_awe
-cp -a trajectory_control/models/station_cable/* px4/Tools/sitl_gazebo/models/station_cable
+cp -a trajectory_control/models/winch_station/* px4/Tools/sitl_gazebo/models/winch_station
+cp -a trajectory_control/models/anchor_point/* px4/Tools/sitl_gazebo/models/anchor_point
 cp -a px4/ROMFS/px4fmu_common/init.d-posix/10016_iris px4/ROMFS/px4fmu_common/init.d-posix/10018_iris_awe
 ```
 
 ### CMake file
 After that, some changes must be made at the `~/catkin_ws/src/sitl_gazebo/CMakeLists.txt` file. Add the following lines at the `# Plugins #` section:
 ```makefile
-add_library(magnus_plugin SHARED src/magnus_plugin/magnus_plugin.cpp)
-target_link_libraries(magnus_plugin ${GAZEBO_LIBRARIES})
+add_library(cable_plugin SHARED src/cable_plugin/cable_plugin.cpp)
 ```
 
 And inside the `set(plugins ... ...)` command add a line:
 ```makefile
-magnus_plugin
+cable_plugin
 ```
 
 And to finish and use the new files:
