@@ -109,7 +109,7 @@ trajectory_msgs::JointTrajectoryPoint getNextTrajectoryPoint(float time){
   }
 
   //Erase the outdated values
-  if (i > 0) jointTrajectory.points.erase(jointTrajectory.points.begin(), jointTrajectory.points.begin() + i - 1);
+  // if (i > 0) jointTrajectory.points.erase(jointTrajectory.points.begin(), jointTrajectory.points.begin() + i - 1);
 
   return jointTrajectory.points[0];
 }
