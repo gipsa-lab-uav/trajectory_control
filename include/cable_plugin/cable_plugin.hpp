@@ -7,6 +7,7 @@
 #include "gazebo/msgs/msgs.hh"
 #include <gazebo/physics/physics.hh>
 #include "gazebo/transport/transport.hh"
+#include <gazebo/rendering/rendering.hh>
 
 #include <Eigen/Eigen>
 #include <rotors_model/motor_model.hpp>
@@ -51,5 +52,6 @@ class CablePlugin : public ModelPlugin, public MotorModel {
     physics::LinkPtr link_;
     event::ConnectionPtr updateConnection_;
 
+    rendering::DynamicLines *line_;
 };
 }

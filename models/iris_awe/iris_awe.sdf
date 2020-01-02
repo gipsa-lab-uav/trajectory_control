@@ -30,11 +30,11 @@
       <child>anchor_point::base_link</child>
     </joint> -->
 
-    <!-- <plugin name='cable_model' filename='libcable_plugin.so'>
+    <plugin name='cable_model' filename='libcable_plugin.so'>
       <robotNamespace/>
-      <jointName>cable_joint</jointName>
+      <jointName>anchor_joint</jointName>
       <linkName>anchor_point::base_link</linkName>
-    </plugin> -->
+    </plugin>
 
   </model>
 </sdf>

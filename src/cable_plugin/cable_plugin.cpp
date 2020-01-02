@@ -46,11 +46,16 @@ namespace gazebo  {
     // Listen to the update event. This event is broadcast every
     // simulation iteration.
     updateConnection_ = event::Events::ConnectWorldUpdateBegin(boost::bind(&CablePlugin::OnUpdate, this, _1));
+
+    // Initialize line
+    // line_->AddPoint(ignition::math::Vector3(1., 1., 1.));
+    // line_->AddPoint(link_->WorldInertialPose().Pos());
   }
 
   void CablePlugin::OnUpdate(const common::UpdateInfo & _info) {
     sampling_time_ = _info.simTime.Double() - prev_sim_time_;
     prev_sim_time_ = _info.simTime.Double();
+    // line_->AddPoint(link_->WorldInertialPose().Pos());
     UpdateForcesAndMoments();
     Publish();
   }

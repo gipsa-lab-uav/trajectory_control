@@ -120,6 +120,9 @@ cp -a trajectory_control/src/cable_plugin/ sitl_gazebo/src/
 Then, copy the models:
 ```bash
 mkdir -p sitl_gazebo/models/iris_awe sitl_gazebo/models/anchor_point sitl_gazebo/models/winch_station px4/Tools/sitl_gazebo/models/iris_awe px4/Tools/sitl_gazebo/models/winch_station px4/Tools/sitl_gazebo/models/anchor_point
+
+cp -a trajectory_control/include/cable_plugin/ sitl_gazebo/include/
+cp -a trajectory_control/src/cable_plugin/ sitl_gazebo/src/
 cp -a trajectory_control/models/iris_awe/* sitl_gazebo/models/iris_awe
 cp -a trajectory_control/models/winch_station/* sitl_gazebo/models/winch_station
 cp -a trajectory_control/models/anchor_point/* sitl_gazebo/models/anchor_point

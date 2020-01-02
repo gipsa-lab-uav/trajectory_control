@@ -2,7 +2,7 @@
 	<arg name="simulated-env" 	default="true"	/>
 	<arg name="trajectory-gen" 	default="true" 	/>
 	<arg name="rosbag-record" 	default="false" />
-	<arg name="toggle-display" 	default="false" />
+	<arg name="toggle-display" 	default="true" />
 
 	<arg name="world" default="$(find mavlink_sitl_gazebo)/worlds/empty.world"/>
 	<arg name="vehicle" default="iris_magnus"/>
@@ -56,13 +56,16 @@
 		</include>
 	<!-- ENDS CODE FROM mavros_posix_sitl.launch -->
 
-	<node pkg="trajectory_control" type="trajectory_control_node" name="trajectory_control_node_sitl" output="screen" if="$(arg simulated-env)">
-		<param name="fsf_x_P" value="0.3" />
-		<param name="fsf_x_S" value="2.5" />
-		<param name="fsf_y_P" value="0.3" />
-		<param name="fsf_y_S" value="2.5" />
-		<param name="fsf_z_P" value="0.3" />
-		<param name="fsf_z_S" value="2.5" />
+	<node pkg="trajectory_control" type="trajectory_control_node" name="trajectory_control_node_real" output="screen" unless="$(arg simulated-env)">
+		<param name="simulated_env" value="$(arg simulated-env)" />
+		<param name="ctrl_freq" value="100" />
+
+		<param name="fsf_x_P" value="1.0" />
+		<param name="fsf_x_S" value="1.7" />
+		<param name="fsf_y_P" value="1.0" />
+		<param name="fsf_y_S" value="1.7" />
+		<param name="fsf_z_P" value="1.56" />
+		<param name="fsf_z_S" value="2.4" />
 
 		<param name="use_StatesObserver" value="true" />
 
@@ -76,12 +79,12 @@
 		<param name="se_y_Lunc" value="9.62" />
 		<param name="se_z_Lunc" value="9.62" />
 
-		<param name="se_x_Filter" value="0.95" />
-		<param name="se_y_Filter" value="0.95" />
+		<param name="se_x_Filter" value="0.9" />
+		<param name="se_y_Filter" value="0.9" />
 		<param name="se_z_Filter" value="0.15" />
 
-		<param name="mass" value="1.5" />
-		<param name="hoverCompensation" value="0.45" />
+		<param name="mass" value="1.0" />
+		<param name="hoverCompensation" value="0.3" />
 		<param name="maxAngle" value="45.0" />
 		<param name="maxVerticalAcceleration" value="4.0" />
 	</node>
