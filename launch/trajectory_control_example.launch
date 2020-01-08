@@ -1,5 +1,5 @@
 <launch>
-	<arg name="simulated_env" default="true" />
+	<arg name="simulated_env" default="false" />
 	<arg name="trajectory_gen" default="true" />
 	<arg name="display" default="true" />
 	<arg name="rosbag_record" default="false" />
@@ -47,12 +47,12 @@
 		<param name="simulated_env" value="$(arg simulated_env)" />
 		<param name="ctrl_freq" value="100" />
 
-		<param name="fsf_x_P" value="1.0" />
-		<param name="fsf_x_S" value="1.7" />
-		<param name="fsf_y_P" value="1.0" />
-		<param name="fsf_y_S" value="1.7" />
-		<param name="fsf_z_P" value="1.56" />
-		<param name="fsf_z_S" value="2.4" />
+		<param name="fsf_x_P" value="0.37" />
+		<param name="fsf_x_S" value="0.87" />
+		<param name="fsf_y_P" value="0.37" />
+		<param name="fsf_y_S" value="0.87" />
+		<param name="fsf_z_P" value="0.67" />
+		<param name="fsf_z_S" value="1.2" />
 
 		<param name="use_StatesObserver" value="true" />
 
@@ -70,8 +70,8 @@
 		<param name="se_y_Filter" value="0.9" />
 		<param name="se_z_Filter" value="0.15" />
 
-		<param name="mass" value="1.0" />
-		<param name="hoverCompensation" value="0.4" />
+		<param name="mass" value="1.7" />
+		<param name="hoverCompensation" value="0.29" />
 		<param name="maxAngle" value="45.0" />
 		<param name="maxVerticalAcceleration" value="4.0" />
 	</node>
@@ -80,7 +80,8 @@
 
 	<node pkg="rosbag" type="record" name="rosbag_record_cam"
 		args="record -o $(find trajectory_control)/rosbag/bag mavros/local_position/odom mavros/imu/data mavros/rc/out mavros/setpoint_raw/attitude"
-		if="$(arg rosbag_record)"></node>
+		if="$(arg rosbag_record)">
+	</node>
 
 	<node pkg="trajectory_control" type="display.py" name="display_node" if="$(arg display)"></node>
 
