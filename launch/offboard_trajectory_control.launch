@@ -1,39 +1,14 @@
 <launch>
+	<!-- Possible values: simu, draco_r, magnus -->
+	<arg name="drone_real"     default="draco_r" />
+
 	<arg name="trajectory_gen" default="false" />
-	<arg name="display" default="false" />
-	<arg name="rosbag_record" default="false" />
+	<arg name="display"        default="false" />
+	<arg name="rosbag_record"  default="false" />
 
 	<node pkg="trajectory_control" type="trajectory_control_node" name="trajectory_control_node_real" output="screen" >
 		<param name="simulated_env" value="false" />
-		<param name="ctrl_freq" value="100" />
-
-		<param name="fsf_x_P" value="1.0" />
-		<param name="fsf_x_S" value="1.3" />
-		<param name="fsf_y_P" value="1.0" />
-		<param name="fsf_y_S" value="1.3" />
-		<param name="fsf_z_P" value="1.0" />
-		<param name="fsf_z_S" value="2.0" />
-
-		<param name="use_StatesObserver" value="true" />
-
-		<param name="se_x_Lpos" value="1.03" />
-		<param name="se_y_Lpos" value="1.03" />
-		<param name="se_z_Lpos" value="1.03" />
-		<param name="se_x_Lspeed" value="10.7" />
-		<param name="se_y_Lspeed" value="10.7" />
-		<param name="se_z_Lspeed" value="10.7" />
-		<param name="se_x_Lunc" value="9.62" />
-		<param name="se_y_Lunc" value="9.62" />
-		<param name="se_z_Lunc" value="9.62" />
-
-		<param name="se_x_Filter" value="0.9" />
-		<param name="se_y_Filter" value="0.9" />
-		<param name="se_z_Filter" value="0.15" />
-
-		<param name="mass" value="1.7" />
-		<param name="hoverCompensation" value="0.29" />
-		<param name="maxAngle" value="45.0" />
-		<param name="maxVerticalAcceleration" value="4.0" />
+		<rosparam file="$(find trajectory_control)/config/$(arg drone_real)_params.yaml" command="load"/>
 	</node>
 
   <node pkg="trajectory_control" type="trajectory_gen.py" name="trajectory_gen_node" if="$(arg trajectory_gen)"></node>
