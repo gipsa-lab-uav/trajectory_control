@@ -1,0 +1,37 @@
+###############################################################################
+## Configuration file
+## Drone name: simu
+## Date: 08 January 2020
+## Tuning:
+## -fsf: yes
+## -se : no
+###############################################################################
+ctrl_freq: 100
+
+fsf_x_P: 0.3
+fsf_x_S: 2.5
+fsf_y_P: 0.3
+fsf_y_S: 2.5
+fsf_z_P: 0.3
+fsf_z_S: 2.5
+
+use_StatesObserver: true
+
+se_x_Lpos: 0.67
+se_y_Lpos: 0.67
+se_z_Lpos: 0.67
+se_x_Lspeed: 3.4
+se_y_Lspeed: 3.4
+se_z_Lspeed: 3.4
+se_x_Lunc: 6.0
+se_y_Lunc: 6.0
+se_z_Lunc: 6.0
+
+se_x_Filter: 0.9
+se_y_Filter: 0.9
+se_z_Filter: 0.1
+
+mass: 1.5
+hoverCompensation: 0.45
+maxAngle: 45.0
+maxVerticalAcceleration: 4.0

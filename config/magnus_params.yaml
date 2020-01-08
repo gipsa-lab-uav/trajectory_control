@@ -1,0 +1,37 @@
+###############################################################################
+## Configuration file
+## Drone name: magnus
+## Date: 08 January 2020
+## Tuning:
+## -fsf: yes
+## -se : no
+###############################################################################
+ctrl_freq: 100
+
+fsf_x_P: 1.0
+fsf_x_S: 1.7
+fsf_y_P: 1.0
+fsf_y_S: 1.7
+fsf_z_P: 1.56
+fsf_z_S: 2.4
+
+use_StatesObserver: true
+
+se_x_Lpos: 1.03
+se_y_Lpos: 1.03
+se_z_Lpos: 1.03
+se_x_Lspeed: 10.7
+se_y_Lspeed: 10.7
+se_z_Lspeed: 10.7
+se_x_Lunc: 9.62
+se_y_Lunc: 9.62
+se_z_Lunc: 9.62
+
+se_x_Filter: 0.9
+se_y_Filter: 0.9
+se_z_Filter: 0.15
+
+mass: 1.0
+hoverCompensation: 0.4
+maxAngle: 45.0
+maxVerticalAcceleration: 4.0
