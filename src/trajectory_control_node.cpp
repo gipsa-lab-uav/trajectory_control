@@ -29,6 +29,7 @@
 #include <trajectory_control/statesEstimator.hpp>
 
 /*******************************Global variables*******************************/
+std::string trajectoryID;
 trajectory_msgs::JointTrajectory jointTrajectory;
 DroneStates lastMeasuredStates;
 geometry_msgs::Vector3 lastEulerAngles;
@@ -43,27 +44,31 @@ void jointTrajectoryAcquireCallback(const trajectory_msgs::JointTrajectory & msg
   int i = 0;
   trajectory_msgs::JointTrajectoryPoint point = msg.points[0];
 
-  //Set flag for first callback
+  // Set flag for first callback
   if (!isjointTrajectoryFirstCallback) isjointTrajectoryFirstCallback = true;
 
-  // Check if new trajectory
+  // Check if this is a new trajectory
   if (msg.header.seq == 1) {
-    i = 0;
+    trajectoryID = msg.header.frame_id;
     isjointTrajectoryFirstCallback = false;
     jointTrajectory.points.erase(jointTrajectory.points.begin(), jointTrajectory.points.end());
     ROS_INFO("*** New trajectory received - reset estimators and onboard trajectory time ***");
   }
 
-  //Find the index in order to update the jointTrajectory.points from the topic
+  // Return if the trajectory ID received does not correspond with the current trajectory ID
+  if (trajectoryID != msg.header.frame_id) return;
+  ROS_INFO_STREAM(trajectoryID);
+
+  // Find the index in order to update the jointTrajectory.points from the topic
   for (const auto & point_saved : jointTrajectory.points){
     if (point.time_from_start == point_saved.time_from_start) break;
     i += 1;
   }
 
-  //Erase the values that are going to be updated
+  // Erase the values that are going to be updated
   jointTrajectory.points.erase(jointTrajectory.points.begin() + i, jointTrajectory.points.end());
 
-  //Push the new points in jointTrajectory.points
+  // Push the new points in jointTrajectory.points
   for (const auto & point_new : msg.points){
     jointTrajectory.points.push_back(point_new);
   }
@@ -71,7 +76,7 @@ void jointTrajectoryAcquireCallback(const trajectory_msgs::JointTrajectory & msg
 
 void measuredStatesAcquireCallback(const nav_msgs::Odometry & msg) {
 
-  //Update measured position and velocity from topic
+  // Update measured position and velocity from topic
   geometry_msgs::PoseWithCovariance pose = msg.pose;
   geometry_msgs::TwistWithCovariance twist = msg.twist;
 
@@ -85,7 +90,7 @@ void measuredStatesAcquireCallback(const nav_msgs::Odometry & msg) {
 
   lastMeasuredStates.replacePosAndSpeed(position, velocity);
 
-  //Update eulerAngles (euler) from topic (quaternion) -> convertion
+  // Update eulerAngles (euler) from topic (quaternion) -> convertion
   geometry_msgs::Quaternion q_msg;
   tf2::Quaternion q;
   tf2::Matrix3x3 m;
@@ -98,7 +103,7 @@ void measuredStatesAcquireCallback(const nav_msgs::Odometry & msg) {
 
   lastEulerAngles = orientation;
 
-  //Set flag for first callback
+  // Set flag for first callback
   if (!isMeasuredStatesFirstCallback) isMeasuredStatesFirstCallback = true;
 
 }
@@ -110,13 +115,13 @@ void droneStateAcquireCallback(const mavros_msgs::State::ConstPtr& msg){
 trajectory_msgs::JointTrajectoryPoint getNextTrajectoryPoint(float time){
   int i = 0;
 
-  //Find the next trajectory point with respect to time
+  // Find the next trajectory point with respect to time
   for (const auto & point : jointTrajectory.points){
     if (point.time_from_start.toSec() > time) break;
     i += 1;
   }
 
-  //Erase the outdated values
+  // Erase the outdated values
   if (i > 0) jointTrajectory.points.erase(jointTrajectory.points.begin(), jointTrajectory.points.begin() + i - 1);
 
   return jointTrajectory.points[0];
