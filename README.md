@@ -1,4 +1,45 @@
 # Trajectory Control
+
+## Demonstration protocol
+Connect 2 terminals to the drone (be sure to be connected to the right wifi network).
+
+```bash
+ssh -X uvify@192.168.1.160
+```
+
+First terminal is used to launch the depth cubemap node (be sure to export your display).
+
+```bash
+export DISPLAY:0
+roslaunch draco_r depth_cubemap.launch
+```
+
+Second terminal is used to launch the px4 node offboard.
+
+```bash
+roslaunch draco_r px4_draco_r.launch
+```
+
+**Note:** if you want to used QGroundControl, edit the launch file and put your IP address in the right field.
+
+Open a new termial. Set ROS_MASTER_URI with the drone IP address (don't forget the port) and set ROS_IP to yours.
+
+```bash
+export ROS_MASTER_URI=http://192.168.1.160:11311
+export ROS_IP=192.168.1.244
+```
+
+Then on the same terminal launch trajectory_control_example.launch.
+
+```bash
+roslaunch trajectory_control trajectory_control_example.launch
+```
+
+In order for the drone to start the trajectory, arm the drone and enable the offboard mode with the remote controller.
+
+**Warning:** in case of unexpected behavior, it is possible to disable the offboard mode with the switch and take back control with the remote controller, but sometimes the drone does not respond so always keep a finger on the kill switch as it will be the only way to stop the drone.
+
+**********************************************************************************************************
 Trajectory generation and control algorithms for UAVs with ROS wrapping.
 
 The project uses external software such as Mavros. Below are the links directing to their documentations.
