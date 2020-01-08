@@ -332,7 +332,9 @@ class TrajectoryGeneration:
     def start(self):
 
         rate = rospy.Rate(self.PUBLISH_RATE)
+
         s = 0
+        string_id = str(rospy.get_rostime().nsecs)
 
         x = self.x_filtered if hasattr(self, 'x_filtered') else self.x_discretized
         y = self.y_filtered if hasattr(self, 'y_filtered') else self.y_discretized
@@ -351,7 +353,7 @@ class TrajectoryGeneration:
             header = Header()
             header.seq = s
             header.stamp = rospy.get_rostime()
-            header.frame_id = 'inertial frame'
+            header.frame_id = string_id
 
             joint_trajectory_msg = JointTrajectory()
             joint_trajectory_msg.header = header
