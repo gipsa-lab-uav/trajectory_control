@@ -28,11 +28,11 @@ class TrajectoryGeneration:
         self.FREQUENCY = 10  # point trajectory frequency [Hz]
         self.BOX_LIMIT = [[-4., 4.], [-4., 4.], [-.01, 6.]]  # [[x_min, x_max], [y_min, y_max], [z_min, z_max]]
         self.WINDOW_FRAME = .5  # publish future states comprise in the window time frame [s]
-        self.EXTRA_POINTS_START = 35
-        self.EXTRA_POINTS_END = 100
+        self.EXTRA_POINTS_START = 13
+        self.EXTRA_POINTS_END = 13
 
-        self.MAX_LINEAR_SPEED_XY = 0.5  # max. linear speed [m.s-1]
-        self.MAX_LINEAR_SPEED_Z = 0.5  # max. linear speed [m.s-1]
+        self.MAX_LINEAR_SPEED_XY = 0.6  # max. linear speed [m.s-1]
+        self.MAX_LINEAR_SPEED_Z = 0.6  # max. linear speed [m.s-1]
         self.MAX_LINEAR_ACC_XY = 1.5  # max. linear acceleration [m.s-2]
         self.MAX_LINEAR_ACC_Z = 2.0  # max. linear acceleration [m.s-2]
 
@@ -135,7 +135,7 @@ class TrajectoryGeneration:
 
         prevHeading = np.array([.0, .0])
 
-        for s,_ in enumerate(self.x_discretized[1:]):
+        for s, _ in enumerate(self.x_discretized[1:]):
             p1 = np.array([self.x_discretized[s], self.y_discretized[s]])
             p2 = np.array([self.x_discretized[s+1], self.y_discretized[s+1]])
 
@@ -176,7 +176,7 @@ class TrajectoryGeneration:
         self.ay_filtered = [.0]
         self.az_filtered = [.0]
 
-        for s,_ in enumerate(self.vx_discretized[1:]):
+        for s, _ in enumerate(self.vx_discretized[1:]):
             self.ax_filtered.append(self.saturate((self.vx_discretized[s+1] - self.vx_filtered[-1]) * self.FREQUENCY, self.MAX_LINEAR_ACC_XY))
             self.ay_filtered.append(self.saturate((self.vy_discretized[s+1] - self.vy_filtered[-1]) * self.FREQUENCY, self.MAX_LINEAR_ACC_XY))
             self.az_filtered.append(self.saturate((self.vz_discretized[s+1] - self.vz_filtered[-1]) * self.FREQUENCY, self.MAX_LINEAR_ACC_Z))
@@ -213,7 +213,7 @@ class TrajectoryGeneration:
         self.ay_filtered = [.0]
         self.az_filtered = [.0]
 
-        for s,_ in enumerate(self.vx_filtered[1:]):
+        for s, _ in enumerate(self.vx_filtered[1:]):
             self.ax_filtered.append(self.saturate((self.vx_filtered[s+1] - self.vx_filtered[s]) * self.FREQUENCY, self.MAX_LINEAR_ACC_XY))
             self.ay_filtered.append(self.saturate((self.vy_filtered[s+1] - self.vy_filtered[s]) * self.FREQUENCY, self.MAX_LINEAR_ACC_XY))
             self.az_filtered.append(self.saturate((self.vz_filtered[s+1] - self.vz_filtered[s]) * self.FREQUENCY, self.MAX_LINEAR_ACC_Z))
@@ -238,7 +238,7 @@ class TrajectoryGeneration:
 
         prevHeading = np.array([.0, .0, .0])
 
-        for s,_ in enumerate(self.vx_filtered[1:]):
+        for s, _ in enumerate(self.vx_filtered[1:]):
             p1 = np.array([self.x_filtered[s], self.y_filtered[s]])
             p2 = np.array([self.x_filtered[s+1], self.y_filtered[s+1]])
 
@@ -418,10 +418,10 @@ if __name__ == '__main__':
         # Configuration
         trajectory_object.YAW_HEADING = ['auto', [1, 0]]  # auto, center, axes
 
-        trajectory_object.TRAJECTORY_REQUESTED_SPEED = 0.4  # [m.s-1] to compute the step to discretized trajectory
+        trajectory_object.TRAJECTORY_REQUESTED_SPEED = 0.6  # [m.s-1] to compute the step to discretized trajectory
 
         trajectory_object.MAX_LINEAR_ACC_XY = 1.5  # max. linear acceleration [m.s-2]
-        trajectory_object.MAX_LINEAR_ACC_Z = 2.  # max. linear acceleration [m.s-2]
+        trajectory_object.MAX_LINEAR_ACC_Z = 2.0  # max. linear acceleration [m.s-2]
 
         trajectory_object.PUBLISH_RATE = 10  # publisher frequency
         trajectory_object.FREQUENCY = 10  # [Hz]
@@ -449,7 +449,7 @@ if __name__ == '__main__':
 
         # Square trajectory example:
         # trajectory_object.discretise_trajectory(parameters=['takeoff', 1.])
-        # trajectory_object.discretise_trajectory(parameters=['hover', 10.])
+        # trajectory_object.discretise_trajectory(parameters=['hover', 3.])
         # trajectory_object.discretise_trajectory(parameters=['vector', [1., -.5, 1.]])
         # trajectory_object.discretise_trajectory(parameters=['hover', 2.])
         # trajectory_object.discretise_trajectory(parameters=['vector', [1., 1.5, 1.]])
@@ -460,19 +460,19 @@ if __name__ == '__main__':
         # trajectory_object.discretise_trajectory(parameters=['hover', 2.])
         # trajectory_object.discretise_trajectory(parameters=['vector', [1., -.5, 1.]])
         # trajectory_object.discretise_trajectory(parameters=['hover', 2.])
-        # trajectory_object.discretise_trajectory(parameters=['vector', [0., 0., 1.]])
-        # trajectory_object.discretise_trajectory(parameters=['hover', 5.])
+        # trajectory_object.discretise_trajectory(parameters=['vector', [0., -.5, 1.]])
+        # trajectory_object.discretise_trajectory(parameters=['hover', 3.])
         # trajectory_object.discretise_trajectory(parameters=['landing'])
 
         # Circle trajectory example:
-        trajectory_object.discretise_trajectory(parameters=['takeoff', 1.])
-        trajectory_object.discretise_trajectory(parameters=['hover', 5.])
-        trajectory_object.discretise_trajectory(parameters=['vector', [0., -.5, 1.]])
-        trajectory_object.discretise_trajectory(parameters=['hover', 5.])
-        trajectory_object.discretise_trajectory(parameters=['circle', [.0, .5, 1.]])
-        trajectory_object.discretise_trajectory(parameters=['circle', [.0, .5, 1.]])
-        trajectory_object.discretise_trajectory(parameters=['hover', 5.])
-        trajectory_object.discretise_trajectory(parameters=['landing'])
+        # trajectory_object.discretise_trajectory(parameters=['takeoff', 1.])
+        # trajectory_object.discretise_trajectory(parameters=['hover', 5.])
+        # trajectory_object.discretise_trajectory(parameters=['vector', [0., -.5, 1.]])
+        # trajectory_object.discretise_trajectory(parameters=['hover', 5.])
+        # trajectory_object.discretise_trajectory(parameters=['circle', [.0, .5, 1.]])
+        # trajectory_object.discretise_trajectory(parameters=['circle', [.0, .5, 1.]])
+        # trajectory_object.discretise_trajectory(parameters=['hover', 5.])
+        # trajectory_object.discretise_trajectory(parameters=['landing'])
 
         # More complex trajectory example:
         # trajectory_object.discretise_trajectory(parameters=['takeoff', 2.])
@@ -486,6 +486,21 @@ if __name__ == '__main__':
         # trajectory_object.discretise_trajectory(parameters=['vector', [.0, .0, 3.]])
         # trajectory_object.discretise_trajectory(parameters=['hover', 2.])
         # trajectory_object.discretise_trajectory(parameters=['landing'])
+
+        # HCERES demonstration trajectory (january 2020):
+        trajectory_object.discretise_trajectory(parameters=['takeoff', 1.0])
+        trajectory_object.discretise_trajectory(parameters=['hover', 5.])
+        trajectory_object.discretise_trajectory(parameters=['vector', [1., -0.8, 1.]])
+        trajectory_object.discretise_trajectory(parameters=['hover', 3.])
+        trajectory_object.discretise_trajectory(parameters=['vector', [1., 0.7, 1.]])
+        trajectory_object.discretise_trajectory(parameters=['hover', 3.])
+        trajectory_object.discretise_trajectory(parameters=['vector', [-1.04, -0.55, 1.]])
+        trajectory_object.discretise_trajectory(parameters=['hover', 3.])
+        trajectory_object.discretise_trajectory(parameters=['circle', [.0, .0, 1.]])
+        trajectory_object.discretise_trajectory(parameters=['hover', 3.])
+        trajectory_object.discretise_trajectory(parameters=['vector', [0., -.9, 1.]])
+        trajectory_object.discretise_trajectory(parameters=['hover', 3.])
+        trajectory_object.discretise_trajectory(parameters=['landing'])
         ########################################################################
 
         # Limit the trajectory to the BOX_LIMIT
