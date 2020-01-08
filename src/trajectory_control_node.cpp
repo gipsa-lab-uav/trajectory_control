@@ -43,6 +43,17 @@ void jointTrajectoryAcquireCallback(const trajectory_msgs::JointTrajectory & msg
   int i = 0;
   trajectory_msgs::JointTrajectoryPoint point = msg.points[0];
 
+  //Set flag for first callback
+  if (!isjointTrajectoryFirstCallback) isjointTrajectoryFirstCallback = true;
+
+  // Check if new trajectory
+  if (msg.header.seq == 1) {
+    i = 0;
+    isjointTrajectoryFirstCallback = false;
+    jointTrajectory.points.erase(jointTrajectory.points.begin(), jointTrajectory.points.end());
+    ROS_INFO("*** New trajectory received - reset estimators and onboard trajectory time ***");
+  }
+
   //Find the index in order to update the jointTrajectory.points from the topic
   for (const auto & point_saved : jointTrajectory.points){
     if (point.time_from_start == point_saved.time_from_start) break;
@@ -56,9 +67,6 @@ void jointTrajectoryAcquireCallback(const trajectory_msgs::JointTrajectory & msg
   for (const auto & point_new : msg.points){
     jointTrajectory.points.push_back(point_new);
   }
-
-  //Set flag for first callback
-  if (!isjointTrajectoryFirstCallback) isjointTrajectoryFirstCallback = true;
 }
 
 void measuredStatesAcquireCallback(const nav_msgs::Odometry & msg) {
@@ -357,8 +365,9 @@ int main(int argc, char *argv[])
   last_request = ros::Time::now();
   /****************************************************************************/
 
-  ROS_INFO("Real test: enable the offboard control and arm the drone with the remote controller");
-  ROS_INFO("Have a safe flight.");
+  ROS_INFO("*** Real test: enable the offboard control and arm the drone with the remote controller ***");
+  ROS_INFO("*** Estimators are reset as long as offboard control is disabled & no trajectory is being broadcasted ***");
+  ROS_INFO("*** Have a safe flight. ***");
 
   while (ros::ok()) {
 
@@ -385,7 +394,7 @@ int main(int argc, char *argv[])
 
     // Consider time for trajectory only when the drone is armed && first trajectory point received
     // if not set reset flag to true
-    if (droneState.armed && isjointTrajectoryFirstCallback) time2 += dt;
+    if ((droneState.mode == "OFFBOARD") && isjointTrajectoryFirstCallback) time2 += dt;
     else reset = true;
 
     // Get the last measured state
@@ -419,6 +428,7 @@ int main(int argc, char *argv[])
     // Reset estimator and set reset flag to false
     if (reset){
       se.resetEstimations();
+      time2 = .0;
       reset = false;
     }
 
