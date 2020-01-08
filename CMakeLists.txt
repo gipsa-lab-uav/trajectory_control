@@ -159,10 +159,6 @@ add_dependencies(${PROJECT_NAME}_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catk
 ## Specify libraries to link a library or executable target against
 target_link_libraries(${PROJECT_NAME}_node trajectory_control ${catkin_LIBRARIES})
 
-add_executable(offb_node src/offb_node.cpp)
-add_dependencies(offb_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
-target_link_libraries(offb_node ${catkin_LIBRARIES})
-
 #############
 ## Install ##
 #############
@@ -181,11 +177,6 @@ install(
 ## See http://docs.ros.org/melodic/api/catkin/html/howto/format1/building_executables.html
 install(
   TARGETS ${PROJECT_NAME}_node
-  RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
-)
-
-install(
-  TARGETS offb_node
   RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
 
