@@ -25,8 +25,8 @@
       <visual name='link_visual_cable_visual'>
         <plugin name='cable_visual' filename='libcable_visual_plugin.so'>
           <robotNamespace/>
-          <linkName1>winch_station::base_link</linkName1>
-          <linkName2>anchor_point::base_link</linkName2>
+          <originCable>0 0 1</originCable>
+          <linkName>iris_awe::anchor_point::base_link</linkName>
         </plugin>
         <transparency>1</transparency>
         <geometry>

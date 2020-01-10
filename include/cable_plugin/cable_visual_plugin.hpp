@@ -6,8 +6,6 @@
 #include <gazebo/common/Plugin.hh>
 #include <gazebo/gazebo.hh>
 #include "gazebo/msgs/msgs.hh"
-#include <gazebo/physics/physics.hh>
-#include "gazebo/transport/transport.hh"
 #include <gazebo/rendering/rendering.hh>
 
 #include <gazebo_msgs/LinkStates.h>
@@ -19,6 +17,8 @@
 #include <Eigen/Eigen>
 
 #include "common.h"
+
+#include <ignition/math.hh>
 
 #define M_PI 3.14159265358979323846
 
@@ -37,22 +37,20 @@ class CableVisualPlugin : public VisualPlugin {
     virtual void QueueThread();
 
   private:
-    std::string link_name1_;
-    std::string link_name2_;
+    bool find_index_nok_ = true;
+
+    int idx_link_;
+
+    std::string link_name_;
     std::string namespace_;
+
+    ignition::math::Vector3d originCable_;
 
     std::unique_ptr<ros::NodeHandle> node_handle_;
     ros::Subscriber sub_;
     ros::CallbackQueue queue_;
     std::thread queue_thread_;
 
-    // transport::NodePtr node_handle_;
-    // transport::SubscriberPtr sub_;
-
-    physics::ModelPtr model_;
-    physics::LinkPtr link_;
-    physics::LinkPtr link1_;
-    physics::LinkPtr link2_;
     event::ConnectionPtr updateConnection_;
 
     rendering::VisualPtr visual_;
