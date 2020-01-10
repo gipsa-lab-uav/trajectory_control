@@ -20,6 +20,23 @@
       <pose>0 0 0.5 0 0 0</pose>
     </include>
 
+    <link name="link_cable_visual">
+      <gravity>0</gravity>
+      <visual name='link_visual_cable_visual'>
+        <plugin name='cable_visual' filename='libcable_visual_plugin.so'>
+          <robotNamespace/>
+          <linkName1>winch_station::base_link</linkName1>
+          <linkName2>anchor_point::base_link</linkName2>
+        </plugin>
+        <transparency>1</transparency>
+        <geometry>
+          <box>
+            <size>1 1 1</size>
+          </box>
+        </geometry>
+      </visual>
+    </link>
+
     <joint name="anchor_joint" type="fixed">
       <parent>iris::base_link</parent>
       <child>anchor_point::base_link</child>
