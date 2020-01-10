@@ -1,0 +1,60 @@
+<launch>
+	<arg name="simulated_env" 	default="true"	/>
+	<arg name="trajectory_gen" 	default="false"	/>
+	<arg name="display" default="false" />
+
+	<arg name="world" default="$(find mavlink_sitl_gazebo)/worlds/empty.world"/>
+
+	<arg name="vehicle" default="iris_awe"/>
+	<arg name="sdf" default="$(find mavlink_sitl_gazebo)/models/$(arg vehicle)/$(arg vehicle).sdf"/>
+
+	<include file="$(find px4)/launch/posix_sitl.launch">
+		<arg name="world" value="$(arg world)"/>
+		<arg name="vehicle" value="$(arg vehicle)"/>
+		<arg name="sdf" value="$(arg sdf)"/>
+		<arg name="verbose" value="true"/>
+	</include>
+
+	<include file="$(find mavros)/launch/px4.launch">
+		<arg name="gcs_url" value=""/>
+		<arg name="fcu_url" value="udp://:14540@localhost:14557"/>
+	</include>
+
+	<node pkg="trajectory_control" type="trajectory_control_node" name="trajectory_control_node_sitl" output="screen" if="$(arg simulated_env)">
+		<param name="simulated_env" value="$(arg simulated_env)" />
+		<param name="ctrl_freq" value="100" />
+
+		<param name="fsf_x_P" value="0.3" />
+		<param name="fsf_x_S" value="2.5" />
+		<param name="fsf_y_P" value="0.3" />
+		<param name="fsf_y_S" value="2.5" />
+		<param name="fsf_z_P" value="0.3" />
+		<param name="fsf_z_S" value="2.5" />
+
+		<param name="use_StatesObserver" value="true" />
+
+		<param name="se_x_Lpos" value="0.67" />
+		<param name="se_y_Lpos" value="0.67" />
+		<param name="se_z_Lpos" value="0.67" />
+		<param name="se_x_Lspeed" value="3.4" />
+		<param name="se_y_Lspeed" value="3.4" />
+		<param name="se_z_Lspeed" value="3.4" />
+		<param name="se_x_Lunc" value="6.0" />
+		<param name="se_y_Lunc" value="6.0" />
+		<param name="se_z_Lunc" value="6.0" />
+
+		<param name="se_x_Filter" value="0.9" />
+		<param name="se_y_Filter" value="0.9" />
+		<param name="se_z_Filter" value="0.1" />
+
+		<param name="mass" value="1.5" />
+		<param name="hoverCompensation" value="0.45" />
+		<param name="maxAngle" value="45.0" />
+		<param name="maxVerticalAcceleration" value="4.0" />
+	</node>
+
+  	<node pkg="trajectory_control" type="trajectory_gen.py" name="trajectory_gen_node" output="screen" if="$(arg trajectory_gen)"></node>
+
+		<node pkg="trajectory_control" type="display.py" name="display_node" if="$(arg display)"></node>
+
+</launch>
