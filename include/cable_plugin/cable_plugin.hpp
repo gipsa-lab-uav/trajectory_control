@@ -43,6 +43,9 @@ class CablePlugin : public ModelPlugin, public MotorModel {
     std::string namespace_;
 
     double linear_mass_density_;
+    double cable_tension_;
+
+    ignition::math::Vector3d origin_cable_;
 
     transport::NodePtr node_handle_;
 
