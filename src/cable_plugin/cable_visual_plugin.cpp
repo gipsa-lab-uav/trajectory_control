@@ -24,7 +24,7 @@ namespace gazebo  {
       gzerr << "[gazebo_cable_visual_plugin] Please specify a robotNamespace.\n";
 
     if (_sdf->HasElement("originCable"))
-      originCable_ = _sdf->GetElement("originCable")->Get<ignition::math::Vector3d>();
+      origin_cable_ = _sdf->GetElement("originCable")->Get<ignition::math::Vector3d>();
     else
       gzerr << "[gazebo_cable_visual_plugin] Please specify an origin for the cable (originCable).\n";
 
@@ -32,6 +32,9 @@ namespace gazebo  {
       link_name_ = _sdf->GetElement("linkName")->Get<std::string>();
     else
       gzerr << "[gazebo_cable_visual_plugin] Please specify a linkName.\n";
+
+    getSdfParam<double>(_sdf, "linearMassDensity", linear_mass_density_, 0.01);
+    getSdfParam<double>(_sdf, "cableTension", cable_tension_, 10);
 
     if (!ros::isInitialized()){
       int argc = 0;
@@ -65,6 +68,10 @@ namespace gazebo  {
     line_->setMaterial("Gazebo/Purple");
     line_->setVisibilityFlags(GZ_VISIBILITY_GUI);
 
+    force_ = visual_->CreateDynamicLine(rendering::RENDERING_LINE_STRIP);
+    force_->setMaterial("Gazebo/Yellow");
+    force_->setVisibilityFlags(GZ_VISIBILITY_GUI);
+
     gzdbg << "CableVisualPlugin::Init end" << std::endl;
   }
 
@@ -88,12 +95,28 @@ namespace gazebo  {
 
     line_->Clear();
 
-    line_->AddPoint(originCable_);
+    line_->AddPoint(origin_cable_);
 
     line_->AddPoint(ignition::math::Vector3d(
       _msg->pose[idx_link_].position.x,
       _msg->pose[idx_link_].position.y,
       _msg->pose[idx_link_].position.z));
+
+    force_->Clear();
+
+    ignition::math::Vector3d winch_anchor_vector, cable_tension, cable_weight;
+    ignition::math::Vector3d anchor_pos(
+      _msg->pose[idx_link_].position.x,
+      _msg->pose[idx_link_].position.y,
+      _msg->pose[idx_link_].position.z);
+
+    force_->AddPoint(anchor_pos);
+
+    winch_anchor_vector = anchor_pos - origin_cable_;
+    cable_tension = - cable_tension_ * winch_anchor_vector.Normalized();
+    cable_weight = - linear_mass_density_ * winch_anchor_vector.Length() * ignition::math::Vector3d(0, 0, 1);
+
+    force_->AddPoint(anchor_pos + cable_tension + cable_weight);
   }
 
   void CableVisualPlugin::QueueThread(){

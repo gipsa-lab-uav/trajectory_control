@@ -44,7 +44,10 @@ class CableVisualPlugin : public VisualPlugin {
     std::string link_name_;
     std::string namespace_;
 
-    ignition::math::Vector3d originCable_;
+    double linear_mass_density_;
+    double cable_tension_;
+
+    ignition::math::Vector3d origin_cable_;
 
     std::unique_ptr<ros::NodeHandle> node_handle_;
     ros::Subscriber sub_;
@@ -54,6 +57,6 @@ class CableVisualPlugin : public VisualPlugin {
     event::ConnectionPtr updateConnection_;
 
     rendering::VisualPtr visual_;
-    rendering::DynamicLines *line_;
+    rendering::DynamicLines *line_, *force_;
 };
 }
