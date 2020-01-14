@@ -163,10 +163,6 @@ add_executable(awe_control_node src/awe_control_node.cpp)
 add_dependencies(awe_control_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 target_link_libraries(awe_control_node trajectory_control ${catkin_LIBRARIES})
 
-add_executable(offb_node src/offb_node.cpp)
-add_dependencies(offb_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
-target_link_libraries(offb_node ${catkin_LIBRARIES})
-
 #############
 ## Install ##
 #############
@@ -190,11 +186,6 @@ install(
 
 install(
   TARGETS awe_control_node
-  RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
-)
-
-install(
-  TARGETS offb_node
   RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
 
