@@ -82,25 +82,12 @@ source devel/setup.bash
 ```
 
 ## Testing the installation
-On one terminal, run:
-```bash
-roscore
-```
-
-And open a new terminal to run the test script:
-```bash
-roslaunch trajectory_control test.launch
-```
-
-A gazebo window should open with the iris model. After few seconds, the iris quadcopter should hover at 2 meters altitude. You can open QGroundControl in parallel also to check if everything is interfacing correctly.
-
-Now you are ready to go with the trajectory_control_node. Another, more complex example can be accessed as follows:
-
+On one terminal, run the following launch file:
 ```bash
 roslaunch trajectory_control trajectory_control_example.launch
 ```
 
-Gazebo will open, along with a window with a trajectory plot. After this window is closed, the iris drone should start following the trajectory.
+A gazebo window should open with the iris model along with a window displaying live information sush as the thrust, and a window with a generated trajectory. Close the generated trajectory window. In the gazebo window, the iris quadcopter should takeoff and start the trajectory. You can open QGroundControl in parallel also to check if everything is interfacing correctly.
 
 ## AWE Drone Model and Plugin
 The model of the AWE Drone is based on the Iris model, available in `sitl_gazebo`. Both the model and the plugin are available at the repository, but some adjustments must be made to ensure functionality. The models are composed by a `*.sdf` file and a `model.config` file. The physical model is defined in the SDF file, while general information is placed in the config file.

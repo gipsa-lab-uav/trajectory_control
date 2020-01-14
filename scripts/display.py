@@ -3,6 +3,7 @@
 import rospy
 import numpy as np
 import matplotlib.pyplot as plt
+from Tkinter import TclError
 
 import tf.transformations
 from nav_msgs.msg import Odometry
@@ -201,35 +202,39 @@ class Display:
         line_yaest, = ax_tra.plot(self.x_100, self.ya_estimated, 'r-')
 
         while not rospy.is_shutdown():
-            line_thr.set_ydata(self.thr)
-            line_rol.set_ydata(self.rol)
-            line_pit.set_ydata(self.pit)
-            line_yaw.set_ydata(self.yaw)
-            line_xmea.set_ydata(self.x_measured)
-            line_ymea.set_ydata(self.y_measured)
-            line_zmea.set_ydata(self.z_measured)
-            # line_xdes.set_ydata(self.x_desired)
-            # line_ydes.set_ydata(self.y_desired)
-            # line_zdes.set_ydata(self.z_desired)
-            line_xref.set_ydata(self.x_reference)
-            line_yref.set_ydata(self.y_reference)
-            line_zref.set_ydata(self.z_reference)
-            line_vxref.set_ydata(self.vx_reference)
-            line_vyref.set_ydata(self.vy_reference)
-            line_vzref.set_ydata(self.vz_reference)
-            line_axref.set_ydata(self.ax_reference)
-            line_ayref.set_ydata(self.ay_reference)
-            line_azref.set_ydata(self.az_reference)
-            line_xest.set_ydata(self.x_estimated)
-            line_yest.set_ydata(self.y_estimated)
-            line_zest.set_ydata(self.z_estimated)
-            line_yaest.set_ydata(self.ya_estimated)
-            line_vxest.set_ydata(self.vx_estimated)
-            line_vyest.set_ydata(self.vy_estimated)
-            line_vzest.set_ydata(self.vz_estimated)
+            try:
+                line_thr.set_ydata(self.thr)
+                line_rol.set_ydata(self.rol)
+                line_pit.set_ydata(self.pit)
+                line_yaw.set_ydata(self.yaw)
+                line_xmea.set_ydata(self.x_measured)
+                line_ymea.set_ydata(self.y_measured)
+                line_zmea.set_ydata(self.z_measured)
+                # line_xdes.set_ydata(self.x_desired)
+                # line_ydes.set_ydata(self.y_desired)
+                # line_zdes.set_ydata(self.z_desired)
+                line_xref.set_ydata(self.x_reference)
+                line_yref.set_ydata(self.y_reference)
+                line_zref.set_ydata(self.z_reference)
+                line_vxref.set_ydata(self.vx_reference)
+                line_vyref.set_ydata(self.vy_reference)
+                line_vzref.set_ydata(self.vz_reference)
+                line_axref.set_ydata(self.ax_reference)
+                line_ayref.set_ydata(self.ay_reference)
+                line_azref.set_ydata(self.az_reference)
+                line_xest.set_ydata(self.x_estimated)
+                line_yest.set_ydata(self.y_estimated)
+                line_zest.set_ydata(self.z_estimated)
+                line_yaest.set_ydata(self.ya_estimated)
+                line_vxest.set_ydata(self.vx_estimated)
+                line_vyest.set_ydata(self.vy_estimated)
+                line_vzest.set_ydata(self.vz_estimated)
 
-            fig.canvas.draw()
-            fig.canvas.flush_events()
+                fig.canvas.draw()
+                fig.canvas.flush_events()
+
+            except TclError:
+                break
 
 
 if __name__ == '__main__':
