@@ -72,18 +72,19 @@ namespace gazebo  {
     cable_tension = - cable_tension_ * winch_anchor_vector.Normalized();
     cable_weight = - linear_mass_density_ * winch_anchor_vector.Length() * ignition::math::Vector3d(0, 0, 1);
 
-    gzdbg << "anchor_pos: " << link_->WorldInertialPose().Pos() << std::endl;
-    gzdbg << "origin_cable_: " << origin_cable_ << std::endl;
-    gzdbg << "winch_anchor_vector: " << winch_anchor_vector << std::endl;
-    gzdbg << "winch_anchor_vector_unit: " << winch_anchor_vector.Normalized() << std::endl;
-    gzdbg << "cable_tension_: " << cable_tension_ << std::endl;
-    gzdbg << "cable_tension: " << cable_tension << std::endl;
-    gzdbg << "length: " << winch_anchor_vector.Length() << std::endl;
-    gzdbg << "linear_mass_density_: " << linear_mass_density_ << std::endl;
-    gzdbg << "cable_weight: " << cable_weight << std::endl << std::endl;
+    // gzdbg << "anchor_pos: " << link_->WorldInertialPose().Pos() << std::endl;
+    // gzdbg << "origin_cable_: " << origin_cable_ << std::endl;
+    // gzdbg << "winch_anchor_vector: " << winch_anchor_vector << std::endl;
+    // gzdbg << "winch_anchor_vector_unit: " << winch_anchor_vector.Normalized() << std::endl;
+    // gzdbg << "cable_tension_: " << cable_tension_ << std::endl;
+    // gzdbg << "cable_tension: " << cable_tension << std::endl;
+    // gzdbg << "length: " << winch_anchor_vector.Length() << std::endl;
+    // gzdbg << "linear_mass_density_: " << linear_mass_density_ << std::endl;
+    // gzdbg << "cable_weight: " << cable_weight << std::endl << std::endl;
 
-    // Link::AddForceAtWorldPosition(const math::Vector3 & _force, const math::Vector3 & _pos)
-    // Add a force to the body (link) using a global position (in the inertial frame).
+    // Link::AddForceAtWorldPosition(const math::Vector3d & _force, const math::Vector3d & _pos)
+    // Add a force (in world frame coordinate) to the body (link) at a position relative to the center
+    // of mass wich is expressed in the world frame coordinate.
     // Parameters:
     // [in]	_force	Force to add.
     // [in]	_pos	  Position in global coord frame to add the force.
