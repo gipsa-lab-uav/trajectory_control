@@ -82,6 +82,11 @@ namespace gazebo  {
     gzdbg << "linear_mass_density_: " << linear_mass_density_ << std::endl;
     gzdbg << "cable_weight: " << cable_weight << std::endl << std::endl;
 
+    // Link::AddForceAtWorldPosition(const math::Vector3 & _force, const math::Vector3 & _pos)
+    // Add a force to the body (link) using a global position (in the inertial frame).
+    // Parameters:
+    // [in]	_force	Force to add.
+    // [in]	_pos	  Position in global coord frame to add the force.
     link_->AddForceAtWorldPosition(cable_tension + cable_weight, ignition::math::Vector3d::Zero);
   }
 
