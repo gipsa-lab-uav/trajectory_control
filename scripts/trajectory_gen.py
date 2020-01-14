@@ -485,7 +485,7 @@ if __name__ == '__main__':
         trajectory_object.discretise_trajectory(parameters=['hover', 2.])
         trajectory_object.discretise_trajectory(parameters=['circle', [.0, 1., 3.]])
         trajectory_object.discretise_trajectory(parameters=['hover', 2.])
-        trajectory_object.discretise_trajectory(parameters=['vector', [.0, .0, 3.]])
+        trajectory_object.discretise_trajectory(parameters=['vector', [.0, -.5, 3.]])
         trajectory_object.discretise_trajectory(parameters=['hover', 2.])
         trajectory_object.discretise_trajectory(parameters=['landing'])
 
