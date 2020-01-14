@@ -1,6 +1,6 @@
 <launch>
 	<arg name="simulated_env" 	default="true"	/>
-	<arg name="trajectory_gen" 	default="false"	/>
+	<arg name="trajectory_gen" 	default="true"	/>
 	<arg name="display" default="false" />
 
 	<arg name="world" default="$(find mavlink_sitl_gazebo)/worlds/empty.world"/>
