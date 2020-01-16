@@ -42,6 +42,72 @@ class TrajectoryGeneration:
         self.y_discretized = [.0] * self.EXTRA_POINTS_START
         self.z_discretized = [.0] * self.EXTRA_POINTS_START
 
+    def discretise_trajectory_old(self, parameters=[]):
+
+        start = time()
+
+        x1 = self.x_discretized[-1]
+        y1 = self.y_discretized[-1]
+        z1 = self.z_discretized[-1]
+
+        delta_l = self.TRAJECTORY_REQUESTED_SPEED / self.FREQUENCY
+
+        if parameters[0] == 'vector':
+
+            steps = self.norm(parameters[1], [x1, y1, z1]) / delta_l
+
+            x = np.linspace(x1, parameters[1][0], steps, endpoint=True)
+            y = np.linspace(y1, parameters[1][1], steps, endpoint=True)
+            z = np.linspace(z1, parameters[1][2], steps, endpoint=True)
+
+        elif parameters[0] == 'circle':
+            center = parameters[1]
+            radius = self.norm(center, [x1, y1, z1])
+            steps = int(2 * math.pi * radius / delta_l)
+
+            cos_a = (x1 - center[0]) / radius
+            sin_a = (y1 - center[1]) / radius
+
+            cos_b = lambda x: math.cos((2 * math.pi / steps) * x)
+            sin_b = lambda x: math.sin((2 * math.pi / steps) * x)
+
+            x = [((cos_a*cos_b(s) - sin_a*sin_b(s))*radius + center[0]) for s in range(0, steps+1)]
+            y = [((sin_a*cos_b(s) + cos_a*sin_b(s))*radius + center[1]) for s in range(0, steps+1)]
+            z = [(center[2]) for s in range(0, steps+1)]
+
+        elif parameters[0] == 'hover':
+            steps = int(parameters[1] * self.FREQUENCY)
+
+            x = x1 * np.ones(steps)
+            y = y1 * np.ones(steps)
+            z = z1 * np.ones(steps)
+
+        elif parameters[0] == 'takeoff':
+
+            steps = int(abs(parameters[1] - z1) / delta_l)
+
+            x = x1 * np.ones(steps)
+            y = y1 * np.ones(steps)
+            z = np.linspace(z1, parameters[1], steps, endpoint=True)
+
+        elif parameters[0] == 'landing':
+
+            steps = int(abs(z1) / delta_l)
+
+            x = x1 * np.ones(steps)
+            y = y1 * np.ones(steps)
+            z = np.linspace(z1, -.01, steps, endpoint=True)
+
+        # elif parameters[0] == 'return2home':
+        # elif parameters[0] == 'square':
+        # elif parameters[0] == 'inf':
+
+        self.x_discretized.extend(x[1:])
+        self.y_discretized.extend(y[1:])
+        self.z_discretized.extend(z[1:])
+
+        print('discretise_trajectory() runs in {} s'.format(time() - start))
+
     def discretise_trajectory(self, parameters=[]):
 
         start = time()
@@ -86,75 +152,29 @@ class TrajectoryGeneration:
 
             steps = int(abs(parameters[1] - z1) / delta_l)
 
-            x = x1 * np.ones(steps)
-            y = y1 * np.ones(steps)
-            z = np.linspace(z1, parameters[1], steps, endpoint=True)
+            # z = np.linspace(z1, parameters[1], steps, endpoint=True)
+            z = [z1]
 
-        elif parameters[0] == 'landing':
+            vz = .0
+            stop = False
 
-            steps = int(abs(z1) / delta_l)
+            while z[-1] < parameters[1]:
+                distance_to_goal = parameters[1] - z[-1]
+                delta_vz = self.TRAJECTORY_REQUESTED_SPEED - vz
+                delta_vz_saturated = math.copysign(1, delta_vz) * min(abs(delta_vz), self.MAX_LINEAR_ACC_Z / self.FREQUENCY)
+                time_to_stop = vz / self.MAX_LINEAR_ACC_Z
+                distance_to_stop = math.sqrt(2) * vz * time_to_stop
+                if distance_to_goal < distance_to_stop: stop = True
+                if stop:
+                    vz = vz - self.MAX_LINEAR_ACC_Z / self.FREQUENCY
+                else:
+                    vz = vz + delta_vz_saturated
+                dl = vz / self.FREQUENCY
+                z.append(z[-1] + dl)
+                print vz
 
-            x = x1 * np.ones(steps)
-            y = y1 * np.ones(steps)
-            z = np.linspace(z1, -.01, steps, endpoint=True)
-
-        # elif parameters[0] == 'return2home':
-        # elif parameters[0] == 'square':
-        # elif parameters[0] == 'inf':
-
-        self.x_discretized.extend(x[1:])
-        self.y_discretized.extend(y[1:])
-        self.z_discretized.extend(z[1:])
-
-        print('discretise_trajectory() runs in {} s'.format(time() - start))
-
-        def discretise_trajectory(self, parameters=[]):
-
-        start = time()
-
-        x1 = self.x_discretized[-1]
-        y1 = self.y_discretized[-1]
-        z1 = self.z_discretized[-1]
-
-        delta_l = self.TRAJECTORY_REQUESTED_SPEED / self.FREQUENCY
-
-        if parameters[0] == 'vector':
-
-            steps = self.norm(parameters[1], [x1, y1, z1]) / delta_l
-
-            x = np.linspace(x1, parameters[1][0], steps, endpoint=True)
-            y = np.linspace(y1, parameters[1][1], steps, endpoint=True)
-            z = np.linspace(z1, parameters[1][2], steps, endpoint=True)
-
-        elif parameters[0] == 'circle':
-            center = parameters[1]
-            radius = self.norm(center, [x1, y1, z1])
-            steps = int(2 * math.pi * radius / delta_l)
-
-            cos_a = (x1 - center[0]) / radius
-            sin_a = (y1 - center[1]) / radius
-
-            cos_b = lambda x: math.cos((2 * math.pi / steps) * x)
-            sin_b = lambda x: math.sin((2 * math.pi / steps) * x)
-
-            x = [((cos_a*cos_b(s) - sin_a*sin_b(s))*radius + center[0]) for s in range(0, steps+1)]
-            y = [((sin_a*cos_b(s) + cos_a*sin_b(s))*radius + center[1]) for s in range(0, steps+1)]
-            z = [(center[2]) for s in range(0, steps+1)]
-
-        elif parameters[0] == 'hover':
-            steps = int(parameters[1] * self.FREQUENCY)
-
-            x = x1 * np.ones(steps)
-            y = y1 * np.ones(steps)
-            z = z1 * np.ones(steps)
-
-        elif parameters[0] == 'takeoff':
-
-            steps = int(abs(parameters[1] - z1) / delta_l)
-
-            x = x1 * np.ones(steps)
-            y = y1 * np.ones(steps)
-            z = np.linspace(z1, parameters[1], steps, endpoint=True)
+            x = x1 * np.ones(len(z))
+            y = y1 * np.ones(len(z))
 
         elif parameters[0] == 'landing':
 
@@ -198,7 +218,7 @@ class TrajectoryGeneration:
         self.x_discretized = [x_discretized_saved[0]]
         self.y_discretized = [y_discretized_saved[0]]
         self.z_discretized = [z_discretized_saved[0]]
-        
+
         acc_time = self.TRAJECTORY_REQUESTED_SPEED / self.MAX_LINEAR_ACC_XY
         ratio = self.FREQUENCY / self.PUBLISH_RATE
         n = self.TRAJECTORY_REQUESTED_SPEED * self.PUBLISH_RATE / self.MAX_LINEAR_ACC_XY
@@ -225,9 +245,9 @@ class TrajectoryGeneration:
             pose_nex2 = np.array([x_discretized_saved[s+max_inc+1], y_discretized_saved[s+max_inc+1], z_discretized_saved[s+max_inc+1]])
 
             vdes = (pose_nex2 - pose_next) * self.FREQUENCY
-            
+
             delta_v = vdes - vt_0
-            
+
             print("vdes: ", vdes)
             print("norm vt_0: ", np.linalg.norm(vt_0))
             print("delta_v: ", delta_v)
@@ -277,7 +297,7 @@ class TrajectoryGeneration:
         self.x_filtered = [self.x_discretized[0]]
         self.y_filtered = [self.y_discretized[0]]
         self.z_filtered = [self.z_discretized[0]]
-        
+
         acc_time = self.TRAJECTORY_REQUESTED_SPEED / self.MAX_LINEAR_ACC_XY
         ratio = self.FREQUENCY / self.PUBLISH_RATE
         n = self.TRAJECTORY_REQUESTED_SPEED * self.PUBLISH_RATE / self.MAX_LINEAR_ACC_XY
@@ -303,9 +323,9 @@ class TrajectoryGeneration:
                 vdes = np.array([self.vx_discretized[s+s_inc], self.vy_discretized[s+s_inc], self.vz_discretized[s+s_inc]])
             else:
                 vdes = np.array([self.vx_discretized[-1], self.vy_discretized[-1], self.vz_discretized[-1]])
-            
+
             delta_v = vdes - vt_0
-            
+
             print "vdes: ", vdes
             print "norm vt_0: ", np.linalg.norm(vt_0)
             print "delta_v: ", delta_v
@@ -707,8 +727,8 @@ if __name__ == '__main__':
 
         trajectory_object.TRAJECTORY_REQUESTED_SPEED = 3.0  # [m.s-1] to compute the step to discretized trajectory
 
-        trajectory_object.MAX_LINEAR_ACC_XY = 1.5  # max. klinear acceleration [m.s-2]
-        trajectory_object.MAX_LINEAR_ACC_Z = 2.0  # max. linear acceleration [m.s-2]
+        trajectory_object.MAX_LINEAR_ACC_XY = 2.5  # max. klinear acceleration [m.s-2]
+        trajectory_object.MAX_LINEAR_ACC_Z = 3.0  # max. linear acceleration [m.s-2]
 
         trajectory_object.BOX_LIMIT = [[-4., 4.], [-4., 4.], [-.01, 6.]]  # [[x_min, x_max], [y_min, y_max], [z_min, z_max]]
         trajectory_object.WINDOW_FRAME = 5  # publish the n future states
@@ -762,17 +782,17 @@ if __name__ == '__main__':
         # More complex trajectory example:
         trajectory_object.discretise_trajectory(parameters=['takeoff', 2.])
         trajectory_object.discretise_trajectory(parameters=['hover', 2.])
-        trajectory_object.discretise_trajectory(parameters=['circle', [.0, 2., 2.]])
-        trajectory_object.discretise_trajectory(parameters=['circle', [.0, 2., 2.]])
-        trajectory_object.discretise_trajectory(parameters=['circle', [.0, 2., 2.]])
-        trajectory_object.discretise_trajectory(parameters=['hover', 2.])
+        # trajectory_object.discretise_trajectory(parameters=['circle', [.0, 2., 2.]])
+        # trajectory_object.discretise_trajectory(parameters=['circle', [.0, 2., 2.]])
+        # trajectory_object.discretise_trajectory(parameters=['circle', [.0, 2., 2.]])
+        # trajectory_object.discretise_trajectory(parameters=['hover', 2.])
         # trajectory_object.discretise_trajectory(parameters=['vector', [1., 2., 3.]])
         # trajectory_object.discretise_trajectory(parameters=['hover', 2.])
         # trajectory_object.discretise_trajectory(parameters=['circle', [.0, 1., 3.]])
         # trajectory_object.discretise_trajectory(parameters=['hover', 2.])
-        trajectory_object.discretise_trajectory(parameters=['vector', [1., 1., 3.]])
-        trajectory_object.discretise_trajectory(parameters=['hover', 2.])
-        trajectory_object.discretise_trajectory(parameters=['landing'])
+        # trajectory_object.discretise_trajectory(parameters=['vector', [1., 1., 3.]])
+        # trajectory_object.discretise_trajectory(parameters=['hover', 2.])
+        # trajectory_object.discretise_trajectory(parameters=['landing'])
         ########################################################################
 
         # Limit the trajectory to the BOX_LIMIT
@@ -780,8 +800,8 @@ if __name__ == '__main__':
 
         # Generate the list of states - start by generating the states and then filter them
         trajectory_object.generate_states()
-        trajectory_object.discretise_to_smooth_trajectory()
-        # trajectory_object.generate_states_sg_filtered(window_length=53, polyorder=1, mode='mirror')
+        # trajectory_object.discretise_to_smooth_trajectory()
+        # trajectory_object.generate_states_sg_filtered(window_length=13, polyorder=1, mode='mirror')
         # trajectory_object.generate_states_sg_filtered(window_length=13, polyorder=1, mode='mirror', on_filtered=True)
         # trajectory_object.generate_yaw_filtered()
 
