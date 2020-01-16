@@ -57,7 +57,6 @@ void jointTrajectoryAcquireCallback(const trajectory_msgs::JointTrajectory & msg
 
   // Return if the trajectory ID received does not correspond with the current trajectory ID
   if (trajectoryID != msg.header.frame_id) return;
-  ROS_INFO_STREAM(trajectoryID);
 
   // Find the index in order to update the jointTrajectory.points from the topic
   for (const auto & point_saved : jointTrajectory.points){
