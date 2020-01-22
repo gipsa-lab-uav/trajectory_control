@@ -16,7 +16,7 @@ SEParameters::SEParameters()
 	LspeedUnc = 8.7f;
 
 	overSamplingFactor = 1;
-	maxUncertainties= 6.0f;
+	maxUncertainties= 10.0f;
 
 	manualReset = false;
 }
@@ -35,7 +35,7 @@ SEParameters::SEParameters(float lpos, float lspeed, float lunc, float filtercoe
 	LspeedUnc = 8.7f;
 
 	overSamplingFactor = 1;
-	maxUncertainties= 6.0f;
+	maxUncertainties= 10.0f;
 
 	manualReset = false;
 }
@@ -73,7 +73,7 @@ SEParameters::SEParameters(float lpospos, float lposspeed, float lposunc, float 
 	LspeedUnc = lspeedunc;
 
 	overSamplingFactor = 1;
-	maxUncertainties= 6.0f;
+	maxUncertainties= 10.0f;
 
 	manualReset = false;
 }
