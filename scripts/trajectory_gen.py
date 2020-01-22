@@ -76,7 +76,7 @@ class TrajectoryGeneration:
             cos_a = (x1 - center[0]) / r
             sin_a = (y1 - center[1]) / r
 
-            profil = self.get_profil(n * circumference, velocity, self.MAX_LINEAR_ACC_XY * 1.414, frequency)
+            profil = self.get_profil(n * circumference, velocity, self.MAX_LINEAR_ACC_XY / math.sqrt(2), frequency)
 
             x = [(cos_a*math.cos(l/r) - sin_a*math.sin(l/r)) * r + center[0] for l in profil]
             y = [(sin_a*math.cos(l/r) + cos_a*math.sin(l/r)) * r + center[1] for l in profil]
