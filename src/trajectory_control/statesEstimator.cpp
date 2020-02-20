@@ -1,6 +1,5 @@
 #include "trajectory_control/statesEstimator.hpp"
 
-
 SEParameters::SEParameters()
 {
 	Lpos = 1.03f;
@@ -8,15 +7,15 @@ SEParameters::SEParameters()
 	Lunc = 9.62f;
 	filterCoeff = 0.95f;
 
-	LposPos = 0.92f;
-	LposSpeed = 0.0001f;
-	LposUnc = 0.0001f;
+	LposPos = 0.01f;
+	LposSpeed = 0.0076f;
+	LposUnc = -0.02f;
 	LspeedPos = 0.01f;
-	LspeedSpeed = 1.0f;
-	LspeedUnc = 8.7f;
+	LspeedSpeed = 0.25f;
+	LspeedUnc = 2.8f;
 
 	overSamplingFactor = 1;
-	maxUncertainties= 10.0f;
+	maxUncertainties = 10.0f;
 
 	manualReset = false;
 }
@@ -35,7 +34,7 @@ SEParameters::SEParameters(float lpos, float lspeed, float lunc, float filtercoe
 	LspeedUnc = 8.7f;
 
 	overSamplingFactor = 1;
-	maxUncertainties= 10.0f;
+	maxUncertainties = 10.0f;
 
 	manualReset = false;
 }
@@ -73,19 +72,19 @@ SEParameters::SEParameters(float lpospos, float lposspeed, float lposunc, float 
 	LspeedUnc = lspeedunc;
 
 	overSamplingFactor = 1;
-	maxUncertainties= 10.0f;
+	maxUncertainties = 10.0f;
 
 	manualReset = false;
 }
-SEParameters::~SEParameters(){}
+SEParameters::~SEParameters() {}
 
 SE1D::SE1D()
 {
-    	reset = false; //not data
+	reset = false; //not data
 }
-SE1D::~SE1D(){}
+SE1D::~SE1D() {}
 
-DS1D SE1D::process (float dt, float measuredPos, DS1D predicted, float cmd)
+DS1D SE1D::process(float dt, float measuredPos, DS1D predicted, float cmd)
 {
 	DS1D newStates(0.0f, 0.0f, 0.0f, 0.0f);
 
@@ -113,13 +112,12 @@ DS1D SE1D::process (float dt, float measuredPos, DS1D predicted, float cmd)
 	//float Cspeed = 0f;
 	//float Cunc = 0f;
 	//A*Xest
-	newStates.position = Apos_pos*predicted.position + Apos_speed *predicted.speed; // + Apos_unc*predicted.uncertainties;
-	newStates.speed = Aspeed_speed*predicted.speed + Aspeed_unc *predicted.uncertainties; // + Aspeed_pos*predicted.position;
-	newStates.uncertainties = Aunc_unc *predicted.uncertainties; // + Aunc_pos*predicted.position + Aunc_speed*predicted.speed;
+	newStates.position = Apos_pos * predicted.position + Apos_speed * predicted.speed;		 // + Apos_unc*predicted.uncertainties;
+	newStates.speed = Aspeed_speed * predicted.speed + Aspeed_unc * predicted.uncertainties; // + Aspeed_pos*predicted.position;
+	newStates.uncertainties = Aunc_unc * predicted.uncertainties;							 // + Aunc_pos*predicted.position + Aunc_speed*predicted.speed;
 
 	//+B*U
-	newStates.speed += Bacc *cmd;
-
+	newStates.speed += Bacc * cmd;
 
 	//+L(y - C*Xest)
 	newStates.position += param.Lpos * (measuredPos - Cpos * predicted.position);
@@ -127,26 +125,33 @@ DS1D SE1D::process (float dt, float measuredPos, DS1D predicted, float cmd)
 	newStates.uncertainties += param.Lunc * (measuredPos - Cpos * predicted.position);
 
 	//Clamp the uncertainties
-	newStates.uncertainties = std::min(newStates.uncertainties, param.maxUncertainties);
+	if (newStates.uncertainties > 0.0f)
+	{
+		newStates.uncertainties = std::min(newStates.uncertainties, param.maxUncertainties);
+	}
+	else
+	{
+		newStates.uncertainties = std::max(newStates.uncertainties, -param.maxUncertainties);
+	}
 
 	if (reset == true)
 	{
-	    newStates.position = measuredPos;
-	    newStates.speed = 0.0f;
-	    newStates.uncertainties = 0.0f;
-	    reset = false;
+		newStates.position = measuredPos;
+		newStates.speed = 0.0f;
+		newStates.uncertainties = 0.0f;
+		reset = false;
 	}
 	if (param.manualReset == true)
 	{
-	    newStates.position = measuredPos;
-	    newStates.speed = 0.0f;
-	    newStates.uncertainties = 0.0f;
+		newStates.position = measuredPos;
+		newStates.speed = 0.0f;
+		newStates.uncertainties = 0.0f;
 	}
 
 	return newStates;
 }
 
-DS1D SE1D::process2 (float dt, float measuredPos, float measuredSpeed, DS1D predicted, float cmd)
+DS1D SE1D::process2(float dt, float measuredPos, float measuredSpeed, DS1D predicted, float cmd)
 {
 	DS1D newStates(0.0f, 0.0f, 0.0f, 0.0f);
 
@@ -175,15 +180,13 @@ DS1D SE1D::process2 (float dt, float measuredPos, float measuredSpeed, DS1D pred
 	//float Cunc = 0f;
 	/*End model parameters*/
 
-
 	//A*Xest
-	newStates.position = Apos_pos*predicted.position + Apos_speed *predicted.speed; // + Apos_unc*predicted.uncertainties;
-	newStates.speed = Aspeed_speed*predicted.speed + Aspeed_unc *predicted.uncertainties; // + Aspeed_pos*predicted.position;
-	newStates.uncertainties = Aunc_unc *predicted.uncertainties; // + Aunc_pos*predicted.position + Aunc_speed*predicted.speed;
+	newStates.position = Apos_pos * predicted.position + Apos_speed * predicted.speed;		 // + Apos_unc*predicted.uncertainties;
+	newStates.speed = Aspeed_speed * predicted.speed + Aspeed_unc * predicted.uncertainties; // + Aspeed_pos*predicted.position;
+	newStates.uncertainties = Aunc_unc * predicted.uncertainties;							 // + Aunc_pos*predicted.position + Aunc_speed*predicted.speed;
 
 	//+B*U
-	newStates.speed += Bacc *cmd;
-
+	newStates.speed += Bacc * cmd;
 
 	//+L(y - C*Xest)
 	newStates.position += param.LposPos * (measuredPos - Cpos * predicted.position);
@@ -199,16 +202,16 @@ DS1D SE1D::process2 (float dt, float measuredPos, float measuredSpeed, DS1D pred
 
 	if (reset == true)
 	{
-	    newStates.position = measuredPos;
-	    newStates.speed = 0.0f;
-	    newStates.uncertainties = 0.0f;
-	    reset = false;
+		newStates.position = measuredPos;
+		newStates.speed = 0.0f;
+		newStates.uncertainties = 0.0f;
+		reset = false;
 	}
 	if (param.manualReset == true)
 	{
-	    newStates.position = measuredPos;
-	    newStates.speed = 0.0f;
-	    newStates.uncertainties = 0.0f;
+		newStates.position = measuredPos;
+		newStates.speed = 0.0f;
+		newStates.uncertainties = 0.0f;
 	}
 
 	return newStates;
@@ -232,19 +235,16 @@ StatesEstimator::StatesEstimator()
 	cmdAppliedPrev.x = 0.0f;
 	cmdAppliedPrev.y = 0.0f;
 	cmdAppliedPrev.z = 0.0f;
-
 }
-StatesEstimator::~StatesEstimator(){}
+StatesEstimator::~StatesEstimator() {}
 
 DroneStates StatesEstimator::process(float dt, geometry_msgs::Vector3 dronePosition, DroneStates predicted, geometry_msgs::Vector3 cmd)
 {
 
 	// Filter command to fit actuator response: first order for vertical response, second order for horizontal
 	cmdApplied = firstOrderFilterCmd(cmdApplied, cmdAppliedPrev); //update 2nd order
-	cmdAppliedPrev = firstOrderFilterCmd(cmdAppliedPrev, cmd); //update 1rst order
+	cmdAppliedPrev = firstOrderFilterCmd(cmdAppliedPrev, cmd);	//update 1rst order
 	cmdApplied.z = cmdAppliedPrev.z;
-
-
 
 	//updateParam(controllerParam);
 	float newDt = dt / x.param.overSamplingFactor;
@@ -267,10 +267,8 @@ DroneStates StatesEstimator::process2(float dt, geometry_msgs::Vector3 dronePosi
 
 	// Filter command to fit actuator response: first order for vertical response, second order for horizontal
 	cmdApplied = firstOrderFilterCmd(cmdApplied, cmdAppliedPrev); //update 2nd order
-	cmdAppliedPrev = firstOrderFilterCmd(cmdAppliedPrev, cmd); //update 1rst order
+	cmdAppliedPrev = firstOrderFilterCmd(cmdAppliedPrev, cmd);	//update 1rst order
 	cmdApplied.z = cmdAppliedPrev.z;
-
-
 
 	//updateParam(controllerParam);
 	float newDt = dt / x.param.overSamplingFactor;
@@ -295,14 +293,13 @@ void StatesEstimator::resetEstimations()
 	z.resetEstimation();
 }
 
-geometry_msgs::Vector3 StatesEstimator::firstOrderFilterCmd(geometry_msgs::Vector3 cmdT_1,geometry_msgs::Vector3 cmdCurrent)
+geometry_msgs::Vector3 StatesEstimator::firstOrderFilterCmd(geometry_msgs::Vector3 cmdT_1, geometry_msgs::Vector3 cmdCurrent)
 {
 	geometry_msgs::Vector3 cmdOut;
 
-        cmdOut.x = x.param.filterCoeff * cmdT_1.x + (1.0f - x.param.filterCoeff) * cmdCurrent.x;
-        cmdOut.y = y.param.filterCoeff * cmdT_1.y + (1.0f - y.param.filterCoeff) * cmdCurrent.y;
-       	cmdOut.z = z.param.filterCoeff * cmdT_1.z + (1.0f - z.param.filterCoeff) * cmdCurrent.z;
+	cmdOut.x = x.param.filterCoeff * cmdT_1.x + (1.0f - x.param.filterCoeff) * cmdCurrent.x;
+	cmdOut.y = y.param.filterCoeff * cmdT_1.y + (1.0f - y.param.filterCoeff) * cmdCurrent.y;
+	cmdOut.z = z.param.filterCoeff * cmdT_1.z + (1.0f - z.param.filterCoeff) * cmdCurrent.z;
 
 	return cmdOut;
-
 }
