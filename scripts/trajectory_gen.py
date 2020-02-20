@@ -28,7 +28,7 @@ class TrajectoryGeneration:
         self.LANDING_SPEED = 0.3  # [m.s-1]
         self.PUBLISH_RATE = 10  # publisher frequency [Hz]
         self.FREQUENCY = 100  # point trajectory frequency [Hz]
-        self.BOX_LIMIT = [[-4., 4.], [-4., 4.], [-.01, 6.]]  # [[x_min, x_max], [y_min, y_max], [z_min, z_max]]
+        self.BOX_LIMIT = [[-2., 2.], [-1., 3.], [-.01, 2.]]  # [[x_min, x_max], [y_min, y_max], [z_min, z_max]]
         self.WINDOW_FRAME = .5  # publish future states comprise in the window time frame [s]
 
         self.MAX_LINEAR_ACC_XY = 2.5  # max. linear acceleration [m.s-2]
@@ -85,9 +85,11 @@ class TrajectoryGeneration:
         if parameters[0] == 'takeoff':
             profil = self.get_linear_position_profil(abs(parameters[1] - z1), velocity, self.MAX_LINEAR_ACC_Z, self.FREQUENCY)
 
+            sign = math.copysign(1.0, parameters[1] - z1)
+
             x = x1 * np.ones(len(profil))
             y = y1 * np.ones(len(profil))
-            z = [z1 + l for l in profil]
+            z = [z1 + sign * l for l in profil]
 
         elif parameters[0] == 'hover':
             steps = int(parameters[1] * self.FREQUENCY)
@@ -380,8 +382,8 @@ class TrajectoryGeneration:
         cos_ya = [math.cos(yaw) for yaw in self.ya_filtered]
         sin_ya = [math.sin(yaw) for yaw in self.ya_filtered]
 
-        cos_ya = signal.savgol_filter(x=cos_ya, window_length=103, polyorder=1, deriv=0, delta=1.0, mode='mirror')
-        sin_ya = signal.savgol_filter(x=sin_ya, window_length=103, polyorder=1, deriv=0, delta=1.0, mode='mirror')
+        cos_ya = signal.savgol_filter(x=cos_ya, window_length=53, polyorder=1, deriv=0, delta=1.0, mode='mirror')
+        sin_ya = signal.savgol_filter(x=sin_ya, window_length=53, polyorder=1, deriv=0, delta=1.0, mode='mirror')
 
         self.ya_filtered = []
 
@@ -554,7 +556,7 @@ if __name__ == '__main__':
         # Configuration
         trajectory_object.YAW_HEADING = ['auto', [1, 0]]  # options: ['auto'], ['still'], ['center', [x, y]], ['axes', [x, y]]
 
-        trajectory_object.TRAJECTORY_REQUESTED_SPEED = 1.5  # req. trajectory linear speed [m.s-1] (used when arg velocity in not specify in discretise_trajectory())
+        trajectory_object.TRAJECTORY_REQUESTED_SPEED = 0.4  # req. trajectory linear speed [m.s-1] (used when arg velocity in not specify in discretise_trajectory())
         trajectory_object.LANDING_SPEED = 0.3  # [m.s-1]
 
         trajectory_object.MAX_LINEAR_ACC_XY = 4.0  # max. linear acceleration [m.s-2]
@@ -576,31 +578,35 @@ if __name__ == '__main__':
         # parameters=['landing']
 
         # Takeoff trajectory example:
-        # trajectory_object.discretise_trajectory(parameters=['takeoff', 1.], velocity=1.0)
-        # trajectory_object.discretise_trajectory(parameters=['hover', 10.])
+        # trajectory_object.discretise_trajectory(parameters=['takeoff', 1.], velocity=0.6)
+        # trajectory_object.discretise_trajectory(parameters=['hover', 10.], heading=['still'])
         # trajectory_object.discretise_trajectory(parameters=['landing'])
 
         # Square trajectory example:
-        # trajectory_object.discretise_trajectory(parameters=['takeoff', 1.], velocity=1.0)
-        # trajectory_object.discretise_trajectory(parameters=['hover', 2.])
-        # trajectory_object.discretise_trajectory(parameters=['vector', [1., -.5, 1.]], velocity=0.6)
-        # trajectory_object.discretise_trajectory(parameters=['hover', 2.])
-        # trajectory_object.discretise_trajectory(parameters=['vector', [1., 1.5, 1.]], velocity=0.6)
-        # trajectory_object.discretise_trajectory(parameters=['hover', 2.])
-        # trajectory_object.discretise_trajectory(parameters=['vector', [-1., 1.5, 1.]], velocity=0.6)
-        # trajectory_object.discretise_trajectory(parameters=['hover', 2.])
-        # trajectory_object.discretise_trajectory(parameters=['vector', [-1., -.5, 1.]], velocity=0.6)
-        # trajectory_object.discretise_trajectory(parameters=['hover', 2.])
-        # trajectory_object.discretise_trajectory(parameters=['vector', [0., -.5, 1.]], velocity=0.6)
-        # trajectory_object.discretise_trajectory(parameters=['hover', 2.])
+        # trajectory_object.discretise_trajectory(parameters=['takeoff', 1.], velocity=0.6, heading=['axes', [1, 0]])
+        # trajectory_object.discretise_trajectory(parameters=['hover', 20.], heading=['still'])
+        # trajectory_object.discretise_trajectory(parameters=['vector', [1., -.5, 1.]], heading=['axes', [1, 0]])
+        # trajectory_object.discretise_trajectory(parameters=['hover', 2.], heading=['still'])
+        # trajectory_object.discretise_trajectory(parameters=['vector', [1., 1.5, 1.]], heading=['auto', [1, 0]])
+        # trajectory_object.discretise_trajectory(parameters=['hover', 2.], heading=['still'])
+        # trajectory_object.discretise_trajectory(parameters=['vector', [-1., 1.5, 1.]], heading=['auto', [1, 0]])
+        # trajectory_object.discretise_trajectory(parameters=['hover', 2.], heading=['still'])
+        # trajectory_object.discretise_trajectory(parameters=['vector', [-1., -.5, 1.]], heading=['auto', [1, 0]])
+        # trajectory_object.discretise_trajectory(parameters=['hover', 2.], heading=['still'])
+        # trajectory_object.discretise_trajectory(parameters=['vector', [0., -.5, 1.]], heading=['auto', [1, 0]])
+        # trajectory_object.discretise_trajectory(parameters=['hover', 2.], heading=['still'])
         # trajectory_object.discretise_trajectory(parameters=['landing'])
 
         # Circle trajectory example:
-        # trajectory_object.discretise_trajectory(parameters=['takeoff', 1.], velocity=1.0)
-        # trajectory_object.discretise_trajectory(parameters=['hover', 5.])
-        # trajectory_object.discretise_trajectory(parameters=['vector', [0., -.5, 1.]], velocity=0.6, heading=['auto'])
-        # trajectory_object.discretise_trajectory(parameters=['hover', 5.])
-        # trajectory_object.discretise_trajectory(parameters=['circle', [.0, .5, 1.], 2], velocity=0.6, heading=['auto'])
+        # trajectory_object.discretise_trajectory(parameters=['takeoff', 1.], velocity=0.6)
+        # trajectory_object.discretise_trajectory(parameters=['hover', 5.], heading=['still'])
+        # trajectory_object.discretise_trajectory(parameters=['vector', [0., -.3, 1.]], velocity=0.6, heading=['axes', [1, 0]])
+        # trajectory_object.discretise_trajectory(parameters=['hover', 5.], heading=['still'])
+        # trajectory_object.discretise_trajectory(parameters=['circle', [.0, .5, 1.], 2], velocity=0.6, heading=['axes', [1, 0]])
+        # trajectory_object.discretise_trajectory(parameters=['hover', 5.], heading=['still'])
+        # trajectory_object.discretise_trajectory(parameters=['circle', [.0, .5, 1.], 2], velocity=0.6, heading=['auto', [1, 0]])
+        # trajectory_object.discretise_trajectory(parameters=['hover', 5.], heading=['still'])
+        # trajectory_object.discretise_trajectory(parameters=['circle', [.0, .5, 1.], 2], velocity=2.0, heading=['auto', [1, 0]])
         # trajectory_object.discretise_trajectory(parameters=['hover', 5.])
         # trajectory_object.discretise_trajectory(parameters=['landing'])
 
