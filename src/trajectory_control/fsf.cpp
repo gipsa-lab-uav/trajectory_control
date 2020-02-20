@@ -8,8 +8,8 @@
 FSFParameters::FSFParameters()
 {
 	Ki = 0.0f;
-  Kp = 0.3f;
-	Ks = 2.5f;
+	Kp = 1.72f;
+	Ks = 1.86f;
 	KpStep = 1.4f;
 	KsStep = 1.74f;
 	Ku = 1.0f;
@@ -21,7 +21,7 @@ FSFParameters::FSFParameters()
 FSFParameters::FSFParameters(float kp, float ks, float ku)
 {
 	Ki = 0.0f;
-  Kp = kp;
+	Kp = kp;
 	Ks = ks;
 	KpStep = kp;
 	KsStep = ks;
@@ -29,13 +29,12 @@ FSFParameters::FSFParameters(float kp, float ks, float ku)
 
 	useIntegrator = false;
 	useFeedForward = true;
-
 }
 
 FSFParameters::FSFParameters(float kp, float ks, float ku, float ki)
 {
 	Ki = ki;
-  Kp = kp;
+	Kp = kp;
 	Ks = ks;
 	KpStep = kp;
 	KsStep = ks;
@@ -47,7 +46,7 @@ FSFParameters::FSFParameters(float kp, float ks, float ku, float ki)
 FSFParameters::FSFParameters(float kp, float ks, float ku, float ki, float kpStep, float ksStep)
 {
 	Ki = ki;
-  Kp = kp;
+	Kp = kp;
 	Ks = ks;
 	KpStep = kpStep;
 	KsStep = ksStep;
@@ -57,7 +56,7 @@ FSFParameters::FSFParameters(float kp, float ks, float ku, float ki, float kpSte
 	useFeedForward = true;
 }
 
-FSFParameters::~FSFParameters(){}
+FSFParameters::~FSFParameters() {}
 
 /////////////////////////////////:
 
@@ -90,8 +89,10 @@ void FSF1D::resetIntegrator()
 	iError = 0.0f;
 }
 
-float FSF1D::process (float dt, DS1D current, DS1D target) {
-	if (dt == 0.0f) return current.acceleration;
+float FSF1D::process(float dt, DS1D current, DS1D target)
+{
+	if (dt == 0.0f)
+		return current.acceleration;
 
 	float cmd;
 
@@ -108,35 +109,43 @@ float FSF1D::process (float dt, DS1D current, DS1D target) {
 		cmd = param.Kp * pError + param.Ks * sError + param.Ku * uError;
 	}
 
-	if(param.useIntegrator) {
+	if (param.useIntegrator)
+	{
 		iError += pError * dt;
+
+		if (iError > 0.0f)
+		{
+			iError = std::min(iError, 10.0f);
+		}
+		else
+		{
+			iError = std::max(iError, -10.0f);
+		}
+
 		cmd += param.Ki * iError;
 	}
-	if(param.useFeedForward) {
+	if (param.useFeedForward)
+	{
 		cmd += target.acceleration;
 	}
 	return cmd;
 }
-FSF1D::~FSF1D(){}
-
-
+FSF1D::~FSF1D() {}
 
 FullStatesFeedback::FullStatesFeedback()
 {
 	stepMode = false;
 }
-FullStatesFeedback::~FullStatesFeedback(){}
-
+FullStatesFeedback::~FullStatesFeedback() {}
 
 void FullStatesFeedback::resetIntegrators()
 {
-	x.FSF1D::resetIntegrator ();
-	y.FSF1D::resetIntegrator ();
-	z.FSF1D::resetIntegrator ();
+	x.FSF1D::resetIntegrator();
+	y.FSF1D::resetIntegrator();
+	z.FSF1D::resetIntegrator();
 }
 
-
-geometry_msgs::Vector3 FullStatesFeedback::process (float dt, DroneStates current, DroneStates target)
+geometry_msgs::Vector3 FullStatesFeedback::process(float dt, DroneStates current, DroneStates target)
 {
 	geometry_msgs::Vector3 r;
 	if (stepMode)
@@ -151,8 +160,8 @@ geometry_msgs::Vector3 FullStatesFeedback::process (float dt, DroneStates curren
 		y.stepMode1D = false;
 		z.stepMode1D = false;
 	}
-	r.x = x.process (dt, current.x, target.x);
-	r.y = y.process (dt, current.y, target.y);
-	r.z = z.process (dt, current.z, target.z);
+	r.x = x.process(dt, current.x, target.x);
+	r.y = y.process(dt, current.y, target.y);
+	r.z = z.process(dt, current.z, target.z);
 	return r;
 }
