@@ -51,7 +51,7 @@ class TrajectoryGeneration:
         # parameters=['takeoff', z] with z in meters
         # parameters=['hover', time] with time in seconds
         # parameters=['vector', [x, y, z]] with x, y, z the target position
-        # parameters=['circle', [x, y, z], (opt.) n] with x, y, z the center of the circle and n (optional) the number of circle. Circle 
+        # parameters=['circle', [x, y, z], (opt.) n] with x, y, z the center of the circle and n (optional) the number of circle. Circle
         # is defined by the drone position when starting the circle trajectory and the center. The drone will turn around this point.
         # parameters=['landing']
         # parameters=['returnhome']
@@ -559,8 +559,8 @@ if __name__ == '__main__':
         trajectory_object.TRAJECTORY_REQUESTED_SPEED = 0.4  # req. trajectory linear speed [m.s-1] (used when arg velocity in not specify in discretise_trajectory())
         trajectory_object.LANDING_SPEED = 0.3  # [m.s-1]
 
-        trajectory_object.MAX_LINEAR_ACC_XY = 4.0  # max. linear acceleration [m.s-2]
-        trajectory_object.MAX_LINEAR_ACC_Z = 3.0  # max. linear acceleration [m.s-2]
+        trajectory_object.MAX_LINEAR_ACC_XY = 6.0  # max. linear acceleration [m.s-2]
+        trajectory_object.MAX_LINEAR_ACC_Z = 5.0  # max. linear acceleration [m.s-2]
         ########################################################################
 
         ########################################################################
@@ -573,7 +573,7 @@ if __name__ == '__main__':
         # parameters=['takeoff', z] with z in meters
         # parameters=['hover', time] with time in seconds
         # parameters=['vector', [x, y, z]] with x, y, z the target position
-        # parameters=['circle', [x, y, z], (opt.) n] with x, y, z the center of the circle and n (optional) the number of circle. Circle 
+        # parameters=['circle', [x, y, z], (opt.) n] with x, y, z the center of the circle and n (optional) the number of circle. Circle
         # is defined by the drone position when starting the circle trajectory and the center. The drone will turn around this point.
         # parameters=['landing']
 
@@ -605,8 +605,6 @@ if __name__ == '__main__':
         # trajectory_object.discretise_trajectory(parameters=['circle', [.0, .5, 1.], 2], velocity=0.6, heading=['axes', [1, 0]])
         # trajectory_object.discretise_trajectory(parameters=['hover', 5.], heading=['still'])
         # trajectory_object.discretise_trajectory(parameters=['circle', [.0, .5, 1.], 2], velocity=0.6, heading=['auto', [1, 0]])
-        # trajectory_object.discretise_trajectory(parameters=['hover', 5.], heading=['still'])
-        # trajectory_object.discretise_trajectory(parameters=['circle', [.0, .5, 1.], 2], velocity=2.0, heading=['auto', [1, 0]])
         # trajectory_object.discretise_trajectory(parameters=['hover', 5.])
         # trajectory_object.discretise_trajectory(parameters=['landing'])
 
@@ -629,12 +627,12 @@ if __name__ == '__main__':
 
         # More complex trajectory example:
         trajectory_object.discretise_trajectory(parameters=['takeoff', 2.], velocity=1.0)
-        trajectory_object.discretise_trajectory(parameters=['hover', 2.])
-        trajectory_object.discretise_trajectory(parameters=['circle', [.0, 2., 2.], 2], velocity=1.5, heading=['auto'])
+        trajectory_object.discretise_trajectory(parameters=['hover', 3.])
+        trajectory_object.discretise_trajectory(parameters=['circle', [.0, 30., 2.], 2], velocity=10, heading=['auto'])
         trajectory_object.discretise_trajectory(parameters=['hover', 2.])
         trajectory_object.discretise_trajectory(parameters=['vector', [1., 2., 3.]], velocity=1.0)
         trajectory_object.discretise_trajectory(parameters=['hover', 2.])
-        trajectory_object.discretise_trajectory(parameters=['circle', [.0, 1., 3.], 2], velocity=1.5, heading=['auto'])
+        trajectory_object.discretise_trajectory(parameters=['circle', [.0, 1., 3.], 2], velocity=10, heading=['auto'])
         trajectory_object.discretise_trajectory(parameters=['hover', 2.])
         trajectory_object.discretise_trajectory(parameters=['returnhome'], velocity=0.4, heading=['axes', [1, 0]])
 
