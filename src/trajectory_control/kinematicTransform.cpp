@@ -6,19 +6,24 @@ KTParameters::KTParameters()
     mass = 0.287f;
     maxAngle = 45.0f;
     maxVerticalAcceleration = 4.0f;
+    compensateYaw = true;
+    Ky = 0.4f;
 }
 
-KTParameters::KTParameters(float Komp, float m, float angleMax, float maxVerticalAcc)
+KTParameters::KTParameters(float Komp, float m, float angleMax, float maxVerticalAcc, float Kyaw)
 {
     hoverCompensation = Komp;
     mass = m;
     maxAngle = angleMax;
     maxVerticalAcceleration = maxVerticalAcc;
+    Ky = Kyaw;
 }
 
 KTParameters::~KTParameters() {}
 
-KinematicTransform::KinematicTransform() {}
+KinematicTransform::KinematicTransform() {
+  yawTargetPrev = 0.0f;
+}
 KinematicTransform::~KinematicTransform() {}
 
 geometry_msgs::Vector3 KinematicTransform::process(geometry_msgs::Vector3 accelerations, geometry_msgs::Vector3 droneEulerAngles)
@@ -26,19 +31,22 @@ geometry_msgs::Vector3 KinematicTransform::process(geometry_msgs::Vector3 accele
     // outputCmd(x,y,z) <=> (roll, pitch, thrust)
     geometry_msgs::Vector3 outputCmd;
     float G = 9.81f;
-
+    float dt = 0.01f;
     float Rad2Deg = 180.0f / 3.14f;
+    float yawCompensation;
 
     float cosRoll = cos(droneEulerAngles.x);
     float cosPitch = cos(droneEulerAngles.y);
     float cosYaw = cos(droneEulerAngles.z);
     float sinYaw = sin(droneEulerAngles.z);
 
+    float yawRate = (droneEulerAngles.z - yawTargetPrev) / dt;
     float maxAngleRad = param.maxAngle / Rad2Deg;
 
     // float accelerationZ = KinematicTransform::clamp(accelerations.z, -param.maxVerticalAcceleration, param.maxVerticalAcceleration);
 
-    float thrust = param.mass * (accelerations.z + G) / (cosRoll * cosPitch);
+    //float thrust = param.mass * (accelerations.z + G) / (cosRoll * cosPitch);
+    float thrust = param.mass * sqrt( accelerations.x*accelerations.x + accelerations.y*accelerations.y + (accelerations.z + G)*(accelerations.z + G));
 
     // Clamp thrust to max value
     thrust = KinematicTransform::clamp(thrust, 0.0f, param.mass * (param.maxVerticalAcceleration + G));
@@ -57,7 +65,15 @@ geometry_msgs::Vector3 KinematicTransform::process(geometry_msgs::Vector3 accele
         // Yaw shouldn't change, so we keep the cos&sin as is, but we have x_reg = z_unity ; y_reg = -x_unity ; z_reg = y_unity
         // The clamp is to ensure the quantity inside the asin to be between [-1, 1]
         outputCmd.x = asin(KinematicTransform::clamp(param.mass * (accelerations.x * sinYaw - accelerations.y * cosYaw) / thrust, -1.0f, 1.0f));
-        outputCmd.y = asin(KinematicTransform::clamp(param.mass * (accelerations.x * cosYaw + accelerations.y * sinYaw) / thrust, -1.0f, 1.0f));
+        //outputCmd.y = asin(KinematicTransform::clamp(param.mass * (accelerations.x * cosYaw + accelerations.y * sinYaw) / thrust, -1.0f, 1.0f));
+        outputCmd.y = atan(param.mass * (accelerations.x * cosYaw + accelerations.y * sinYaw) / (accelerations.z + G));
+    }
+    if(param.compensateYaw)
+    {
+      yawCompensation = param.Ky * yawRate;
+      std::cout << "yawCompensation: " << yawCompensation << std::endl;
+      outputCmd.x = outputCmd.x*(1 - yawCompensation);
+      // outputCmd.y = outputCmd.y*(1+yawCompensation);
     }
 
     // Clamp roll and pitch to maximum angle
@@ -73,6 +89,7 @@ geometry_msgs::Vector3 KinematicTransform::process(geometry_msgs::Vector3 accele
     outputCmd.z = thrust * param.hoverCompensation / (param.mass * G);
     // outputCmd.z = param.hoverCompensation + accelerationZ / param.maxVerticalAcceleration;
 
+    yawTargetPrev = droneEulerAngles.z;
     return outputCmd;
 }
 
