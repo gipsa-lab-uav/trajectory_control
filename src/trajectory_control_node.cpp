@@ -294,6 +294,9 @@ int main(int argc, char *argv[])
   nh_private.param("hoverCompensation", kt.param.hoverCompensation, (float).3);
   nh_private.param("maxAngle", kt.param.maxAngle, (float)45.);
   nh_private.param("maxVerticalAcceleration", kt.param.maxVerticalAcceleration, (float)4.);
+  nh_private.param("Ky", kt.param.Ky, (float).4);
+  nh_private.param("compensateYaw", kt.param.compensateYaw, true);
+
 
   ROS_INFO_STREAM(
       "\n********* System Parameters (can be defined in launchfile) *********"
@@ -319,6 +322,8 @@ int main(int argc, char *argv[])
       << "\nhoverCompensation: " << kt.param.hoverCompensation
       << "\nmaxAngle: " << kt.param.maxAngle
       << "\nmaxVerticalAcceleration: " << kt.param.maxVerticalAcceleration
+      << "\ncompensateYaw: " << kt.param.compensateYaw
+      << "\nKy: " << kt.param.Ky
       << "\n*******************************************************************");
 
   ros::Rate rate = nh_private.param<int>("rate", ctrl_freq);
@@ -359,6 +364,9 @@ int main(int argc, char *argv[])
   measuredStates = getLastMeasuredStates();
   eulerAngles = getLastEulerAngles();
   position = measuredStates.getVectPos();
+
+  // Initialize yawPrev in KinematicTransform
+  kt.yawTargetPrev = eulerAngles.z;
 
   firstTrajectoryPoint.positions.push_back(position.x);
   firstTrajectoryPoint.positions.push_back(position.y);
@@ -472,7 +480,7 @@ int main(int argc, char *argv[])
 
     // Compute full state feedback control
     accelerationCmd = fsf.process(dt, estimatedStates, targetStates);
-
+    eulerAngles.z = yaw;
     // Generate (roll, pitch, thrust) command
     // For compatibility with different aircrafts or even terrestrial robots, this should be in its own node
     attitudeCmd = kt.process(accelerationCmd, eulerAngles);
