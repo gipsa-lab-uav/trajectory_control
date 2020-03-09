@@ -14,6 +14,8 @@
 		<arg name="world" value="$(arg world)" />
 	</include>
 
+	<param name="/use_sim_time" value="false" />
+
 	<node pkg="trajectory_control" type="trajectory_control_node" name="trajectory_control_node_sitl" output="screen" if="$(arg simulated_env)">
 		<param name="simulated_env" value="$(arg simulated_env)" />
 		<rosparam file="$(find trajectory_control)/config/$(arg drone_sim)_params.yaml" command="load" />
@@ -26,8 +28,8 @@
 
 	<node pkg="trajectory_control" type="trajectory_gen.py" name="trajectory_gen_node" if="$(arg trajectory_gen)"></node>
 
-	<node pkg="rosbag" type="record" name="rosbag_record_cam" args="record -o $(find trajectory_control)/rosbag/bag mavros/vision_pose/pose mavros/local_position/odom mavros/referenceStates mavros/estimatedStates mavros/setpoint_raw/attitude mavros/accelerationCmd mavros/JointTrajectory mavros/imu/data mavros/rc/out" if="$(arg rosbag_record)"></node>
-
 	<node pkg="trajectory_control" type="display.py" name="display_node" if="$(arg display)"></node>
+
+	<node pkg="rosbag" type="record" name="rosbag_record_cam" args="record -o $(find trajectory_control)/rosbag/bag mavros/vision_pose/pose mavros/local_position/odom mavros/referenceStates mavros/estimatedStates mavros/setpoint_raw/attitude mavros/accelerationCmd mavros/JointTrajectory mavros/imu/data mavros/rc/out mavros/wind_estimation mavros/battery" if="$(arg rosbag_record)"></node>
 
 </launch>
