@@ -15,17 +15,17 @@ fsf_y_S: 1.3
 fsf_z_P: 0.90
 fsf_z_S: 1.34
 
-use_StatesObserver: false
+use_StatesObserver: true
 
-se_x_Lpos: 0.9
-se_y_Lpos: 0.9
-se_z_Lpos: 0.9
-se_x_Lspeed: 4.1
-se_y_Lspeed: 4.1
-se_z_Lspeed: 4.1
-se_x_Lunc: 8.3
-se_y_Lunc: 8.3
-se_z_Lunc: 8.3
+se_x_Lpos: 1.03
+se_y_Lpos: 1.03
+se_z_Lpos: 1.03
+se_x_Lspeed: 10.7
+se_y_Lspeed: 10.7
+se_z_Lspeed: 10.7
+se_x_Lunc: 9.62
+se_y_Lunc: 9.62
+se_z_Lunc: 9.62
 
 se_x_Filter: 0.9
 se_y_Filter: 0.9
