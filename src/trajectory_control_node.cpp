@@ -80,33 +80,31 @@ void jointTrajectoryAcquireCallback(const trajectory_msgs::JointTrajectory &msg)
   }
 }
 
-void measuredStatesAcquireCallback(const nav_msgs::Odometry &msg)
+void measuredStatesAcquireCallback(const nav_msgs::OdometryConstPtr &msg)
 {
+  // Update measured position (expressed in inertial frame) and velocity (in body frame) from topic
+  geometry_msgs::Vector3 position, velocity, orientation;
+  tf2::Quaternion q;
+  tf2::Vector3 tf2_velocity;
+  tf2::Matrix3x3 m;
 
-  // Update measured position and velocity from topic
-  geometry_msgs::PoseWithCovariance pose = msg.pose;
-  geometry_msgs::TwistWithCovariance twist = msg.twist;
+  position.x = msg->pose.pose.position.x;
+  position.y = msg->pose.pose.position.y;
+  position.z = msg->pose.pose.position.z;
 
-  geometry_msgs::Vector3 position, velocity;
+  tf2::fromMsg(msg->pose.pose.orientation, q);
+  tf2::fromMsg(msg->twist.twist.linear, tf2_velocity);
 
-  position.x = pose.pose.position.x;
-  position.y = pose.pose.position.y;
-  position.z = pose.pose.position.z;
+  tf2_velocity = tf2::quatRotate(q, tf2_velocity);
 
-  velocity = twist.twist.linear;
+  velocity.x = tf2_velocity.x();
+  velocity.y = tf2_velocity.y();
+  velocity.z = tf2_velocity.z();
 
   lastMeasuredStates.replacePosAndSpeed(position, velocity);
 
-  // Update eulerAngles (euler) from topic (quaternion) -> convertion
-  geometry_msgs::Quaternion q_msg;
-  tf2::Quaternion q;
-  tf2::Matrix3x3 m;
-  geometry_msgs::Vector3 orientation;
-
-  q_msg = pose.pose.orientation;
-  tf2::convert(q_msg, q);                                //convert geometry_msgs::Quaternion to tf2::Quaternion
-  m.setRotation(q);                                      //compute rotation matrix from quaternion
-  m.getRPY(orientation.x, orientation.y, orientation.z); //get euler angles
+  m.setRotation(q);
+  m.getRPY(orientation.x, orientation.y, orientation.z);
 
   lastEulerAngles = orientation;
 
@@ -297,7 +295,6 @@ int main(int argc, char *argv[])
   nh_private.param("Ky", kt.param.Ky, (float).4);
   nh_private.param("compensateYaw", kt.param.compensateYaw, true);
 
-
   ROS_INFO_STREAM(
       "\n********* System Parameters (can be defined in launchfile) *********"
       << "\nsimulated_env: " << simulated_env
@@ -411,7 +408,7 @@ int main(int argc, char *argv[])
       if (droneState.mode != "OFFBOARD" && (ros::Time::now() - last_request > ros::Duration(5.0)))
       {
         if (set_mode_client.call(offb_set_mode) && offb_set_mode.response.mode_sent)
-          ROS_INFO("offb_node: Offboard enabled");
+          ROS_INFO("OFFBOARD ENABLED");
         last_request = ros::Time::now();
       }
       else
@@ -419,7 +416,7 @@ int main(int argc, char *argv[])
         if (!droneState.armed && (ros::Time::now() - last_request > ros::Duration(5.0)))
         {
           if (arming_client.call(arm_cmd) && arm_cmd.response.success)
-            ROS_INFO("offb_node: Vehicle armed");
+            ROS_INFO("VEHICLE ARMED");
           last_request = ros::Time::now();
         }
       }
@@ -442,8 +439,9 @@ int main(int argc, char *argv[])
     measuredStates = getLastMeasuredStates();
     eulerAngles = getLastEulerAngles();
 
-    // Get the estimated state from measures and previous estimation & command
+    // Get the estimated state from measurements and previous estimation & command
     predictedStates = se.process(dt, measuredStates.getVectPos(), predictedStates, accelerationCmd);
+    // predictedStates = se.process2(dt, measuredStates.getVectPos(), measuredStates.getVectPos(), predictedStates, accelerationCmd);
 
     if (!useStatesObserver)
     {
