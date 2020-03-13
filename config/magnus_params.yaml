@@ -35,3 +35,5 @@ mass: 1.0
 hoverCompensation: 0.4
 maxAngle: 45.0
 maxVerticalAcceleration: 4.0
+compensateYaw: true
+Ky: 0.0

@@ -7,15 +7,15 @@ SEParameters::SEParameters()
 	Lunc = 9.62f;
 	filterCoeff = 0.95f;
 
-	LposPos = 0.01f;
-	LposSpeed = 0.0076f;
-	LposUnc = -0.02f;
-	LspeedPos = 0.01f;
-	LspeedSpeed = 0.25f;
-	LspeedUnc = 2.8f;
+	LposPos = 0.92f;
+	LposSpeed = 0.02f;
+	LposUnc = 0.11f;
+	LspeedPos = 0.006f;
+	LspeedSpeed = 0.69f;
+	LspeedUnc = 4.2f;
 
 	overSamplingFactor = 1;
-	maxUncertainties = 10.0f;
+	maxUncertainties = 6.0f;
 
 	manualReset = false;
 }
@@ -72,7 +72,7 @@ SEParameters::SEParameters(float lpospos, float lposspeed, float lposunc, float 
 	LspeedUnc = lspeedunc;
 
 	overSamplingFactor = 1;
-	maxUncertainties = 10.0f;
+	maxUncertainties = 6.0f;
 
 	manualReset = false;
 }
@@ -179,31 +179,43 @@ DS1D SE1D::process2(float dt, float measuredPos, float measuredSpeed, DS1D predi
 	float Cspeed = 1.0f;
 	//float Cunc = 0f;
 	/*End model parameters*/
+	float positionError = measuredPos - Cpos * predicted.position;
+	float speedErrror = measuredSpeed - Cspeed * predicted.speed;
 
 	//A*Xest
 	newStates.position = Apos_pos * predicted.position + Apos_speed * predicted.speed;		 // + Apos_unc*predicted.uncertainties;
 	newStates.speed = Aspeed_speed * predicted.speed + Aspeed_unc * predicted.uncertainties; // + Aspeed_pos*predicted.position;
-	newStates.uncertainties = Aunc_unc * predicted.uncertainties;							 // + Aunc_pos*predicted.position + Aunc_speed*predicted.speed;
 
 	//+B*U
 	newStates.speed += Bacc * cmd;
 
 	//+L(y - C*Xest)
-	newStates.position += param.LposPos * (measuredPos - Cpos * predicted.position);
-	newStates.speed += param.LposSpeed * (measuredPos - Cpos * predicted.position);
-	newStates.uncertainties += param.LposUnc * (measuredPos - Cpos * predicted.position);
+	newStates.position += param.LposPos * positionError;
+	newStates.speed += param.LposSpeed * positionError;
 
-	newStates.position += param.LspeedPos * (measuredSpeed - Cspeed * predicted.speed);
-	newStates.speed += param.LspeedSpeed * (measuredSpeed - Cspeed * predicted.speed);
-	newStates.uncertainties += param.LspeedUnc * (measuredSpeed - Cspeed * predicted.speed);
+	newStates.position += param.LspeedPos * speedErrror;
+	newStates.speed += param.LspeedSpeed * speedErrror;
+	//Only update Uncertainties if speed & pos are already decent
+	if(positionError < 0.05f && speedErrror < 0.05f) {
+		newStates.uncertainties = Aunc_unc * predicted.uncertainties;// + Aunc_pos*predicted.position + Aunc_speed*predicted.speed;
+		newStates.uncertainties += param.LposUnc * positionError;
+		newStates.uncertainties += param.LspeedUnc * speedErrror;
+	}
+	else newStates.uncertainties = Aunc_unc * predicted.uncertainties;
 
 	//Clamp the uncertainties
-	newStates.uncertainties = std::min(newStates.uncertainties, param.maxUncertainties);
-
+	if (newStates.uncertainties > 0.0f)
+	{
+		newStates.uncertainties = std::min(newStates.uncertainties, param.maxUncertainties);
+	}
+	else
+	{
+		newStates.uncertainties = std::max(newStates.uncertainties, -param.maxUncertainties);
+	}
 	if (reset == true)
 	{
 		newStates.position = measuredPos;
-		newStates.speed = 0.0f;
+		newStates.speed = measuredSpeed;
 		newStates.uncertainties = 0.0f;
 		reset = false;
 	}
@@ -228,7 +240,7 @@ void SE1D::updateParam(SEParameters seParam)
 
 StatesEstimator::StatesEstimator()
 {
-	z.param.filterCoeff = 0.15f;
+	z.param.filterCoeff = 0.0f;
 	cmdApplied.x = 0.0f;
 	cmdApplied.y = 0.0f;
 	cmdApplied.z = 0.0f;

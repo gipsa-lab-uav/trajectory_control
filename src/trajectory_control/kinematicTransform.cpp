@@ -71,7 +71,7 @@ geometry_msgs::Vector3 KinematicTransform::process(geometry_msgs::Vector3 accele
     if(param.compensateYaw)
     {
       yawCompensation = param.Ky * yawRate;
-      std::cout << "yawCompensation: " << yawCompensation << std::endl;
+      //std::cout << "yawCompensation: " << yawCompensation << std::endl;
       outputCmd.x = outputCmd.x*(1 - yawCompensation);
       // outputCmd.y = outputCmd.y*(1+yawCompensation);
     }

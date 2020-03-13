@@ -227,8 +227,9 @@ int main(int argc, char *argv[])
   // Define publishers
   ros::Publisher attitudeCmd_pub = nh.advertise<mavros_msgs::AttitudeTarget>("mavros/setpoint_raw/attitude", 10);
   ros::Publisher local_pos_pub = nh.advertise<geometry_msgs::PoseStamped>("mavros/setpoint_position/local", 10);
-  ros::Publisher estimatedStates_pub = nh.advertise<trajectory_msgs::JointTrajectoryPoint>("mavros/estimatedStates", 10);
-  ros::Publisher referenceStates_pub = nh.advertise<trajectory_msgs::JointTrajectoryPoint>("mavros/referenceStates", 10);
+  ros::Publisher estimatedStates_pub = nh.advertise<trajectory_msgs::JointTrajectoryPoint>("mavros/statesEstimated", 10);
+  ros::Publisher referenceStates_pub = nh.advertise<trajectory_msgs::JointTrajectoryPoint>("mavros/statesReference", 10);
+  ros::Publisher ekfStates_pub = nh.advertise<trajectory_msgs::JointTrajectoryPoint>("mavros/statesEKF", 10);
   ros::Publisher accelerationCmd_pub = nh.advertise<geometry_msgs::Vector3>("mavros/accelerationCmd", 10);
 
   // Define service client
@@ -241,13 +242,14 @@ int main(int argc, char *argv[])
   KinematicTransform kt;
   StatesEstimator se;
 
-  DroneStates predictedStates, targetStates, targetStatesNext, measuredStates, estimatedStates;
+  DroneStates predictedStates, targetStates, targetStatesNext, measuredStates, estimatedStates, previousMeasuredStates;
   trajectory_msgs::JointTrajectoryPoint trajectoryPoint, trajectoryPointNext;
-  trajectory_msgs::JointTrajectoryPoint estimatedStatesTrajectoryPoint, targetStatesTrajectoryPoint;
+  trajectory_msgs::JointTrajectoryPoint estimatedStatesTrajectoryPoint, targetStatesTrajectoryPoint, ekfStatesTrajectoryPoint;
   geometry_msgs::Vector3 eulerAngles, accelerationCmd, attitudeCmd, position;
   mavros_msgs::AttitudeTarget cmd;
   ros::Time time, last_request;
   float yaw, dt, time2;
+  float filterPercent = 0.0f;
   int ctrl_freq;
   bool simulated_env, useStatesObserver, reset;
 
@@ -437,11 +439,25 @@ int main(int argc, char *argv[])
 
     // Get the last measured state
     measuredStates = getLastMeasuredStates();
+    // If the measure didn't change cause EKF is slow, then use a filtered predicted states instead
+    if(measuredStates.x.position == previousMeasuredStates.x.position)
+    {
+      filterPercent += 0.75f;
+      filterPercent = std::max(filterPercent, 1.0f);
+      measuredStates.filterStates(predictedStates,filterPercent);
+    }
+    else
+    {
+      filterPercent = 0.75f;
+      measuredStates.filterStates(predictedStates,filterPercent); // For smooth behavior
+      filterPercent = 0.0f;
+      previousMeasuredStates.fillStates(measuredStates);
+    }
     eulerAngles = getLastEulerAngles();
 
     // Get the estimated state from measurements and previous estimation & command
-    predictedStates = se.process(dt, measuredStates.getVectPos(), predictedStates, accelerationCmd);
-    // predictedStates = se.process2(dt, measuredStates.getVectPos(), measuredStates.getVectPos(), predictedStates, accelerationCmd);
+    predictedStates.fillStates(se.process(dt, measuredStates.getVectPos(), predictedStates, accelerationCmd));
+    //predictedStates = se.process2(dt, measuredStates.getVectPos(), measuredStates.getVectSpeed(), predictedStates, accelerationCmd);
 
     if (!useStatesObserver)
     {
@@ -503,6 +519,7 @@ int main(int argc, char *argv[])
     /***************************Publish Extra Topics***************************/
     estimatedStatesTrajectoryPoint = getJointTrajectoryPoint(estimatedStates);
     targetStatesTrajectoryPoint = getJointTrajectoryPoint(targetStates);
+    ekfStatesTrajectoryPoint = getJointTrajectoryPoint(measuredStates);
 
     estimatedStatesTrajectoryPoint.accelerations[0] = estimatedStates.x.uncertainties;
     estimatedStatesTrajectoryPoint.accelerations[1] = estimatedStates.y.uncertainties;
@@ -510,6 +527,7 @@ int main(int argc, char *argv[])
 
     estimatedStates_pub.publish(estimatedStatesTrajectoryPoint);
     referenceStates_pub.publish(targetStatesTrajectoryPoint);
+    ekfStates_pub.publish(ekfStatesTrajectoryPoint);
     accelerationCmd_pub.publish(accelerationCmd);
     /**************************************************************************/
 

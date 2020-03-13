@@ -1,7 +1,7 @@
 <launch>
 	<!-- Possible values: simu, draco_r, magnus -->
 	<arg name="drone_sim" default="simu" />
-	<arg name="drone_real" default="munchkin" />
+	<arg name="drone_real" default="magnus" />
 
 	<arg name="simulated_env" default="true" />
 	<arg name="trajectory_gen" default="true" />
@@ -30,6 +30,6 @@
 
 	<node pkg="trajectory_control" type="display.py" name="display_node" if="$(arg display)"></node>
 
-	<node pkg="rosbag" type="record" name="rosbag_record_cam" args="record -o $(find trajectory_control)/rosbag/bag mavros/vision_pose/pose mavros/local_position/odom mavros/referenceStates mavros/estimatedStates mavros/setpoint_raw/attitude mavros/accelerationCmd mavros/JointTrajectory mavros/imu/data mavros/rc/out mavros/wind_estimation mavros/battery" if="$(arg rosbag_record)"></node>
+	<node pkg="rosbag" type="record" name="rosbag_record_cam" args="record -o $(find trajectory_control)/rosbag/bag mavros/vision_pose/pose mavros/local_position/odom mavros/statesReference mavros/statesEstimated mavros/statesEKF mavros/setpoint_raw/attitude mavros/accelerationCmd mavros/JointTrajectory mavros/imu/data mavros/rc/out mavros/wind_estimation mavros/battery" if="$(arg rosbag_record)"></node>
 
 </launch>

@@ -8,12 +8,14 @@
 ###############################################################################
 ctrl_freq: 100
 
-fsf_x_P: 0.3
-fsf_x_S: 2.5
-fsf_y_P: 0.3
-fsf_y_S: 2.5
-fsf_z_P: 0.3
-fsf_z_S: 2.5
+fsf_x_P: 0.88
+fsf_x_S: 1.3
+fsf_y_P: 0.88
+fsf_y_S: 1.3
+#fsf_z_P: 0.90
+#fsf_z_S: 1.34
+fsf_z_P: 0.94
+fsf_z_S: 3.3
 
 use_StatesObserver: true
 
@@ -27,6 +29,16 @@ se_x_Lunc: 6.0
 se_y_Lunc: 6.0
 se_z_Lunc: 6.0
 
+#se_x_Lpos: 1.03
+#se_y_Lpos: 1.03
+#se_z_Lpos: 1.03
+#se_x_Lspeed: 10.7
+#se_y_Lspeed: 10.7
+#se_z_Lspeed: 10.7
+#se_x_Lunc: 9.62
+#se_y_Lunc: 9.62
+#se_z_Lunc: 9.62
+
 se_x_Filter: 0.9
 se_y_Filter: 0.9
 se_z_Filter: 0.1
@@ -35,5 +47,5 @@ mass: 1.5
 hoverCompensation: 0.45
 maxAngle: 45.0
 maxVerticalAcceleration: 4.0
-compensateYaw: false
+compensateYaw: true
 Ky: 0.4
