@@ -13,6 +13,7 @@ class SEParameters
     //Observer Gains
 	float Lpos;// = 1.03f;
 	float Lspeed;// = 10.7f;
+  float Lacc;
 	float Lunc;// = 9.62f;
 
     //Observer with speed measurement Gains
@@ -55,6 +56,7 @@ class SE1D
 	/// <param name="target">target drone states.</param>
 	DS1D process (float dt, float measuredPos, DS1D predicted, float cmd);
 	DS1D process2 (float dt, float measuredPos, float measuredSpeed, DS1D predicted, float cmd);
+  DS1D processAcceleration(float dt, float measuredPos, float measuredAcc, DS1D predicted, float cmd);
 	void resetEstimation();
 	void updateParam(SEParameters seParam);
 
@@ -68,11 +70,12 @@ class StatesEstimator
     public:
 	SE1D x,y,z;
 	geometry_msgs::Vector3 cmdApplied, cmdAppliedPrev;
-
 	DroneStates process(float dt, geometry_msgs::Vector3 dronePosition, DroneStates predicted, geometry_msgs::Vector3 cmd);
 	DroneStates process2(float dt, geometry_msgs::Vector3 dronePosition, geometry_msgs::Vector3 droneSpeed, DroneStates predicted, geometry_msgs::Vector3 cmd);
+  DroneStates processAcceleration(float dt, DroneStates measured, DroneStates predicted, geometry_msgs::Vector3 cmd);
 	void resetEstimations();
-	geometry_msgs::Vector3 firstOrderFilterCmd(geometry_msgs::Vector3 cmdT_1,geometry_msgs::Vector3 cmdCurrent);
+  geometry_msgs::Vector3 firstOrderFilterCmd(geometry_msgs::Vector3 cmdT_1,geometry_msgs::Vector3 cmdCurrent);
+  geometry_msgs::Vector3 computeAccelerations(geometry_msgs::Vector3 droneEulerAngles, float appliedThrust);
 	StatesEstimator();
 	~StatesEstimator();
 };

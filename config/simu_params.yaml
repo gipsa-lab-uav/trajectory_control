@@ -19,15 +19,28 @@ fsf_z_S: 3.3
 
 use_StatesObserver: true
 
-se_x_Lpos: 0.67
-se_y_Lpos: 0.67
-se_z_Lpos: 0.67
-se_x_Lspeed: 3.4
-se_y_Lspeed: 3.4
-se_z_Lspeed: 3.4
-se_x_Lunc: 6.0
-se_y_Lunc: 6.0
-se_z_Lunc: 6.0
+se_x_Lpos: 0.75
+se_y_Lpos: 0.75
+se_z_Lpos: 0.75
+se_x_Lspeed: 2.4
+se_y_Lspeed: 2.4
+se_z_Lspeed: 2.4
+se_x_Lacc: 0.92
+se_y_Lacc: 0.92
+se_z_Lacc: 0.92
+se_x_Lunc: 3.0
+se_y_Lunc: 3.0
+se_z_Lunc: 3.0
+
+#se_x_Lpos: 0.67
+#se_y_Lpos: 0.67
+#se_z_Lpos: 0.67
+#se_x_Lspeed: 3.4
+#se_y_Lspeed: 3.4
+#se_z_Lspeed: 3.4
+#se_x_Lunc: 6.0
+#se_y_Lunc: 6.0
+#se_z_Lunc: 6.0
 
 #se_x_Lpos: 1.03
 #se_y_Lpos: 1.03

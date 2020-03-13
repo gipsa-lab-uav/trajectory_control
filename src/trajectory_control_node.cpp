@@ -231,6 +231,7 @@ int main(int argc, char *argv[])
   ros::Publisher referenceStates_pub = nh.advertise<trajectory_msgs::JointTrajectoryPoint>("mavros/statesReference", 10);
   ros::Publisher ekfStates_pub = nh.advertise<trajectory_msgs::JointTrajectoryPoint>("mavros/statesEKF", 10);
   ros::Publisher accelerationCmd_pub = nh.advertise<geometry_msgs::Vector3>("mavros/accelerationCmd", 10);
+  ros::Publisher uncertainties_pub = nh.advertise<geometry_msgs::Vector3>("mavros/statesEstimatedUncertainties", 10);
 
   // Define service client
   ros::ServiceClient arming_client = nh.serviceClient<mavros_msgs::CommandBool>("mavros/cmd/arming");
@@ -280,6 +281,9 @@ int main(int argc, char *argv[])
   nh_private.param("se_x_Lspeed", se.x.param.Lspeed, (float)10.7);
   nh_private.param("se_y_Lspeed", se.y.param.Lspeed, (float)10.7);
   nh_private.param("se_z_Lspeed", se.z.param.Lspeed, (float)10.7);
+  nh_private.param("se_x_Lacc", se.x.param.Lacc, (float)9.62);
+  nh_private.param("se_y_Lacc", se.y.param.Lacc, (float)9.62);
+  nh_private.param("se_z_Lacc", se.z.param.Lacc, (float)9.62);
   nh_private.param("se_x_Lunc", se.x.param.Lunc, (float)9.62);
   nh_private.param("se_y_Lunc", se.y.param.Lunc, (float)9.62);
   nh_private.param("se_z_Lunc", se.z.param.Lunc, (float)9.62);
@@ -438,7 +442,9 @@ int main(int argc, char *argv[])
       reset = true;
 
     // Get the last measured state
+    eulerAngles = getLastEulerAngles();
     measuredStates = getLastMeasuredStates();
+
     // If the measure didn't change cause EKF is slow, then use a filtered predicted states instead
     if(measuredStates.x.position == previousMeasuredStates.x.position)
     {
@@ -453,10 +459,13 @@ int main(int argc, char *argv[])
       filterPercent = 0.0f;
       previousMeasuredStates.fillStates(measuredStates);
     }
-    eulerAngles = getLastEulerAngles();
+
+    // Compute the acceleration from angle & thrust measurements
+    measuredStates.replaceAcc(se.computeAccelerations(eulerAngles, cmd.thrust));
 
     // Get the estimated state from measurements and previous estimation & command
-    predictedStates.fillStates(se.process(dt, measuredStates.getVectPos(), predictedStates, accelerationCmd));
+    //predictedStates.fillStates(se.process(dt, measuredStates.getVectPos(), predictedStates, accelerationCmd));
+    predictedStates.fillStates(se.processAcceleration(dt, measuredStates, predictedStates, accelerationCmd));
     //predictedStates = se.process2(dt, measuredStates.getVectPos(), measuredStates.getVectSpeed(), predictedStates, accelerationCmd);
 
     if (!useStatesObserver)
@@ -521,14 +530,15 @@ int main(int argc, char *argv[])
     targetStatesTrajectoryPoint = getJointTrajectoryPoint(targetStates);
     ekfStatesTrajectoryPoint = getJointTrajectoryPoint(measuredStates);
 
-    estimatedStatesTrajectoryPoint.accelerations[0] = estimatedStates.x.uncertainties;
-    estimatedStatesTrajectoryPoint.accelerations[1] = estimatedStates.y.uncertainties;
-    estimatedStatesTrajectoryPoint.accelerations[2] = estimatedStates.z.uncertainties;
+    estimatedStatesTrajectoryPoint.accelerations[0] = estimatedStates.x.acceleration;
+    estimatedStatesTrajectoryPoint.accelerations[1] = estimatedStates.y.acceleration;
+    estimatedStatesTrajectoryPoint.accelerations[2] = estimatedStates.z.acceleration;
 
     estimatedStates_pub.publish(estimatedStatesTrajectoryPoint);
     referenceStates_pub.publish(targetStatesTrajectoryPoint);
     ekfStates_pub.publish(ekfStatesTrajectoryPoint);
     accelerationCmd_pub.publish(accelerationCmd);
+    uncertainties_pub.publish(estimatedStates.getVectUncertainties());
     /**************************************************************************/
 
     /***************************Publish Pose Command***************************/
