@@ -37,47 +37,18 @@ mavros_msgs::State droneState;
 
 bool isMeasuredStatesFirstCallback = false;
 bool isjointTrajectoryFirstCallback = false;
+
 /******************************************************************************/
 
 /**********************************Functions***********************************/
 void jointTrajectoryAcquireCallback(const trajectory_msgs::JointTrajectory &msg)
 {
-  int i = 0;
-  trajectory_msgs::JointTrajectoryPoint point = msg.points[0];
-
-  // Set flag for first callback
-  if (!isjointTrajectoryFirstCallback)
-    isjointTrajectoryFirstCallback = true;
-
-  // Check if this is a new trajectory
-  if (msg.header.seq == 1)
-  {
-    trajectoryID = msg.header.frame_id;
-    isjointTrajectoryFirstCallback = false;
-    jointTrajectory.points.erase(jointTrajectory.points.begin(), jointTrajectory.points.end());
-    ROS_INFO("*** New trajectory received - reset estimators and onboard trajectory time ***");
-  }
-
-  // Return if the trajectory ID received does not correspond with the current trajectory ID
-  if (trajectoryID != msg.header.frame_id)
-    return;
-
-  // Find the index in order to update the jointTrajectory.points from the topic
-  for (const auto &point_saved : jointTrajectory.points)
-  {
-    if (point.time_from_start == point_saved.time_from_start)
-      break;
-    i += 1;
-  }
-
-  // Erase the values that are going to be updated
-  jointTrajectory.points.erase(jointTrajectory.points.begin() + i, jointTrajectory.points.end());
-
-  // Push the new points in jointTrajectory.points
-  for (const auto &point_new : msg.points)
-  {
-    jointTrajectory.points.push_back(point_new);
-  }
+	if(msg.header.stamp > jointTrajectory.header.stamp+ros::Duration(jointTrajectory.points.back().time_from_start))
+	{
+		isjointTrajectoryFirstCallback = true;
+	}
+	
+	jointTrajectory=msg;
 }
 
 void measuredStatesAcquireCallback(const nav_msgs::Odometry &msg)
@@ -123,11 +94,13 @@ void droneStateAcquireCallback(const mavros_msgs::State::ConstPtr &msg)
 trajectory_msgs::JointTrajectoryPoint getNextTrajectoryPoint(float time)
 {
   int i = 0;
-
+	
+	double traj_time = jointTrajectory.header.stamp.toSec();
+	
   // Find the next trajectory point with respect to time
   for (const auto &point : jointTrajectory.points)
   {
-    if (point.time_from_start.toSec() > time)
+    if (traj_time + point.time_from_start.toSec() > time /*+0.5*/)
       break;
     i += 1;
   }
@@ -360,6 +333,8 @@ int main(int argc, char *argv[])
   eulerAngles = getLastEulerAngles();
   position = measuredStates.getVectPos();
 
+	jointTrajectory.header.stamp = ros::Time(0);
+	
   firstTrajectoryPoint.positions.push_back(position.x);
   firstTrajectoryPoint.positions.push_back(position.y);
   firstTrajectoryPoint.positions.push_back(position.z - .01f);
@@ -373,7 +348,7 @@ int main(int argc, char *argv[])
   firstTrajectoryPoint.time_from_start = ros::Duration(.0);
 
   jointTrajectory.points.push_back(firstTrajectoryPoint);
-
+	
   // Set OFFBOARD mode request
   mavros_msgs::SetMode offb_set_mode;
   offb_set_mode.request.custom_mode = "OFFBOARD";
@@ -450,7 +425,7 @@ int main(int argc, char *argv[])
     }
 
     // Get the next trajectory point and update the target state
-    trajectoryPoint = getNextTrajectoryPoint(time2);
+    trajectoryPoint = getNextTrajectoryPoint(time.toSec());
     targetStates = getState(trajectoryPoint);
 
     // Get the yaw from the trajectoryPoint
