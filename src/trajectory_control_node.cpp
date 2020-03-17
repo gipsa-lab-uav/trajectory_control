@@ -241,12 +241,13 @@ int main(int argc, char *argv[])
   /************************Class & Variable Declarations***********************/
   FullStatesFeedback fsf;
   KinematicTransform kt;
-  StatesEstimator se;
+  StatesEstimator se, seAcc;
 
-  DroneStates predictedStates, targetStates, targetStatesNext, measuredStates, estimatedStates, previousMeasuredStates;
+  DroneStates predictedStates, predictedStatesAcc, targetStates, targetStatesNext, measuredStates, estimatedStates, previousMeasuredStates;
   trajectory_msgs::JointTrajectoryPoint trajectoryPoint, trajectoryPointNext;
   trajectory_msgs::JointTrajectoryPoint estimatedStatesTrajectoryPoint, targetStatesTrajectoryPoint, ekfStatesTrajectoryPoint;
-  geometry_msgs::Vector3 eulerAngles, accelerationCmd, attitudeCmd, position;
+  geometry_msgs::Vector3 eulerAngles, accelerationCmd, attitudeCmd, position, emptyCmd;
+  emptyCmd.x = 0.0; emptyCmd.y = 0.0; emptyCmd.z = 0.0;
   mavros_msgs::AttitudeTarget cmd;
   ros::Time time, last_request;
   float yaw, dt, time2;
@@ -265,12 +266,22 @@ int main(int argc, char *argv[])
   nh_private.param("ctrl_freq", ctrl_freq, 100);
 
   // Full States Feedback Gains
+  // nh_private.param("fsf_x_P", fsf.x.param.Kp, (float)1.0);
+  // nh_private.param("fsf_x_S", fsf.x.param.Ks, (float)1.7);
+  // nh_private.param("fsf_y_P", fsf.y.param.Kp, (float)1.0);
+  // nh_private.param("fsf_y_S", fsf.y.param.Ks, (float)1.7);
+  // nh_private.param("fsf_z_P", fsf.z.param.Kp, (float)1.56);
+  // nh_private.param("fsf_z_S", fsf.z.param.Ks, (float)2.4);
+
   nh_private.param("fsf_x_P", fsf.x.param.Kp, (float)1.0);
   nh_private.param("fsf_x_S", fsf.x.param.Ks, (float)1.7);
+  nh_private.param("fsf_x_A", fsf.x.param.Ka, (float)1.7);
   nh_private.param("fsf_y_P", fsf.y.param.Kp, (float)1.0);
   nh_private.param("fsf_y_S", fsf.y.param.Ks, (float)1.7);
+  nh_private.param("fsf_y_A", fsf.y.param.Ka, (float)1.7);
   nh_private.param("fsf_z_P", fsf.z.param.Kp, (float)1.56);
   nh_private.param("fsf_z_S", fsf.z.param.Ks, (float)2.4);
+  nh_private.param("fsf_z_A", fsf.z.param.Ka, (float)2.4);
 
   // States Observer Gains
   nh_private.param("use_StatesObserver", useStatesObserver, true);
@@ -292,10 +303,14 @@ int main(int argc, char *argv[])
   nh_private.param("se_x_Filter", se.x.param.filterCoeff, (float).9);
   nh_private.param("se_y_Filter", se.y.param.filterCoeff, (float).9);
   nh_private.param("se_z_Filter", se.z.param.filterCoeff, (float).15);
+  seAcc.x.param = se.x.param;
+  seAcc.y.param = se.y.param;
+  seAcc.z.param = se.z.param;
 
   // Kinematic Transform Parameters (= physical parameters)
   nh_private.param("mass", kt.param.mass, (float)1.);
   nh_private.param("hoverCompensation", kt.param.hoverCompensation, (float).3);
+  se.hoverCompensation = kt.param.hoverCompensation;
   nh_private.param("maxAngle", kt.param.maxAngle, (float)45.);
   nh_private.param("maxVerticalAcceleration", kt.param.maxVerticalAcceleration, (float)4.);
   nh_private.param("Ky", kt.param.Ky, (float).4);
@@ -461,12 +476,18 @@ int main(int argc, char *argv[])
     }
 
     // Compute the acceleration from angle & thrust measurements
-    measuredStates.replaceAcc(se.computeAccelerations(eulerAngles, cmd.thrust));
+    //measuredStates.replaceAcc(se.computeAccelerations(eulerAngles, cmd.thrust));
+    //measuredStates.replaceAcc(accelerationCmd);
 
     // Get the estimated state from measurements and previous estimation & command
-    //predictedStates.fillStates(se.process(dt, measuredStates.getVectPos(), predictedStates, accelerationCmd));
-    predictedStates.fillStates(se.processAcceleration(dt, measuredStates, predictedStates, accelerationCmd));
+    predictedStates.fillStates(se.process(dt, measuredStates.getVectPos(), predictedStates, accelerationCmd));
+    //predictedStates.fillStates(se.processAcceleration(dt, measuredStates, predictedStates, accelerationCmd));
     //predictedStates = se.process2(dt, measuredStates.getVectPos(), measuredStates.getVectSpeed(), predictedStates, accelerationCmd);
+
+    // Get the acceleration state from another derivator estimator
+    predictedStatesAcc.fillStates(seAcc.process(dt, predictedStates.getVectSpeed(), predictedStatesAcc, emptyCmd));
+
+    predictedStates.replaceAcc(predictedStatesAcc.getVectSpeed());
 
     if (!useStatesObserver)
     {
@@ -480,10 +501,11 @@ int main(int argc, char *argv[])
       estimatedStates = predictedStates;
     }
 
+
+
     // Get the next trajectory point and update the target state
     trajectoryPoint = getNextTrajectoryPoint(time2);
     targetStates = getState(trajectoryPoint);
-
     // Get the yaw from the trajectoryPoint
     yaw = trajectoryPoint.positions[3];
 
@@ -496,13 +518,16 @@ int main(int argc, char *argv[])
     if (reset)
     {
       se.resetEstimations();
+      seAcc.resetEstimations();
       fsf.resetIntegrators();
       time2 = .0;
       reset = false;
     }
 
     // Compute full state feedback control
-    accelerationCmd = fsf.process(dt, estimatedStates, targetStates);
+    //accelerationCmd = fsf.process(dt, estimatedStates, targetStates);
+    accelerationCmd = fsf.processAcc(dt, estimatedStates, targetStates);
+
     eulerAngles.z = yaw;
     // Generate (roll, pitch, thrust) command
     // For compatibility with different aircrafts or even terrestrial robots, this should be in its own node

@@ -69,13 +69,14 @@ class StatesEstimator
 {
     public:
 	SE1D x,y,z;
+  float hoverCompensation;
 	geometry_msgs::Vector3 cmdApplied, cmdAppliedPrev;
 	DroneStates process(float dt, geometry_msgs::Vector3 dronePosition, DroneStates predicted, geometry_msgs::Vector3 cmd);
 	DroneStates process2(float dt, geometry_msgs::Vector3 dronePosition, geometry_msgs::Vector3 droneSpeed, DroneStates predicted, geometry_msgs::Vector3 cmd);
   DroneStates processAcceleration(float dt, DroneStates measured, DroneStates predicted, geometry_msgs::Vector3 cmd);
 	void resetEstimations();
   geometry_msgs::Vector3 firstOrderFilterCmd(geometry_msgs::Vector3 cmdT_1,geometry_msgs::Vector3 cmdCurrent);
-  geometry_msgs::Vector3 computeAccelerations(geometry_msgs::Vector3 droneEulerAngles, float appliedThrust);
+  geometry_msgs::Vector3 computeAccelerations(geometry_msgs::Vector3 droneEulerAngles, float cmdThrust);
 	StatesEstimator();
 	~StatesEstimator();
 };
