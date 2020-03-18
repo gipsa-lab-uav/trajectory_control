@@ -43,12 +43,12 @@ bool isjointTrajectoryFirstCallback = false;
 /**********************************Functions***********************************/
 void jointTrajectoryAcquireCallback(const trajectory_msgs::JointTrajectory &msg)
 {
-	if(msg.header.stamp > jointTrajectory.header.stamp+ros::Duration(jointTrajectory.points.back().time_from_start))
+	if (msg.header.stamp > jointTrajectory.header.stamp + ros::Duration(jointTrajectory.points.back().time_from_start))
 	{
 		isjointTrajectoryFirstCallback = true;
 	}
 	
-	jointTrajectory=msg;
+	jointTrajectory = msg;
 }
 
 void measuredStatesAcquireCallback(const nav_msgs::Odometry &msg)
@@ -94,20 +94,17 @@ void droneStateAcquireCallback(const mavros_msgs::State::ConstPtr &msg)
 trajectory_msgs::JointTrajectoryPoint getNextTrajectoryPoint(float time)
 {
   int i = 0;
-	
-	double traj_time = jointTrajectory.header.stamp.toSec();
+	double trajectoryTime = jointTrajectory.header.stamp.toSec();
 	
   // Find the next trajectory point with respect to time
   for (const auto &point : jointTrajectory.points)
   {
-    if (traj_time + point.time_from_start.toSec() > time /*+0.5*/)
-      break;
+    if (trajectoryTime + point.time_from_start.toSec() > time) break;
     i += 1;
   }
 
   // Erase the outdated values
-  if (i > 0)
-    jointTrajectory.points.erase(jointTrajectory.points.begin(), jointTrajectory.points.begin() + i - 1);
+  if (i > 0) jointTrajectory.points.erase(jointTrajectory.points.begin(), jointTrajectory.points.begin() + i - 1);
 
   return jointTrajectory.points[0];
 }
@@ -222,7 +219,7 @@ int main(int argc, char *argv[])
   geometry_msgs::Vector3 eulerAngles, accelerationCmd, attitudeCmd, position;
   mavros_msgs::AttitudeTarget cmd;
   ros::Time time, last_request;
-  float yaw, dt, time2;
+  float yaw, dt;
   int ctrl_freq;
   bool simulated_env, useStatesObserver, reset;
 
@@ -400,10 +397,7 @@ int main(int argc, char *argv[])
 
     // Consider time for trajectory only when the drone is armed && first trajectory point received
     // if not set reset flag to true
-    if ((droneState.mode == "OFFBOARD") && isjointTrajectoryFirstCallback)
-      time2 += dt;
-    else
-      reset = true;
+    if (!((droneState.mode == "OFFBOARD") && isjointTrajectoryFirstCallback)) reset = true;
 
     // Get the last measured state
     measuredStates = getLastMeasuredStates();
@@ -441,7 +435,6 @@ int main(int argc, char *argv[])
     {
       se.resetEstimations();
       fsf.resetIntegrators();
-      time2 = .0;
       reset = false;
     }
 
