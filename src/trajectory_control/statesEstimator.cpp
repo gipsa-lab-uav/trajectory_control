@@ -4,16 +4,8 @@ SEParameters::SEParameters()
 {
 	Lpos = 1.03f;
 	Lspeed = 10.7f;
-	Lacc = 0.0f;
 	Lunc = 9.62f;
 	filterCoeff = 0.95f;
-
-	LposPos = 0.92f;
-	LposSpeed = 0.02f;
-	LposUnc = 0.11f;
-	LspeedPos = 0.006f;
-	LspeedSpeed = 0.69f;
-	LspeedUnc = 4.2f;
 
 	overSamplingFactor = 1;
 	maxUncertainties = 6.0f;
@@ -24,19 +16,11 @@ SEParameters::SEParameters(float lpos, float lspeed, float lunc, float filtercoe
 {
 	Lpos = lpos;
 	Lspeed = lspeed;
-	Lacc = 0.0f;
 	Lunc = lunc;
 	filterCoeff = filtercoeff;
 
-	LposPos = 0.92f;
-	LposSpeed = 0.0001f;
-	LposUnc = 0.0001f;
-	LspeedPos = 0.01f;
-	LspeedSpeed = 1.0f;
-	LspeedUnc = 8.7f;
-
 	overSamplingFactor = 1;
-	maxUncertainties = 10.0f;
+	maxUncertainties = 6.0f;
 
 	manualReset = false;
 }
@@ -44,39 +28,11 @@ SEParameters::SEParameters(float lpos, float lspeed, float lunc, float filtercoe
 {
 	Lpos = lpos;
 	Lspeed = lspeed;
-	Lacc = 0.0f;
 	Lunc = lunc;
 	filterCoeff = filtercoeff;
 
-	LposPos = 0.92f;
-	LposSpeed = 0.0001f;
-	LposUnc = 0.0001f;
-	LspeedPos = 0.01f;
-	LspeedSpeed = 1.0f;
-	LspeedUnc = 8.7f;
-
 	overSamplingFactor = oversample;
 	maxUncertainties = maxUnc;
-
-	manualReset = false;
-}
-SEParameters::SEParameters(float lpospos, float lposspeed, float lposunc, float lspeedpos, float lspeedspeed, float lspeedunc)
-{
-	Lpos = 1.03f;
-	Lspeed = 10.7f;
-	Lacc = 0.0f;
-	Lunc = 9.62f;
-	filterCoeff = 0.95f;
-
-	LposPos = lpospos;
-	LposSpeed = lposspeed;
-	LposUnc = lposunc;
-	LspeedPos = lspeedpos;
-	LspeedSpeed = lspeedspeed;
-	LspeedUnc = lspeedunc;
-
-	overSamplingFactor = 1;
-	maxUncertainties = 6.0f;
 
 	manualReset = false;
 }
@@ -115,324 +71,20 @@ DS1D SE1D::process(float dt, float measuredPos, DS1D predicted, float cmd)
 	float Cpos = 1.0f;
 	//float Cspeed = 0f;
 	//float Cunc = 0f;
-	//A*Xest
-	newStates.position = Apos_pos * predicted.position + Apos_speed * predicted.speed;		 // + Apos_unc*predicted.uncertainties;
-	newStates.speed = Aspeed_speed * predicted.speed + Aspeed_unc * predicted.uncertainties; // + Aspeed_pos*predicted.position;
-	newStates.uncertainties = Aunc_unc * predicted.uncertainties;							 // + Aunc_pos*predicted.position + Aunc_speed*predicted.speed;
-
-	//+B*U
-	newStates.speed += Bacc * cmd;
-
-	//+L(y - C*Xest)
-	newStates.position += param.Lpos * (measuredPos - Cpos * predicted.position);
-	newStates.speed += param.Lspeed * (measuredPos - Cpos * predicted.position);
-	newStates.uncertainties += param.Lunc * (measuredPos - Cpos * predicted.position);
-
-	//Clamp the uncertainties
-	if (newStates.uncertainties > 0.0f)
-	{
-		newStates.uncertainties = std::min(newStates.uncertainties, param.maxUncertainties);
-	}
-	else
-	{
-		newStates.uncertainties = std::max(newStates.uncertainties, -param.maxUncertainties);
-	}
-
-	if (reset == true)
-	{
-		newStates.position = measuredPos;
-		newStates.speed = 0.0f;
-		newStates.uncertainties = 0.0f;
-		reset = false;
-	}
-	if (param.manualReset == true)
-	{
-		newStates.position = measuredPos;
-		newStates.speed = 0.0f;
-		newStates.uncertainties = 0.0f;
-	}
-
-	return newStates;
-}
-
-DS1D SE1D::process2(float dt, float measuredPos, float measuredSpeed, DS1D predicted, float cmd)
-{
-	DS1D newStates(0.0f, 0.0f, 0.0f, 0.0f);
-
-	/** Drone second integrator linear model Parameters: better here or elsewhere? **/
-	// State matrix
-	float Apos_pos = 1.0f;
-	float Apos_speed = dt;
-	//float Apos_unc = 0f;
-
-	//float Aspeed_pos = 0f;
-	float Aspeed_speed = 1.0f;
-	float Aspeed_unc = dt;
-
-	//float Aunc_pos = 0f;
-	//float Aunc_speed = 0f;
-	float Aunc_unc = 1.0f;
-
-	// Command vector
-	//float Bspeed = 0f;
-	float Bacc = dt;
-	//float Bunc_dot = 0f;
-
-	// Output/measurement vector
-	float Cpos = 1.0f;
-	float Cspeed = 1.0f;
-	//float Cunc = 0f;
-	/*End model parameters*/
-	float positionError = measuredPos - Cpos * predicted.position;
-	float speedErrror = measuredSpeed - Cspeed * predicted.speed;
 
 	//A*Xest
 	newStates.position = Apos_pos * predicted.position + Apos_speed * predicted.speed;		 // + Apos_unc*predicted.uncertainties;
 	newStates.speed = Aspeed_speed * predicted.speed + Aspeed_unc * predicted.uncertainties; // + Aspeed_pos*predicted.position;
-
-	//+B*U
-	newStates.speed += Bacc * cmd;
-
-	//+L(y - C*Xest)
-	newStates.position += param.LposPos * positionError;
-	newStates.speed += param.LposSpeed * positionError;
-
-	newStates.position += param.LspeedPos * speedErrror;
-	newStates.speed += param.LspeedSpeed * speedErrror;
-	//Only update Uncertainties if speed & pos are already decent
-	if(positionError < 0.05f && speedErrror < 0.05f) {
-		newStates.uncertainties = Aunc_unc * predicted.uncertainties;// + Aunc_pos*predicted.position + Aunc_speed*predicted.speed;
-		newStates.uncertainties += param.LposUnc * positionError;
-		newStates.uncertainties += param.LspeedUnc * speedErrror;
-	}
-	else newStates.uncertainties = Aunc_unc * predicted.uncertainties;
-
-	//Clamp the uncertainties
-	if (newStates.uncertainties > 0.0f)
-	{
-		newStates.uncertainties = std::min(newStates.uncertainties, param.maxUncertainties);
-	}
-	else
-	{
-		newStates.uncertainties = std::max(newStates.uncertainties, -param.maxUncertainties);
-	}
-	if (reset == true)
-	{
-		newStates.position = measuredPos;
-		newStates.speed = measuredSpeed;
-		newStates.uncertainties = 0.0f;
-		reset = false;
-	}
-	if (param.manualReset == true)
-	{
-		newStates.position = measuredPos;
-		newStates.speed = 0.0f;
-		newStates.uncertainties = 0.0f;
-	}
-
-	return newStates;
-}
-
-//Full Estimator Version, not working
-// DS1D SE1D::processAcceleration(float dt, float measuredPos, float measuredAcc, DS1D predicted, float cmd)
-// {
-// 	DS1D newStates(0.0f, 0.0f, 0.0f, 0.0f);
-//
-// 	/** Drone model Parameters: better here or elsewhere? **/
-// 	// State matrix
-// 	float Apos_pos = 1.0f;
-// 	float Apos_speed = dt;
-// 	//float Apos_acc = 0f;
-// 	//float Apos_unc = 0f;
-//
-// 	//float Aspeed_pos = 0f;
-// 	float Aspeed_speed = 1.0f;
-// 	float Aspeed_acc = dt;
-// 	float Aspeed_unc = dt;
-//
-// 	//float Aacc_pos = 0f;
-// 	//float Aacc_speed = 0f;
-// 	float Aacc_acc = 1.0f;
-// 	float Aacc_unc = 0.0f;
-//
-// 	//float Aunc_pos = 0f;
-// 	//float Aunc_speed = 0f;
-// 	//float Aunc_acc = 0f;
-// 	float Aunc_unc = 1.0f;
-//
-// 	// Command vector
-// 	//float Bspeed = 0f;
-// 	float Bacc = dt;
-// 	//float Bjerk = 0.0f;
-// 	//float Bunc_dot = 0f;
-//
-// 	// Output/measurement vector
-// 	float Cpos = 1.0f;
-// 	//float Cspeed = 0f;
-// 	float Cacc = 1.0f;
-// 	//float Cunc = 0f;
-//
-// 	float positionError = measuredPos - Cpos * predicted.position;
-// 	float accelerationErrror = measuredAcc - Cacc * predicted.acceleration;
-//
-//
-// 	//A*Xest
-// 	newStates.position = Apos_pos * predicted.position + Apos_speed * predicted.speed;		 // + Apos_unc*predicted.uncertainties;
-// 	newStates.speed = Aspeed_speed * predicted.speed + Aspeed_unc * predicted.acceleration + Aspeed_unc * predicted.uncertainties; // + Aspeed_pos*predicted.position;
-// 	newStates.acceleration = Aacc_acc * predicted.acceleration + Aacc_unc * predicted.uncertainties;
-// 	newStates.uncertainties = Aunc_unc * predicted.uncertainties;							 // + Aunc_pos*predicted.position + Aunc_speed*predicted.speed;
-//
-// 	//+B*U
-// 	newStates.speed += Bacc * cmd;
-// 	//newStates.acceleration += Bjerk * cmd;
-//
-// 	//+L(y - C*Xest)
-// 	newStates.position += param.Lpos * positionError;
-// 	newStates.speed += param.Lspeed * positionError;
-// 	//newStates.acceleration += param.LposAcc * positionError;
-//
-// 	//newStates.position += param.LaccPos * accelerationErrror;
-// 	//newStates.speed += param.LaccSpeed * accelerationErrror;
-// 	newStates.acceleration += param.Lacc * accelerationErrror;
-//
-// 	//Only update Uncertainties if pos is already decent
-// 	if(positionError < 0.05f) {
-// 		newStates.uncertainties = Aunc_unc * predicted.uncertainties;// + Aunc_pos*predicted.position + Aunc_speed*predicted.speed;
-// 		newStates.uncertainties += param.Lunc * positionError;
-// 		//newStates.uncertainties += param.LaccUnc * accelerationErrror;
-// 	}
-// 	else newStates.uncertainties = Aunc_unc * predicted.uncertainties;
-//
-// 	//Clamp the uncertainties
-// 	if (newStates.uncertainties > 0.0f)
-// 	{
-// 		newStates.uncertainties = std::min(newStates.uncertainties, param.maxUncertainties);
-// 	}
-// 	else
-// 	{
-// 		newStates.uncertainties = std::max(newStates.uncertainties, -param.maxUncertainties);
-// 	}
-//
-// 	if (reset == true)
-// 	{
-// 		newStates.position = measuredPos;
-// 		newStates.speed = 0.0f;
-// 		newStates.acceleration = 0.0f;
-// 		newStates.uncertainties = 0.0f;
-// 		reset = false;
-// 	}
-// 	if (param.manualReset == true)
-// 	{
-// 		newStates.position = measuredPos;
-// 		newStates.speed = 0.0f;
-// 		newStates.acceleration = 0.0f;
-// 		newStates.uncertainties = 0.0f;
-// 	}
-//
-// 	return newStates;
-// }
-
-// Estimator with separated acceleration estimation
-DS1D SE1D::processAcceleration(float dt, float measuredPos, float measuredAcc, DS1D predicted, float cmd)
-{
-	DS1D newStates(0.0f, 0.0f, 0.0f, 0.0f);
-
-	/** Drone model Parameters: better here or elsewhere? **/
-	// State matrix
-	float Apos_pos = 1.0f;
-	float Apos_speed = dt;
-	//float Apos_acc = 0f;
-	//float Apos_unc = 0f;
-
-	//float Aspeed_pos = 0f;
-	float Aspeed_speed = 1.0f;
-	float Aspeed_acc = dt;
-	float Aspeed_unc = dt;
-
-	//float Aacc_pos = 0f;
-	//float Aacc_speed = 0f;
-	float Aacc_acc = 1.0f;
-	float Aacc_unc = 0.0f;
-
-	//float Aunc_pos = 0f;
-	//float Aunc_speed = 0f;
-	//float Aunc_acc = 0f;
-	float Aunc_unc = 1.0f;
-
-	// Command vector
-	//float Bspeed = 0f;
-	float Bacc = dt;
-	//float Bjerk = 0.0f;
-	//float Bunc_dot = 0f;
-
-	// Output/measurement vectorDS1D SE1D::processAcceleration(float dt, float measuredPos, float measuredAcc, DS1D predicted, float cmd)
-{
-	DS1D newStates(0.0f, 0.0f, 0.0f, 0.0f);
-
-	/** Drone model Parameters: better here or elsewhere? **/
-	// State matrix
-	float Apos_pos = 1.0f;
-	float Apos_speed = dt;
-	//float Apos_acc = 0f;
-	//float Apos_unc = 0f;
-
-	//float Aspeed_pos = 0f;
-	float Aspeed_speed = 1.0f;
-	float Aspeed_acc = dt;
-	float Aspeed_unc = dt;
-
-	//float Aacc_pos = 0f;
-	//float Aacc_speed = 0f;
-	float Aacc_acc = 1.0f;
-	float Aacc_unc = 0.0f;
-
-	//float Aunc_pos = 0f;
-	//float Aunc_speed = 0f;
-	//float Aunc_acc = 0f;
-	float Aunc_unc = 1.0f;
-
-	// Command vector
-	//float Bspeed = 0f;
-	float Bacc = dt;
-	//float Bjerk = 0.0f;
-	//float Bunc_dot = 0f;
-
-	// Output/measurement vector
-	float Cpos = 1.0f;
-	//float Cspeed = 0f;
-	float Cacc = 1.0f;
-	//float Cunc = 0f;
-
-	float positionError = measuredPos - Cpos * predicted.position;
-	float accelerationErrror = measuredAcc - Cacc * predicted.acceleration;
-
-
-	//A*Xest
-	newStates.position = Apos_pos * predicted.position + Apos_speed * predicted.speed;		 // + Apos_unc*predicted.uncertainties;
-	newStates.speed = Aspeed_speed * predicted.speed + Aspeed_unc * predicted.acceleration + Aspeed_unc * predicted.uncertainties; // + Aspeed_pos*predicted.position;
-	newStates.acceleration = Aacc_acc * predicted.acceleration + Aacc_unc * predicted.uncertainties;
 	newStates.uncertainties = Aunc_unc * predicted.uncertainties;							 // + Aunc_pos*predicted.position + Aunc_speed*predicted.speed;
 
 	//+B*U
 	newStates.speed += Bacc * cmd;
-	//newStates.acceleration += Bjerk * cmd;
 
 	//+L(y - C*Xest)
-	newStates.position += param.Lpos * positionError;
-	newStates.speed += param.Lspeed * positionError;
-	//newStates.acceleration += param.LposAcc * positionError;
-
-	//newStates.position += param.LaccPos * accelerationErrror;
-	//newStates.speed += param.LaccSpeed * accelerationErrror;
-	newStates.acceleration += param.Lacc * accelerationErrror;
-
-	//Only update Uncertainties if pos is already decent
-	if(positionError < 0.05f) {
-		newStates.uncertainties = Aunc_unc * predicted.uncertainties;// + Aunc_pos*predicted.position + Aunc_speed*predicted.speed;
-		newStates.uncertainties += param.Lunc * positionError;
-		//newStates.uncertainties += param.LaccUnc * accelerationErrror;
-	}
-	else newStates.uncertainties = Aunc_unc * predicted.uncertainties;
+	float positionMeasurementError = measuredPos - Cpos * predicted.position;
+	newStates.position += param.Lpos * positionMeasurementError;
+	newStates.speed += param.Lspeed * positionMeasurementError;
+	newStates.uncertainties += param.Lunc * positionMeasurementError;
 
 	//Clamp the uncertainties
 	if (newStates.uncertainties > 0.0f)
@@ -448,7 +100,6 @@ DS1D SE1D::processAcceleration(float dt, float measuredPos, float measuredAcc, D
 	{
 		newStates.position = measuredPos;
 		newStates.speed = 0.0f;
-		newStates.acceleration = 0.0f;
 		newStates.uncertainties = 0.0f;
 		reset = false;
 	}
@@ -456,71 +107,6 @@ DS1D SE1D::processAcceleration(float dt, float measuredPos, float measuredAcc, D
 	{
 		newStates.position = measuredPos;
 		newStates.speed = 0.0f;
-		newStates.acceleration = 0.0f;
-		newStates.uncertainties = 0.0f;
-	}
-
-	return newStates;
-}
-	float Cpos = 1.0f;
-	//float Cspeed = 0f;
-	float Cacc = 1.0f;
-	//float Cunc = 0f;
-
-	float positionError = measuredPos - Cpos * predicted.position;
-	float accelerationErrror = measuredAcc - Cacc * predicted.acceleration;
-
-
-	//A*Xest
-	newStates.position = Apos_pos * predicted.position + Apos_speed * predicted.speed;		 // + Apos_unc*predicted.uncertainties;
-	newStates.speed = Aspeed_speed * predicted.speed + Aspeed_unc * predicted.acceleration + Aspeed_unc * predicted.uncertainties; // + Aspeed_pos*predicted.position;
-	newStates.acceleration = Aacc_acc * predicted.acceleration + Aacc_unc * predicted.uncertainties;
-	newStates.uncertainties = Aunc_unc * predicted.uncertainties;							 // + Aunc_pos*predicted.position + Aunc_speed*predicted.speed;
-
-	//+B*U
-	newStates.speed += Bacc * cmd;
-	//newStates.acceleration += Bjerk * cmd;
-
-	//+L(y - C*Xest)
-	newStates.position += param.Lpos * positionError;
-	newStates.speed += param.Lspeed * positionError;
-	//newStates.acceleration += param.LposAcc * positionError;
-
-	//newStates.position += param.LaccPos * accelerationErrror;
-	//newStates.speed += param.LaccSpeed * accelerationErrror;
-	newStates.acceleration += param.Lacc * accelerationErrror;
-
-	//Only update Uncertainties if pos is already decent
-	if(positionError < 0.05f) {
-		newStates.uncertainties = Aunc_unc * predicted.uncertainties;// + Aunc_pos*predicted.position + Aunc_speed*predicted.speed;
-		newStates.uncertainties += param.Lunc * positionError;
-		//newStates.uncertainties += param.LaccUnc * accelerationErrror;
-	}
-	else newStates.uncertainties = Aunc_unc * predicted.uncertainties;
-
-	//Clamp the uncertainties
-	if (newStates.uncertainties > 0.0f)
-	{
-		newStates.uncertainties = std::min(newStates.uncertainties, param.maxUncertainties);
-	}
-	else
-	{
-		newStates.uncertainties = std::max(newStates.uncertainties, -param.maxUncertainties);
-	}
-
-	if (reset == true)
-	{
-		newStates.position = measuredPos;
-		newStates.speed = 0.0f;
-		newStates.acceleration = 0.0f;
-		newStates.uncertainties = 0.0f;
-		reset = false;
-	}
-	if (param.manualReset == true)
-	{
-		newStates.position = measuredPos;
-		newStates.speed = 0.0f;
-		newStates.acceleration = 0.0f;
 		newStates.uncertainties = 0.0f;
 	}
 
@@ -570,78 +156,6 @@ DroneStates StatesEstimator::process(float dt, geometry_msgs::Vector3 dronePosit
 	}
 
 	return r;
-}
-
-DroneStates StatesEstimator::process2(float dt, geometry_msgs::Vector3 dronePosition, geometry_msgs::Vector3 droneSpeed, DroneStates predicted, geometry_msgs::Vector3 cmd)
-{
-
-	// Filter command to fit actuator response: first order for vertical response, second order for horizontal
-	cmdApplied = firstOrderFilterCmd(cmdApplied, cmdAppliedPrev); //update 2nd order
-	cmdAppliedPrev = firstOrderFilterCmd(cmdAppliedPrev, cmd);	//update 1rst order
-	cmdApplied.z = cmdAppliedPrev.z;
-
-	//updateParam(controllerParam);
-	float newDt = dt / x.param.overSamplingFactor;
-	DroneStates r = predicted;
-	DroneStates predictedTemp = predicted;
-
-	for (int i = 0; i < x.param.overSamplingFactor; i++)
-	{
-		r.x = x.process2(newDt, dronePosition.x, droneSpeed.x, predictedTemp.x, cmdApplied.x);
-		r.y = y.process2(newDt, dronePosition.y, droneSpeed.y, predictedTemp.y, cmdApplied.y);
-		r.z = z.process2(newDt, dronePosition.z, droneSpeed.z, predictedTemp.z, cmdApplied.z);
-		predictedTemp = r;
-	}
-
-	return r;
-}
-
-DroneStates StatesEstimator::processAcceleration(float dt, DroneStates measured, DroneStates predicted, geometry_msgs::Vector3 cmd)
-{
-
-	// Filter command to fit actuator response: first order for vertical response, second order for horizontal
-	cmdApplied = firstOrderFilterCmd(cmdApplied, cmdAppliedPrev); //update 2nd order
-	cmdAppliedPrev = firstOrderFilterCmd(cmdAppliedPrev, cmd);	//update 1rst order
-	cmdApplied.z = cmdAppliedPrev.z;
-
-	//updateParam(controllerParam);
-	float newDt = dt / x.param.overSamplingFactor;
-	DroneStates r = predicted;
-	DroneStates predictedTemp = predicted;
-
-	for (int i = 0; i < x.param.overSamplingFactor; i++)
-	{
-		r.x = x.processAcceleration(newDt, measured.x.position, measured.x.acceleration, predictedTemp.x, cmdApplied.x);
-		r.y = y.processAcceleration(newDt, measured.y.position, measured.y.acceleration, predictedTemp.y, cmdApplied.y);
-		r.z = z.processAcceleration(newDt, measured.z.position, measured.z.acceleration, predictedTemp.z, cmdApplied.z);
-		predictedTemp = r;
-	}
-
-	return r;
-}
-
-//WIP, not working for now
-geometry_msgs::Vector3 StatesEstimator::computeAccelerations(geometry_msgs::Vector3 droneEulerAngles, float cmdThrust)
-{
-	geometry_msgs::Vector3 accelerations;
-	float appliedThrust = 0.0f;
-
-	float cosRoll = cos(droneEulerAngles.x);
-	float sinRoll = sin(droneEulerAngles.x);
-	float cosPitch = cos(droneEulerAngles.y);
-	float sinPitch = sin(droneEulerAngles.y);
-	float cosYaw = cos(droneEulerAngles.z);
-	float sinYaw = sin(droneEulerAngles.z);
-
-	// Transform command Thrust in real thrust
-	appliedThrust = cmdThrust * 9.81 / hoverCompensation;
-
-
-	accelerations.x = appliedThrust * (sinRoll * sinYaw + cosRoll*cosYaw*sinPitch);
-	accelerations.y = appliedThrust * (cosRoll*sinYaw*sinPitch - sinRoll * cosYaw);
-	accelerations.z = appliedThrust * cosPitch * cosRoll -9.81;
-
-	return accelerations;
 }
 
 void StatesEstimator::resetEstimations()

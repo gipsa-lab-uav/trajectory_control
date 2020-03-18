@@ -13,10 +13,10 @@ FSFParameters::FSFParameters()
 	KpStep = 1.4f;
 	KsStep = 1.74f;
 	Ku = 1.0f;
-	Ka = 0.0f;
+	Ka = 1.0f;
 
 	useIntegrator = false;
-	useFeedForward = true;
+	useFeedForward = false;
 }
 
 FSFParameters::FSFParameters(float kp, float ks, float ku)
@@ -27,10 +27,10 @@ FSFParameters::FSFParameters(float kp, float ks, float ku)
 	KpStep = kp;
 	KsStep = ks;
 	Ku = ku;
-	Ka = 0.0f;
+	Ka = 1.0f;
 
 	useIntegrator = false;
-	useFeedForward = true;
+	useFeedForward = false;
 }
 
 FSFParameters::FSFParameters(float kp, float ks, float ku, float ki)
@@ -41,10 +41,10 @@ FSFParameters::FSFParameters(float kp, float ks, float ku, float ki)
 	KpStep = kp;
 	KsStep = ks;
 	Ku = ku;
-	Ka = 0.0f;
+	Ka = 1.0f;
 
 	useIntegrator = false;
-	useFeedForward = true;
+	useFeedForward = false;
 }
 FSFParameters::FSFParameters(float kp, float ks, float ku, float ki, float kpStep, float ksStep)
 {
@@ -54,10 +54,10 @@ FSFParameters::FSFParameters(float kp, float ks, float ku, float ki, float kpSte
 	KpStep = kpStep;
 	KsStep = ksStep;
 	Ku = ku;
-	Ka = 0.0f;
+	Ka = 1.0f;
 
 	useIntegrator = false;
-	useFeedForward = true;
+	useFeedForward = false;
 }
 
 FSFParameters::FSFParameters(float kp, float ks, float ku, float ki, float kpStep, float ksStep, float ka)
@@ -71,7 +71,7 @@ FSFParameters::FSFParameters(float kp, float ks, float ku, float ki, float kpSte
 	Ka = ka;
 
 	useIntegrator = false;
-	useFeedForward = true;
+	useFeedForward = false;
 }
 
 FSFParameters::~FSFParameters() {}
@@ -119,6 +119,7 @@ float FSF1D::process(float dt, DS1D current, DS1D target)
 	pError = target.position - current.position;
 	sError = target.speed - current.speed;
 	uError = target.uncertainties - current.uncertainties;
+	aError = target.acceleration - current.acceleration;
 
 	if (stepMode1D)
 	{
@@ -148,46 +149,13 @@ float FSF1D::process(float dt, DS1D current, DS1D target)
 	{
 		cmd += target.acceleration;
 	}
-	return cmd;
-}
-float FSF1D::processAcc(float dt, DS1D current, DS1D target)
-{
-	if (dt == 0.0f)
-		return current.acceleration;
-
-	float cmd;
-
-	pError = target.position - current.position;
-	sError = target.speed - current.speed;
-	uError = target.uncertainties - current.uncertainties;
-	aError = target.acceleration - current.acceleration;
-
-	if (stepMode1D)
-	{
-		cmd = param.KpStep * pError + param.KsStep * sError + param.Ku * uError + param.Ka * aError;
-	}
 	else
 	{
-		cmd = param.Kp * pError + param.Ks * sError + param.Ku * uError + param.Ka * aError;
-	}
-
-	if (param.useIntegrator)
-	{
-		iError += pError * dt;
-
-		if (iError > 0.0f)
-		{
-			iError = std::min(iError, 10.0f);
-		}
-		else
-		{
-			iError = std::max(iError, -10.0f);
-		}
-
-		cmd += param.Ki * iError;
+		cmd += param.Ka * aError;
 	}
 	return cmd;
 }
+
 FSF1D::~FSF1D() {}
 
 FullStatesFeedback::FullStatesFeedback()
@@ -203,44 +171,53 @@ void FullStatesFeedback::resetIntegrators()
 	z.FSF1D::resetIntegrator();
 }
 
+void FullStatesFeedback::update1DParameters()
+{
+	if (stepMode)
+	{
+		x.stepMode1D = true;
+		y.stepMode1D = true;
+		z.stepMode1D = true;
+	}
+	else
+	{
+		x.stepMode1D = false;
+		y.stepMode1D = false;
+		z.stepMode1D = false;
+	}
+	if (useFeedForward)
+	{
+		x.param.useFeedForward = true;
+		y.param.useFeedForward = true;
+		z.param.useFeedForward = true;
+	}
+	else
+	{
+		x.param.useFeedForward = false;
+		y.param.useFeedForward = false;
+		z.param.useFeedForward = false;
+	}
+	if (useIntegrator)
+	{
+		x.param.useIntegrator = true;
+		y.param.useIntegrator = true;
+		z.param.useIntegrator = true;
+	}
+	else
+	{
+		x.param.useIntegrator = false;
+		y.param.useIntegrator = false;
+		z.param.useIntegrator = false;
+	}
+}
+
 geometry_msgs::Vector3 FullStatesFeedback::process(float dt, DroneStates current, DroneStates target)
 {
 	geometry_msgs::Vector3 r;
-	if (stepMode)
-	{
-		x.stepMode1D = true;
-		y.stepMode1D = true;
-		z.stepMode1D = true;
-	}
-	else
-	{
-		x.stepMode1D = false;
-		y.stepMode1D = false;
-		z.stepMode1D = false;
-	}
+	update1DParameters();
+
 	r.x = x.process(dt, current.x, target.x);
 	r.y = y.process(dt, current.y, target.y);
 	r.z = z.process(dt, current.z, target.z);
-	return r;
-}
-
-geometry_msgs::Vector3 FullStatesFeedback::processAcc(float dt, DroneStates current, DroneStates target)
-{
-	geometry_msgs::Vector3 r;
-	if (stepMode)
-	{
-		x.stepMode1D = true;
-		y.stepMode1D = true;
-		z.stepMode1D = true;
-	}
-	else
-	{
-		x.stepMode1D = false;
-		y.stepMode1D = false;
-		z.stepMode1D = false;
-	}
-	r.x = x.processAcc(dt, current.x, target.x);
-	r.y = y.processAcc(dt, current.y, target.y);
-	r.z = z.processAcc(dt, current.z, target.z);
 	return r;
 }

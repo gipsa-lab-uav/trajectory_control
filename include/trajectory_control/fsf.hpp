@@ -18,7 +18,7 @@ class FSFParameters
 	float KpStep;// = 1.4f;
 	float KsStep;// = 1.74f;
 	float Ku;// = 1.0f;
-  float Ka;
+  float Ka;// = 1.0f;
 
 	bool useIntegrator;// = false;
 	bool useFeedForward;// = true;
@@ -47,13 +47,14 @@ class FSF1D
 	void resetIntegrator();
 
 	/// <summary>
-	/// Apply a full state feedback with an optional acceleration feedforward and integral action
+	/// Apply a full state feedback with optional acceleration feedforward and integral action
+  /// State is position, speed, acceleration & uncertainties (both model & disturbances)
+  /// If feedforward is applied, then acceleration state isn't used
 	/// </summary>
 	/// <param name="dt">Dt.</param>
 	/// <param name="current">current drone states.</param>
 	/// <param name="target">target drone states.</param>
   float process (float dt, DS1D current, DS1D target);
-  float processAcc (float dt, DS1D current, DS1D target);
 
     	void updateParam(FSFParameters fsfParam);
 
@@ -65,12 +66,12 @@ class FSF1D
 class FullStatesFeedback
 {
     public:
-	bool stepMode;
+	bool stepMode, useIntegrator, useFeedForward;
 
 	FSF1D x,y,z;
-	void resetIntegrators();
+  void resetIntegrators();
+  void update1DParameters();
   geometry_msgs::Vector3 process (float dt, DroneStates current, DroneStates target);
-  geometry_msgs::Vector3 processAcc (float dt, DroneStates current, DroneStates target);
 
     	FullStatesFeedback();
     	~FullStatesFeedback();

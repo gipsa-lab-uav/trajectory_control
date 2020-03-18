@@ -266,22 +266,14 @@ int main(int argc, char *argv[])
   nh_private.param("ctrl_freq", ctrl_freq, 100);
 
   // Full States Feedback Gains
-  // nh_private.param("fsf_x_P", fsf.x.param.Kp, (float)1.0);
-  // nh_private.param("fsf_x_S", fsf.x.param.Ks, (float)1.7);
-  // nh_private.param("fsf_y_P", fsf.y.param.Kp, (float)1.0);
-  // nh_private.param("fsf_y_S", fsf.y.param.Ks, (float)1.7);
-  // nh_private.param("fsf_z_P", fsf.z.param.Kp, (float)1.56);
-  // nh_private.param("fsf_z_S", fsf.z.param.Ks, (float)2.4);
-
+  nh_private.param("fsf_FF", fsf.useFeedForward, false);
+  nh_private.param("fsf_INT", fsf.useIntegrator, false);
   nh_private.param("fsf_x_P", fsf.x.param.Kp, (float)1.0);
   nh_private.param("fsf_x_S", fsf.x.param.Ks, (float)1.7);
-  nh_private.param("fsf_x_A", fsf.x.param.Ka, (float)1.7);
   nh_private.param("fsf_y_P", fsf.y.param.Kp, (float)1.0);
   nh_private.param("fsf_y_S", fsf.y.param.Ks, (float)1.7);
-  nh_private.param("fsf_y_A", fsf.y.param.Ka, (float)1.7);
   nh_private.param("fsf_z_P", fsf.z.param.Kp, (float)1.56);
   nh_private.param("fsf_z_S", fsf.z.param.Ks, (float)2.4);
-  nh_private.param("fsf_z_A", fsf.z.param.Ka, (float)2.4);
 
   // States Observer Gains
   nh_private.param("use_StatesObserver", useStatesObserver, true);
@@ -292,9 +284,6 @@ int main(int argc, char *argv[])
   nh_private.param("se_x_Lspeed", se.x.param.Lspeed, (float)10.7);
   nh_private.param("se_y_Lspeed", se.y.param.Lspeed, (float)10.7);
   nh_private.param("se_z_Lspeed", se.z.param.Lspeed, (float)10.7);
-  nh_private.param("se_x_Lacc", se.x.param.Lacc, (float)9.62);
-  nh_private.param("se_y_Lacc", se.y.param.Lacc, (float)9.62);
-  nh_private.param("se_z_Lacc", se.z.param.Lacc, (float)9.62);
   nh_private.param("se_x_Lunc", se.x.param.Lunc, (float)9.62);
   nh_private.param("se_y_Lunc", se.y.param.Lunc, (float)9.62);
   nh_private.param("se_z_Lunc", se.z.param.Lunc, (float)9.62);
@@ -310,7 +299,6 @@ int main(int argc, char *argv[])
   // Kinematic Transform Parameters (= physical parameters)
   nh_private.param("mass", kt.param.mass, (float)1.);
   nh_private.param("hoverCompensation", kt.param.hoverCompensation, (float).3);
-  se.hoverCompensation = kt.param.hoverCompensation;
   nh_private.param("maxAngle", kt.param.maxAngle, (float)45.);
   nh_private.param("maxVerticalAcceleration", kt.param.maxVerticalAcceleration, (float)4.);
   nh_private.param("Ky", kt.param.Ky, (float).4);
@@ -460,7 +448,7 @@ int main(int argc, char *argv[])
     eulerAngles = getLastEulerAngles();
     measuredStates = getLastMeasuredStates();
 
-    // If the measure didn't change cause EKF is slow, then use a filtered predicted states instead
+    // If the measure didn't change cause EKF rate is slower than control rate, use a filtered predicted states instead
     if(measuredStates.x.position == previousMeasuredStates.x.position)
     {
       filterPercent += 0.75f;
@@ -475,18 +463,11 @@ int main(int argc, char *argv[])
       previousMeasuredStates.fillStates(measuredStates);
     }
 
-    // Compute the acceleration from angle & thrust measurements
-    //measuredStates.replaceAcc(se.computeAccelerations(eulerAngles, cmd.thrust));
-    //measuredStates.replaceAcc(accelerationCmd);
-
     // Get the estimated state from measurements and previous estimation & command
     predictedStates.fillStates(se.process(dt, measuredStates.getVectPos(), predictedStates, accelerationCmd));
-    //predictedStates.fillStates(se.processAcceleration(dt, measuredStates, predictedStates, accelerationCmd));
-    //predictedStates = se.process2(dt, measuredStates.getVectPos(), measuredStates.getVectSpeed(), predictedStates, accelerationCmd);
 
-    // Get the acceleration state from another derivator estimator
+    // Get the acceleration state from another derivator estimator. Cmd = 0 here for simplicity.
     predictedStatesAcc.fillStates(seAcc.process(dt, predictedStates.getVectSpeed(), predictedStatesAcc, emptyCmd));
-
     predictedStates.replaceAcc(predictedStatesAcc.getVectSpeed());
 
     if (!useStatesObserver)
@@ -500,8 +481,6 @@ int main(int argc, char *argv[])
     {
       estimatedStates = predictedStates;
     }
-
-
 
     // Get the next trajectory point and update the target state
     trajectoryPoint = getNextTrajectoryPoint(time2);
@@ -525,8 +504,7 @@ int main(int argc, char *argv[])
     }
 
     // Compute full state feedback control
-    //accelerationCmd = fsf.process(dt, estimatedStates, targetStates);
-    accelerationCmd = fsf.processAcc(dt, estimatedStates, targetStates);
+    accelerationCmd = fsf.process(dt, estimatedStates, targetStates);
 
     eulerAngles.z = yaw;
     // Generate (roll, pitch, thrust) command
