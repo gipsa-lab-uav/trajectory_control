@@ -9,17 +9,20 @@ from timeit import default_timer as time
 
 import rospy
 from std_msgs.msg import Header
-from trajectory_msgs.msg import JointTrajectory, JointTrajectoryPoint
 from nav_msgs.msg import Odometry
+from mavros_msgs.msg import State
+from trajectory_msgs.msg import JointTrajectory, JointTrajectoryPoint
 
 
 class TrajectoryGeneration:
-    def __init__(self, node_name='trajectory_gen_node', subscriber='mavros/local_position/odom', publisher='mavros/JointTrajectory'):
+    def __init__(self, node_name='trajectory_gen_node', state='mavros/state' , subscriber='mavros/local_position/odom', publisher='mavros/JointTrajectory'):
 
         rospy.init_node(node_name, anonymous=True)
 
         # Define suscribers & publishers
+        rospy.Subscriber(state, State, self.drone_state_acquire_callback)
         rospy.Subscriber(subscriber, Odometry, self.callback)
+
         self.pub = rospy.Publisher(publisher, JointTrajectory, queue_size=10)
 
         # Define & initialize private variables
@@ -36,6 +39,8 @@ class TrajectoryGeneration:
 
         self.MAX_LINEAR_SPEED_XY = 10.0  # max. linear speed [m.s-1] (only used by generate_states_filtered(), not by generate_states_sg_filtered())
         self.MAX_LINEAR_SPEED_Z = 12.0  # max. linear speed [m.s-1] (only used by generate_states_filtered(), not by generate_states_sg_filtered())
+
+        self.drone_state = State()
 
         # Define & initialize flags
         self.is_filtered = False
@@ -473,7 +478,6 @@ class TrajectoryGeneration:
         rate = rospy.Rate(self.PUBLISH_RATE)
         ratio = int(self.FREQUENCY / self.PUBLISH_RATE)
         window_points = self.WINDOW_FRAME * self.FREQUENCY
-        string_id = str(rospy.get_rostime().nsecs)
         s = 0
 
         x = self.x_filtered if hasattr(self, 'x_filtered') else self.x_discretized
@@ -493,11 +497,11 @@ class TrajectoryGeneration:
             header = Header()
             header.seq = s
             header.stamp = rospy.get_rostime()
-            header.frame_id = string_id
+            header.frame_id = 'map'
 
             joint_trajectory_msg = JointTrajectory()
             joint_trajectory_msg.header = header
-            joint_trajectory_msg.joint_names = ['t', 't1']
+            joint_trajectory_msg.joint_names = ['base_link']
 
             points_in_next_trajectory = int(min(window_points, len(x)-s))
 
@@ -520,6 +524,18 @@ class TrajectoryGeneration:
 
         return math.copysign(min(x, y, key=abs), x)
 
+    def wait_drone_armed(self):
+        rospy.loginfo("Waiting for the drone to be armed ...")
+        while not (rospy.is_shutdown() or self.drone_state.armed):
+            pass
+        rospy.loginfo("Drone armed.")
+
+    def wait_drone_offboard(self):
+        rospy.loginfo("Waiting for offboard mode ...")
+        while not (rospy.is_shutdown() or (self.drone_state.mode == "OFFBOARD")):
+            pass
+        rospy.loginfo("Offboard enabled.")
+
     def callback(self, odom):
 
         if not self.is_first_callback:
@@ -538,6 +554,10 @@ class TrajectoryGeneration:
         while not (rospy.is_shutdown() or self.is_first_callback):
             pass
         rospy.loginfo("Position measurement callback ok.")
+
+    def drone_state_acquire_callback(self, state):
+        self.drone_state = state
+
 
 
 if __name__ == '__main__':
@@ -670,6 +690,10 @@ if __name__ == '__main__':
 
         # Plot the trajectory
         trajectory_object.plot_trajectory_extras()
+
+        # Checks before publishing
+        trajectory_object.wait_drone_armed()
+        trajectory_object.wait_drone_offboard()
 
         # Publish trajectory states
         trajectory_object.start()

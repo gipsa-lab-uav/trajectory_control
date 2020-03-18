@@ -39,7 +39,7 @@ se_y_Filter: 0.9
 se_z_Filter: 0.1
 
 mass: 1.5
-hoverCompensation: 0.45
+hoverCompensation: 0.65
 maxAngle: 45.0
 maxVerticalAcceleration: 4.0
 compensateYaw: true
