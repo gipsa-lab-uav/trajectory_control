@@ -268,10 +268,13 @@ int main(int argc, char *argv[])
   // Full States Feedback Gains
   nh_private.param("fsf_FF", fsf.useFeedForward, false);
   nh_private.param("fsf_INT", fsf.useIntegrator, false);
+  nh_private.param("fsf_x_I", fsf.x.param.Ki, (float)0.0);
   nh_private.param("fsf_x_P", fsf.x.param.Kp, (float)1.0);
   nh_private.param("fsf_x_S", fsf.x.param.Ks, (float)1.7);
+  nh_private.param("fsf_y_I", fsf.y.param.Ki, (float)0.0);
   nh_private.param("fsf_y_P", fsf.y.param.Kp, (float)1.0);
   nh_private.param("fsf_y_S", fsf.y.param.Ks, (float)1.7);
+  nh_private.param("fsf_z_I", fsf.z.param.Ki, (float)0.0);
   nh_private.param("fsf_z_P", fsf.z.param.Kp, (float)1.56);
   nh_private.param("fsf_z_S", fsf.z.param.Ks, (float)2.4);
 

@@ -8,12 +8,18 @@
 ###############################################################################
 ctrl_freq: 100
 
+# Control parameters:
+# If FF true, then we use feedforward & not the acceleration estimation
+# If INT true, then we use an integrator (shouldn't be needed)
 fsf_FF: false
 fsf_INT: false
+fsf_x_I: 0.0
 fsf_x_P: 1.98
 fsf_x_S: 2.44
+fsf_y_I: 0.0
 fsf_y_P: 1.98
 fsf_y_S: 2.44
+fsf_z_I: 0.0
 fsf_z_P: 1.98
 fsf_z_S: 2.44
 
