@@ -17,8 +17,8 @@ class Display:
         self.command_sub = 'mavros/setpoint_raw/attitude'
         self.position_sub = 'mavros/local_position/odom'
         self.trajectory_sub = 'mavros/JointTrajectory'
-        self.reference_sub = 'mavros/referenceStates'
-        self.estimated_sub = 'mavros/estimatedStates'
+        self.reference_sub = 'mavros/statesReference'
+        self.estimated_sub = 'mavros/statesEstimated'
 
         self.time_window = 15  # [s]
         self.window_10 = self.time_window * 10
