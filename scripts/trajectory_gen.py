@@ -693,16 +693,16 @@ if __name__ == '__main__':
         trajectory_object.generate_states_sg_filtered(window_length=13, polyorder=1, mode='mirror', on_filtered=True)
         trajectory_object.generate_yaw_filtered()
 
-        # Plot the trajectory
         if not rospy.is_shutdown():
+            # Plot the trajectory
             trajectory_object.plot_trajectory_extras()
 
-        # Checks before publishing
-        trajectory_object.wait_drone_armed()
-        trajectory_object.wait_drone_offboard()
+            # Checks before publishing
+            trajectory_object.wait_drone_armed()
+            trajectory_object.wait_drone_offboard()
 
-        # Publish trajectory states
-        trajectory_object.start()
+            # Publish trajectory states
+            trajectory_object.start()
 
     except rospy.ROSInterruptException:
         pass
