@@ -478,6 +478,8 @@ class TrajectoryGeneration:
         rate = rospy.Rate(self.PUBLISH_RATE)
         ratio = int(self.FREQUENCY / self.PUBLISH_RATE)
         window_points = self.WINDOW_FRAME * self.FREQUENCY
+        time_inc = 1. / self.PUBLISH_RATE
+        i = 0
         s = 0
 
         x = self.x_filtered if hasattr(self, 'x_filtered') else self.x_discretized
@@ -492,11 +494,13 @@ class TrajectoryGeneration:
         az = self.az_filtered if hasattr(self, 'az_filtered') else self.az_discretized
         ti = self.ti_filtered if hasattr(self, 'ti_filtered') else self.ti_discretized
 
+        stamp = rospy.get_rostime()
+
         while not (rospy.is_shutdown() or s >= len(x)-window_points):
             # Build JointTrajectory message
             header = Header()
             header.seq = s
-            header.stamp = rospy.get_rostime()
+            header.stamp = stamp
             header.frame_id = 'map'
 
             joint_trajectory_msg = JointTrajectory()
@@ -511,10 +515,11 @@ class TrajectoryGeneration:
                 joint_trajectory_point.velocities = [vx[s+i], vy[s+i], vz[s+i]]
                 joint_trajectory_point.accelerations = [ax[s+i], ay[s+i], az[s+i]]
                 joint_trajectory_point.effort = []
-                joint_trajectory_point.time_from_start = rospy.Duration.from_sec(ti[s+i])
+                joint_trajectory_point.time_from_start = rospy.Duration.from_sec(float(i) / self.FREQUENCY)
 
                 joint_trajectory_msg.points.append(joint_trajectory_point)
 
+            stamp += rospy.Duration(time_inc)
             s += ratio
 
             self.pub.publish(joint_trajectory_msg)
@@ -689,7 +694,8 @@ if __name__ == '__main__':
         trajectory_object.generate_yaw_filtered()
 
         # Plot the trajectory
-        trajectory_object.plot_trajectory_extras()
+        if not rospy.is_shutdown():
+            trajectory_object.plot_trajectory_extras()
 
         # Checks before publishing
         trajectory_object.wait_drone_armed()
