@@ -41,14 +41,14 @@ bool isjointTrajectoryFirstCallback = false;
 /******************************************************************************/
 
 /**********************************Functions***********************************/
-void jointTrajectoryAcquireCallback(const trajectory_msgs::JointTrajectory &msg)
+void jointTrajectoryAcquireCallback(const trajectory_msgs::JointTrajectoryConstPtr &msg)
 {
-	if (msg.header.stamp > jointTrajectory.header.stamp + ros::Duration(jointTrajectory.points.back().time_from_start))
-	{
-		isjointTrajectoryFirstCallback = true;
-	}
-	
-	jointTrajectory = msg;
+	if ((!isjointTrajectoryFirstCallback) && (msg->header.stamp + msg->points.back().time_from_start > ros::Time::now()))
+  {
+    isjointTrajectoryFirstCallback = true;
+  }
+
+	jointTrajectory = *msg;
 }
 
 void measuredStatesAcquireCallback(const nav_msgs::OdometryConstPtr &msg)
@@ -89,7 +89,7 @@ void droneStateAcquireCallback(const mavros_msgs::State::ConstPtr &msg)
   droneState = *msg;
 }
 
-trajectory_msgs::JointTrajectoryPoint getNextTrajectoryPoint(float time)
+trajectory_msgs::JointTrajectoryPoint getNextTrajectoryPoint(const double &time)
 {
   int i = 0;
 	double trajectoryTime = jointTrajectory.header.stamp.toSec();
@@ -217,7 +217,6 @@ int main(int argc, char *argv[])
   trajectory_msgs::JointTrajectoryPoint trajectoryPoint, trajectoryPointNext;
   trajectory_msgs::JointTrajectoryPoint estimatedStatesTrajectoryPoint, targetStatesTrajectoryPoint, ekfStatesTrajectoryPoint;
   geometry_msgs::Vector3 eulerAngles, accelerationCmd, attitudeCmd, position, emptyCmd;
-  emptyCmd.x = 0.0; emptyCmd.y = 0.0; emptyCmd.z = 0.0;
   mavros_msgs::AttitudeTarget cmd;
   ros::Time time, last_request;
   float yaw, dt, filterPercent;
@@ -332,11 +331,15 @@ int main(int argc, char *argv[])
 
   /*******************************Initialization*******************************/
   filterPercent = 0.0f;
+
+  emptyCmd.x = 0.0;
+  emptyCmd.y = 0.0;
+  emptyCmd.z = 0.0;
   
   // Initialize acceleration command
-  accelerationCmd.x = .0;
-  accelerationCmd.y = .0;
-  accelerationCmd.z = .0;
+  accelerationCmd.x = 0.0;
+  accelerationCmd.y = 0.0;
+  accelerationCmd.z = 0.0;
 
   // Initialize first trajectory point as the measured position
   trajectory_msgs::JointTrajectoryPoint firstTrajectoryPoint;
@@ -348,7 +351,7 @@ int main(int argc, char *argv[])
   // Initialize yawPrev in KinematicTransform
   kt.yawTargetPrev = eulerAngles.z;
 
-	jointTrajectory.header.stamp = ros::Time(0);
+	jointTrajectory.header.stamp = ros::Time::now();
 	
   firstTrajectoryPoint.positions.push_back(position.x);
   firstTrajectoryPoint.positions.push_back(position.y);
@@ -413,9 +416,8 @@ int main(int argc, char *argv[])
     dt = (ros::Time::now().toNSec() - time.toNSec()) / 1000000000.0f;
     time = ros::Time::now();
 
-    // Consider time for trajectory only when the drone is armed && first trajectory point received
-    // if not set reset flag to true
-    if (!((droneState.mode == "OFFBOARD") && isjointTrajectoryFirstCallback)) reset = true;
+    // Set reset flag to true as long as drone is not: armed, offboard and first trajectory point is received
+    if (!(droneState.armed && (droneState.mode == "OFFBOARD") && isjointTrajectoryFirstCallback)) reset = true;
 
     // Get the last measured state
     eulerAngles = getLastEulerAngles();
@@ -458,6 +460,7 @@ int main(int argc, char *argv[])
     // Get the next trajectory point and update the target state
     trajectoryPoint = getNextTrajectoryPoint(time.toSec());
     targetStates = getState(trajectoryPoint);
+
     // Get the yaw from the trajectoryPoint
     yaw = trajectoryPoint.positions[3];
 
