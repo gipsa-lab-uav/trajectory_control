@@ -45,8 +45,9 @@ class TrajectoryGeneration:
         # Define & initialize flags
         self.is_filtered = False
         self.is_first_callback = False
+        self.print_time_info = False
 
-    def discretise_trajectory(self, parameters=[], velocity=False, heading=False):
+    def discretise_trajectory(self, parameters=[], velocity=False, heading=False, end=False):
         # Trajectory definition - shape/vertices in inertial frame (x, y, z - up)
         #
         # Define trajectory by using:
@@ -168,7 +169,7 @@ class TrajectoryGeneration:
 
         self.ya_info.extend([heading] * len(x[1:]))
 
-        print('discretise_trajectory() - {} runs in {} s'.format(parameters[0], time() - start))
+        if self.print_time_info: print('discretise_trajectory() - {} runs in {} s'.format(parameters[0], time() - start))
 
     def get_linear_position_profil(self, distance, vmax, amax, freq):
         # compute a saturated triangular velocity based profil and return the discretization of the distance
@@ -277,7 +278,7 @@ class TrajectoryGeneration:
             self.az_discretized.append((self.vz_discretized[-1] - self.vz_discretized[-2]) * self.FREQUENCY)
             self.ti_discretized.append((s + 1.) / self.FREQUENCY)
 
-        print('generate_states() runs in {} s'.format(time() - start))
+        if self.print_time_info: print('generate_states() runs in {} s'.format(time() - start))
 
     def generate_states_filtered(self):
 
@@ -310,7 +311,7 @@ class TrajectoryGeneration:
 
         self.is_filtered = True
 
-        print('generate_states_filtered() runs in {} s'.format(time() - start))
+        if self.print_time_info: print('generate_states_filtered() runs in {} s'.format(time() - start))
 
     def generate_states_sg_filtered(self, window_length=51, polyorder=3, deriv=0, delta=1.0, mode='mirror', on_filtered=False):
         # Info: Apply Savitzky-Golay filter to velocities
@@ -348,7 +349,7 @@ class TrajectoryGeneration:
 
         self.is_filtered = True
 
-        print('generate_states_sg_filtered() runs in {} s'.format(time() - start))
+        if self.print_time_info: print('generate_states_sg_filtered() runs in {} s'.format(time() - start))
 
     def generate_yaw_filtered(self, is_1st_order=False):
 
@@ -395,7 +396,7 @@ class TrajectoryGeneration:
         for s, _ in enumerate(cos_ya):
             self.ya_filtered.append(math.atan2(sin_ya[s], cos_ya[s]))
 
-        print('generate_yaw_filtered() runs in {} s'.format(time() - start))
+        if self.print_time_info: print('generate_yaw_filtered() runs in {} s'.format(time() - start))
 
     def plot_trajectory_extras(self):
 
@@ -468,7 +469,7 @@ class TrajectoryGeneration:
         plt.legend()
         plt.title('Yaw')
 
-        print('plot_trajectory_extras_filtered() runs in {} s'.format(time() - start))
+        if self.print_time_info: print('plot_trajectory_extras_filtered() runs in {} s'.format(time() - start))
 
         fig.tight_layout()
         plt.show()
@@ -530,16 +531,16 @@ class TrajectoryGeneration:
         return math.copysign(min(x, y, key=abs), x)
 
     def wait_drone_armed(self):
-        rospy.loginfo("Waiting for the drone to be armed ...")
+        rospy.loginfo("[trajectory_gen] Waiting for the drone to be armed ...")
         while not (rospy.is_shutdown() or self.drone_state.armed):
             pass
-        rospy.loginfo("Drone armed.")
+        rospy.loginfo("[trajectory_gen] Drone armed.")
 
     def wait_drone_offboard(self):
-        rospy.loginfo("Waiting for offboard mode ...")
+        rospy.loginfo("[trajectory_gen] Waiting for offboard mode ...")
         while not (rospy.is_shutdown() or (self.drone_state.mode == "OFFBOARD")):
             pass
-        rospy.loginfo("Offboard enabled.")
+        rospy.loginfo("[trajectory_gen] Offboard enabled.")
 
     def callback(self, odom):
 
@@ -555,10 +556,10 @@ class TrajectoryGeneration:
 
     def check_callback(self):
 
-        rospy.loginfo("Waiting for position measurement callback ...")
+        rospy.loginfo("[trajectory_gen] Waiting for position measurement callback ...")
         while not (rospy.is_shutdown() or self.is_first_callback):
             pass
-        rospy.loginfo("Position measurement callback ok.")
+        rospy.loginfo("[trajectory_gen] Position measurement callback ok.")
 
     def drone_state_acquire_callback(self, state):
         self.drone_state = state

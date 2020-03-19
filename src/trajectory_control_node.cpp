@@ -276,54 +276,55 @@ int main(int argc, char *argv[])
   nh_private.param("compensateYaw", kt.param.compensateYaw, true);
 
   ROS_INFO_STREAM(
-      "\n********* System Parameters (can be defined in launchfile) *********"
-      << "\nsimulated_env: " << simulated_env
-      << "\n"
-      << "\nctrl_freq: " << ctrl_freq
-      << "\n"
-      << "\nfsf_x_P: " << fsf.x.param.Kp << " fsf_x_S: " << fsf.x.param.Ks
-      << "\nfsf_y_P: " << fsf.y.param.Kp << " fsf_y_S: " << fsf.y.param.Ks
-      << "\nfsf_z_P: " << fsf.z.param.Kp << " fsf_z_S: " << fsf.z.param.Ks
-      << "\n"
-      << "\nuse_StatesObserver: " << useStatesObserver
-      << "\n"
-      << "\nse_x_Lpos: " << se.x.param.Lpos << " nse_x_Lspeed: " << se.x.param.Lspeed << " se_x_Lunc: " << se.x.param.Lunc
-      << "\nse_y_Lpos: " << se.y.param.Lpos << " nse_y_Lspeed: " << se.y.param.Lspeed << " se_y_Lunc: " << se.y.param.Lunc
-      << "\nse_z_Lpos: " << se.z.param.Lpos << " nse_z_Lspeed: " << se.z.param.Lspeed << " se_z_Lunc: " << se.z.param.Lunc
-      << "\n"
-      << "\nse_x_Filter: " << se.x.param.filterCoeff
-      << "\nse_y_Filter: " << se.y.param.filterCoeff
-      << "\nse_z_Filter: " << se.z.param.filterCoeff
-      << "\n"
-      << "\nmass: " << kt.param.mass
-      << "\nhoverCompensation: " << kt.param.hoverCompensation
-      << "\nmaxAngle: " << kt.param.maxAngle
-      << "\nmaxVerticalAcceleration: " << kt.param.maxVerticalAcceleration
-      << "\ncompensateYaw: " << kt.param.compensateYaw
-      << "\nKy: " << kt.param.Ky
-      << "\n*******************************************************************");
+    "[trajectory_control]"
+    << "\n********* System Parameters (can be defined in launchfile) *********"
+    << "\nsimulated_env: " << simulated_env
+    << "\n"
+    << "\nctrl_freq: " << ctrl_freq
+    << "\n"
+    << "\nfsf_x_P: " << fsf.x.param.Kp << " fsf_x_S: " << fsf.x.param.Ks
+    << "\nfsf_y_P: " << fsf.y.param.Kp << " fsf_y_S: " << fsf.y.param.Ks
+    << "\nfsf_z_P: " << fsf.z.param.Kp << " fsf_z_S: " << fsf.z.param.Ks
+    << "\n"
+    << "\nuse_StatesObserver: " << useStatesObserver
+    << "\n"
+    << "\nse_x_Lpos: " << se.x.param.Lpos << " nse_x_Lspeed: " << se.x.param.Lspeed << " se_x_Lunc: " << se.x.param.Lunc
+    << "\nse_y_Lpos: " << se.y.param.Lpos << " nse_y_Lspeed: " << se.y.param.Lspeed << " se_y_Lunc: " << se.y.param.Lunc
+    << "\nse_z_Lpos: " << se.z.param.Lpos << " nse_z_Lspeed: " << se.z.param.Lspeed << " se_z_Lunc: " << se.z.param.Lunc
+    << "\n"
+    << "\nse_x_Filter: " << se.x.param.filterCoeff
+    << "\nse_y_Filter: " << se.y.param.filterCoeff
+    << "\nse_z_Filter: " << se.z.param.filterCoeff
+    << "\n"
+    << "\nmass: " << kt.param.mass
+    << "\nhoverCompensation: " << kt.param.hoverCompensation
+    << "\nmaxAngle: " << kt.param.maxAngle
+    << "\nmaxVerticalAcceleration: " << kt.param.maxVerticalAcceleration
+    << "\ncompensateYaw: " << kt.param.compensateYaw
+    << "\nKy: " << kt.param.Ky
+    << "\n*******************************************************************");
 
   ros::Rate rate = nh_private.param<int>("rate", ctrl_freq);
   /****************************************************************************/
 
   /****************************Connection & Callback***************************/
   // Wait for the drone to connect
-  ROS_INFO("Waiting for drone connection ...");
+  ROS_INFO("[trajectory_control] Waiting for drone connection ...");
   while (ros::ok() && !droneState.connected)
   {
     ros::spinOnce();
     rate.sleep();
   }
-  ROS_INFO("Drone connected.");
+  ROS_INFO("[trajectory_control] Drone connected.");
 
   // Wait for the first state measure callback
-  ROS_INFO("Waiting for position measurement callback ...");
+  ROS_INFO("[trajectory_control] Waiting for position measurement callback ...");
   while (ros::ok() && !isMeasuredStatesFirstCallback)
   {
     ros::spinOnce();
     rate.sleep();
   }
-  ROS_INFO("Position measurement callback ok.");
+  ROS_INFO("[trajectory_control] Position measurement callback ok.");
 
   // Wait for better measure accuracy (GPS/MOCAP) -> sleep for 2 seconds
   ros::Duration(2.).sleep();
@@ -381,9 +382,9 @@ int main(int argc, char *argv[])
   last_request = ros::Time::now();
   /****************************************************************************/
 
-  ROS_INFO("*** Real test: enable the offboard control and arm the drone with the remote controller ***");
-  ROS_INFO("*** Estimators are reset as long as offboard control is disabled & no trajectory is being broadcasted ***");
-  ROS_INFO("*** Have a safe flight. ***");
+  ROS_INFO("[trajectory_control] *** Real test: enable the offboard control and arm the drone with the remote controller ***");
+  ROS_INFO("[trajectory_control] *** Estimators are reset as long as drone is not armed, offboard control is disabled & no trajectory is being broadcasted ***");
+  ROS_INFO("[trajectory_control] *** Have a safe flight. ***");
 
   while (ros::ok())
   {
@@ -396,7 +397,7 @@ int main(int argc, char *argv[])
       if (droneState.mode != "OFFBOARD" && (ros::Time::now() - last_request > ros::Duration(5.0)))
       {
         if (set_mode_client.call(offb_set_mode) && offb_set_mode.response.mode_sent)
-          ROS_INFO("OFFBOARD ENABLED");
+          ROS_INFO("[trajectory_control] OFFBOARD ENABLED");
         last_request = ros::Time::now();
       }
       else
@@ -404,7 +405,7 @@ int main(int argc, char *argv[])
         if (!droneState.armed && (ros::Time::now() - last_request > ros::Duration(5.0)))
         {
           if (arming_client.call(arm_cmd) && arm_cmd.response.success)
-            ROS_INFO("VEHICLE ARMED");
+            ROS_INFO("[trajectory_control] VEHICLE ARMED");
           last_request = ros::Time::now();
         }
       }
