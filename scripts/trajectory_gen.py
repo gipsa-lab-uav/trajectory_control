@@ -359,7 +359,7 @@ class TrajectoryGeneration:
 
         if self.print_time_info: print('generate_states_sg_filtered() runs in {} s'.format(time() - start))
 
-    def generate_yaw_filtered(self, is_1st_order=False):
+    def generate_yaw_filtered(self):
 
         if not self.is_filtered:
             return
