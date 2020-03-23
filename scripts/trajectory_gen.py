@@ -47,11 +47,11 @@ class TrajectoryGeneration:
         self.is_first_callback = False
         self.print_time_info = False
 
-    def discretise_trajectory(self, parameters=[], velocity=False, acceleration=False, heading=False):
+    def discretise_trajectory(self, parameters=[], velocity=False, acceleration=False, heading=False, relative=False):
         # Trajectory definition - shape/vertices in inertial frame (x, y, z - up)
         #
         # Define trajectory by using:
-        # trajectory_object.discretise_trajectory(parameters=['name', param], (opt.) velocity=float, (opt.) acceleration=float, (opt.) heading=options)
+        # trajectory_object.discretise_trajectory(parameters=['name', param], (opt.) velocity=float, (opt.) acceleration=float, (opt.) heading=options, , (opt.) relative=bool)
         #
         # Possible parameters:
         # parameters=['takeoff', z] with z in meters
@@ -66,6 +66,7 @@ class TrajectoryGeneration:
         # velocity=float
         # acceleration=float
         # heading=options with options: ['auto'], ['still'], ['center', [x, y]], ['axes', [x, y]]
+        # relative=bool
 
         start = time()
 
@@ -110,7 +111,7 @@ class TrajectoryGeneration:
 
         elif parameters[0] == 'vector':
             vf = np.array(parameters[1])
-            vector = vf - v0
+            vector = vf if relative else vf - v0
             d = np.linalg.norm(vector)
             if (d == 0):
                 return
@@ -124,7 +125,7 @@ class TrajectoryGeneration:
 
         elif parameters[0] == 'circle':
             n = parameters[2] if len(parameters) > 2 else 1
-            center = np.array(parameters[1])
+            center = np.array(parameters[1]) + v0 if relative else np.array(parameters[1])
             r = np.linalg.norm(center - v0)
             circumference = 2 * math.pi * r
 
@@ -600,7 +601,7 @@ if __name__ == '__main__':
         # Trajectory definition - shape/vertices in inertial frame (x, y, z - up)
         #
         # Define trajectory by using:
-        # trajectory_object.discretise_trajectory(parameters=['name', param], (opt. arg) velocity=float, (opt. arg) acceleration=float, (opt. arg) heading=[] (see YAW_HEADING))
+        # trajectory_object.discretise_trajectory(parameters=['name', param], (opt. arg) velocity=float, (opt. arg) acceleration=float, (opt. arg) heading=[] (see YAW_HEADING), (opt. arg) relative=bool)
         #
         # Possible parameters:
         # parameters=['takeoff', z] with z in meters
@@ -635,7 +636,7 @@ if __name__ == '__main__':
         trajectory_object.discretise_trajectory(parameters=['hover', 3.], heading=['still'])
         trajectory_object.discretise_trajectory(parameters=['vector', [0., -.3, 1.]], velocity=0.6, heading=['axes', [1, 0]])
         trajectory_object.discretise_trajectory(parameters=['hover', 3.], heading=['still'])
-        trajectory_object.discretise_trajectory(parameters=['circle', [.0, .5, 1.], 5], velocity=1.0, acceleration=0.03, heading=['auto', [1, 0]])
+        trajectory_object.discretise_trajectory(parameters=['circle', [.0, 0.8, 0.], 5], velocity=1.0, acceleration=0.03, heading=['auto', [1, 0]], relative=True)
         trajectory_object.discretise_trajectory(parameters=['hover', 3.])
         trajectory_object.discretise_trajectory(parameters=['landing'])
 
