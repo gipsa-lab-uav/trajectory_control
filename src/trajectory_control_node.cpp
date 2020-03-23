@@ -29,25 +29,19 @@
 #include <trajectory_control/statesEstimator.hpp>
 
 /*******************************Global variables*******************************/
-std::string trajectoryID;
-trajectory_msgs::JointTrajectory jointTrajectory;
+mavros_msgs::State droneState;
 DroneStates lastMeasuredStates;
 geometry_msgs::Vector3 lastEulerAngles;
-mavros_msgs::State droneState;
+trajectory_msgs::JointTrajectory jointTrajectory;
 
+bool isTrajectoryStarted = false;
 bool isMeasuredStatesFirstCallback = false;
-bool isjointTrajectoryFirstCallback = false;
 
 /******************************************************************************/
 
 /**********************************Functions***********************************/
 void jointTrajectoryAcquireCallback(const trajectory_msgs::JointTrajectoryConstPtr &msg)
 {
-	if ((!isjointTrajectoryFirstCallback) && (msg->header.stamp + msg->points.back().time_from_start > ros::Time::now()))
-  {
-    isjointTrajectoryFirstCallback = true;
-  }
-
 	jointTrajectory = *msg;
 }
 
@@ -101,6 +95,11 @@ trajectory_msgs::JointTrajectoryPoint getNextTrajectoryPoint(const double &time)
     i += 1;
   }
 
+  if ((!isTrajectoryStarted) && (i > 1))
+  {
+    isTrajectoryStarted = true;
+  }
+
   // Erase the outdated values
   if (i > 0) jointTrajectory.points.erase(jointTrajectory.points.begin(), jointTrajectory.points.begin() + i - 1);
 
@@ -109,7 +108,6 @@ trajectory_msgs::JointTrajectoryPoint getNextTrajectoryPoint(const double &time)
 
 DroneStates getState(trajectory_msgs::JointTrajectoryPoint point)
 {
-
   DroneStates state;
   geometry_msgs::Vector3 position, velocity, acceleration;
 
@@ -132,7 +130,6 @@ DroneStates getState(trajectory_msgs::JointTrajectoryPoint point)
 
 trajectory_msgs::JointTrajectoryPoint getJointTrajectoryPoint(DroneStates state)
 {
-
   trajectory_msgs::JointTrajectoryPoint point;
   geometry_msgs::Vector3 position, velocity, acceleration;
 
@@ -162,7 +159,6 @@ geometry_msgs::Vector3 getLastEulerAngles() { return lastEulerAngles; }
 
 geometry_msgs::Quaternion EulerToQuaternion(float yaw, float pitch, float roll)
 {
-
   geometry_msgs::Quaternion q;
   float cy, cp, cr, sy, sp, sr;
 
@@ -222,8 +218,6 @@ int main(int argc, char *argv[])
   float yaw, dt, filterPercent;
   int ctrl_freq;
   bool simulated_env, useStatesObserver, reset;
-
-  reset = true;
   /****************************************************************************/
 
   /*********************************Parameters*********************************/
@@ -234,8 +228,8 @@ int main(int argc, char *argv[])
   nh_private.param("ctrl_freq", ctrl_freq, 100);
 
   // Full States Feedback Gains
-  nh_private.param("fsf_FF", fsf.useFeedForward, false);
-  nh_private.param("fsf_INT", fsf.useIntegrator, false);
+  nh_private.param("fsf_FF",  fsf.useFeedForward, false);
+  nh_private.param("fsf_INT", fsf.useIntegrator,  false);
   nh_private.param("fsf_x_I", fsf.x.param.Ki, (float)0.0);
   nh_private.param("fsf_x_P", fsf.x.param.Kp, (float)1.0);
   nh_private.param("fsf_x_S", fsf.x.param.Ks, (float)1.7);
@@ -249,30 +243,27 @@ int main(int argc, char *argv[])
   // States Observer Gains
   nh_private.param("use_StatesObserver", useStatesObserver, true);
 
-  nh_private.param("se_x_Lpos", se.x.param.Lpos, (float)1.03);
-  nh_private.param("se_y_Lpos", se.y.param.Lpos, (float)1.03);
-  nh_private.param("se_z_Lpos", se.z.param.Lpos, (float)1.03);
+  nh_private.param("se_x_Lpos",   se.x.param.Lpos,   (float)1.03);
+  nh_private.param("se_y_Lpos",   se.y.param.Lpos,   (float)1.03);
+  nh_private.param("se_z_Lpos",   se.z.param.Lpos,   (float)1.03);
   nh_private.param("se_x_Lspeed", se.x.param.Lspeed, (float)10.7);
   nh_private.param("se_y_Lspeed", se.y.param.Lspeed, (float)10.7);
   nh_private.param("se_z_Lspeed", se.z.param.Lspeed, (float)10.7);
-  nh_private.param("se_x_Lunc", se.x.param.Lunc, (float)9.62);
-  nh_private.param("se_y_Lunc", se.y.param.Lunc, (float)9.62);
-  nh_private.param("se_z_Lunc", se.z.param.Lunc, (float)9.62);
+  nh_private.param("se_x_Lunc",   se.x.param.Lunc,   (float)9.62);
+  nh_private.param("se_y_Lunc",   se.y.param.Lunc,   (float)9.62);
+  nh_private.param("se_z_Lunc",   se.z.param.Lunc,   (float)9.62);
 
   // Actuators Time Constant (used to filter the command fed to the observer)
   nh_private.param("se_x_Filter", se.x.param.filterCoeff, (float).9);
   nh_private.param("se_y_Filter", se.y.param.filterCoeff, (float).9);
   nh_private.param("se_z_Filter", se.z.param.filterCoeff, (float).15);
-  seAcc.x.param = se.x.param;
-  seAcc.y.param = se.y.param;
-  seAcc.z.param = se.z.param;
 
   // Kinematic Transform Parameters (= physical parameters)
-  nh_private.param("mass", kt.param.mass, (float)1.);
-  nh_private.param("hoverCompensation", kt.param.hoverCompensation, (float).3);
-  nh_private.param("maxAngle", kt.param.maxAngle, (float)45.);
-  nh_private.param("maxVerticalAcceleration", kt.param.maxVerticalAcceleration, (float)4.);
-  nh_private.param("Ky", kt.param.Ky, (float).4);
+  nh_private.param("mass", kt.param.mass, (float)1.0);
+  nh_private.param("hoverCompensation", kt.param.hoverCompensation, (float)0.3);
+  nh_private.param("maxAngle", kt.param.maxAngle, (float)45.0);
+  nh_private.param("maxVerticalAcceleration", kt.param.maxVerticalAcceleration, (float)4.0);
+  nh_private.param("Ky", kt.param.Ky, (float)0.4);
   nh_private.param("compensateYaw", kt.param.compensateYaw, true);
 
   ROS_INFO_STREAM(
@@ -282,9 +273,11 @@ int main(int argc, char *argv[])
     << "\n"
     << "\nctrl_freq: " << ctrl_freq
     << "\n"
-    << "\nfsf_x_P: " << fsf.x.param.Kp << " fsf_x_S: " << fsf.x.param.Ks
-    << "\nfsf_y_P: " << fsf.y.param.Kp << " fsf_y_S: " << fsf.y.param.Ks
-    << "\nfsf_z_P: " << fsf.z.param.Kp << " fsf_z_S: " << fsf.z.param.Ks
+    << "\nfsf_FF: " << fsf.useFeedForward << " fsf_INT: " << fsf.useIntegrator
+    << "\n"
+    << "\nfsf_x_P: " << fsf.x.param.Kp << " fsf_x_I: " << fsf.x.param.Ki << " fsf_x_S: " << fsf.x.param.Ks
+    << "\nfsf_y_P: " << fsf.y.param.Kp << " fsf_y_I: " << fsf.y.param.Ki << " fsf_y_S: " << fsf.y.param.Ks
+    << "\nfsf_z_P: " << fsf.z.param.Kp << " fsf_z_I: " << fsf.z.param.Ki << " fsf_z_S: " << fsf.z.param.Ks
     << "\n"
     << "\nuse_StatesObserver: " << useStatesObserver
     << "\n"
@@ -331,13 +324,18 @@ int main(int argc, char *argv[])
   /****************************************************************************/
 
   /*******************************Initialization*******************************/
+  reset = true;
+  
   filterPercent = 0.0f;
 
   emptyCmd.x = 0.0;
   emptyCmd.y = 0.0;
   emptyCmd.z = 0.0;
-  
-  // Initialize acceleration command
+
+  seAcc.x.param = se.x.param;
+  seAcc.y.param = se.y.param;
+  seAcc.z.param = se.z.param;
+
   accelerationCmd.x = 0.0;
   accelerationCmd.y = 0.0;
   accelerationCmd.z = 0.0;
@@ -348,9 +346,6 @@ int main(int argc, char *argv[])
   measuredStates = getLastMeasuredStates();
   eulerAngles = getLastEulerAngles();
   position = measuredStates.getVectPos();
-
-  // Initialize yawPrev in KinematicTransform
-  kt.yawTargetPrev = eulerAngles.z;
 
 	jointTrajectory.header.stamp = ros::Time::now();
 	
@@ -367,6 +362,9 @@ int main(int argc, char *argv[])
   firstTrajectoryPoint.time_from_start = ros::Duration(.0);
 
   jointTrajectory.points.push_back(firstTrajectoryPoint);
+
+  // Initialize yawPrev in KinematicTransform
+  kt.yawTargetPrev = eulerAngles.z;
 	
   // Set OFFBOARD mode request
   mavros_msgs::SetMode offb_set_mode;
@@ -388,7 +386,6 @@ int main(int argc, char *argv[])
 
   while (ros::ok())
   {
-
     /****************************Manage Drone Mode*****************************/
     // Only in simulated environment
     //In real world, the mode are managed by the pilot with the controller
@@ -417,8 +414,8 @@ int main(int argc, char *argv[])
     dt = (ros::Time::now().toNSec() - time.toNSec()) / 1000000000.0f;
     time = ros::Time::now();
 
-    // Set reset flag to true as long as drone is not: armed, offboard and first trajectory point is received
-    if (!(droneState.armed && (droneState.mode == "OFFBOARD") && isjointTrajectoryFirstCallback)) reset = true;
+    // Set reset flag to false if drone is armed, offboard and trajectory is started
+    if (reset && droneState.armed && (droneState.mode == "OFFBOARD") && isTrajectoryStarted) reset = false;
 
     // Get the last measured state
     eulerAngles = getLastEulerAngles();
@@ -465,7 +462,10 @@ int main(int argc, char *argv[])
     // Get the yaw from the trajectoryPoint
     yaw = trajectoryPoint.positions[3];
 
-    // Replace heading in estimatedStates by the measured one (used by display.py)
+    // Replace measured yaw by desired yaw from trajectoryPoint (used by kt)
+    eulerAngles.z = yaw;
+
+    // Replace heading in estimatedStates by the measured one
     estimatedStates.replaceHeading(eulerAngles.z);
     /**************************************************************************/
 
@@ -476,13 +476,11 @@ int main(int argc, char *argv[])
       se.resetEstimations();
       seAcc.resetEstimations();
       fsf.resetIntegrators();
-      reset = false;
     }
 
     // Compute full state feedback control
     accelerationCmd = fsf.process(dt, estimatedStates, targetStates);
 
-    eulerAngles.z = yaw;
     // Generate (roll, pitch, thrust) command
     // For compatibility with different aircrafts or even terrestrial robots, this should be in its own node
     attitudeCmd = kt.process(accelerationCmd, eulerAngles);
