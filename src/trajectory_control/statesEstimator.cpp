@@ -7,10 +7,7 @@ SEParameters::SEParameters()
 	Lunc = 9.62f;
 	filterCoeff = 0.95f;
 
-	overSamplingFactor = 1;
 	maxUncertainties = 6.0f;
-
-	manualReset = false;
 }
 SEParameters::SEParameters(float lpos, float lspeed, float lunc, float filtercoeff)
 {
@@ -19,22 +16,16 @@ SEParameters::SEParameters(float lpos, float lspeed, float lunc, float filtercoe
 	Lunc = lunc;
 	filterCoeff = filtercoeff;
 
-	overSamplingFactor = 1;
 	maxUncertainties = 6.0f;
-
-	manualReset = false;
 }
-SEParameters::SEParameters(float lpos, float lspeed, float lunc, float filtercoeff, int oversample, float maxUnc)
+SEParameters::SEParameters(float lpos, float lspeed, float lunc, float filtercoeff, float maxUnc)
 {
 	Lpos = lpos;
 	Lspeed = lspeed;
 	Lunc = lunc;
 	filterCoeff = filtercoeff;
 
-	overSamplingFactor = oversample;
 	maxUncertainties = maxUnc;
-
-	manualReset = false;
 }
 SEParameters::~SEParameters() {}
 
@@ -103,13 +94,6 @@ DS1D SE1D::process(float dt, float measuredPos, DS1D predicted, float cmd)
 		newStates.uncertainties = 0.0f;
 		reset = false;
 	}
-	if (param.manualReset == true)
-	{
-		newStates.position = measuredPos;
-		newStates.speed = 0.0f;
-		newStates.uncertainties = 0.0f;
-	}
-
 	return newStates;
 }
 
@@ -136,24 +120,17 @@ StatesEstimator::~StatesEstimator() {}
 
 DroneStates StatesEstimator::process(float dt, geometry_msgs::Vector3 dronePosition, DroneStates predicted, geometry_msgs::Vector3 cmd)
 {
+	DroneStates r;
+	r.fillStates(predicted);
 
 	// Filter command to fit actuator response: first order for vertical response, second order for horizontal
 	cmdApplied = firstOrderFilterCmd(cmdApplied, cmdAppliedPrev); //update 2nd order
 	cmdAppliedPrev = firstOrderFilterCmd(cmdAppliedPrev, cmd);	//update 1rst order
 	cmdApplied.z = cmdAppliedPrev.z;
 
-	//updateParam(controllerParam);
-	float newDt = dt / x.param.overSamplingFactor;
-	DroneStates r = predicted;
-	DroneStates predictedTemp = predicted;
-
-	for (int i = 0; i < x.param.overSamplingFactor; i++)
-	{
-		r.x = x.process(newDt, dronePosition.x, predictedTemp.x, cmdApplied.x);
-		r.y = y.process(newDt, dronePosition.y, predictedTemp.y, cmdApplied.y);
-		r.z = z.process(newDt, dronePosition.z, predictedTemp.z, cmdApplied.z);
-		predictedTemp = r;
-	}
+	r.x = x.process(dt, dronePosition.x, predicted.x, cmdApplied.x);
+	r.y = y.process(dt, dronePosition.y, predicted.y, cmdApplied.y);
+	r.z = z.process(dt, dronePosition.z, predicted.z, cmdApplied.z);
 
 	return r;
 }
@@ -165,13 +142,13 @@ void StatesEstimator::resetEstimations()
 	z.resetEstimation();
 }
 
-geometry_msgs::Vector3 StatesEstimator::firstOrderFilterCmd(geometry_msgs::Vector3 cmdT_1, geometry_msgs::Vector3 cmdCurrent)
+geometry_msgs::Vector3 StatesEstimator::firstOrderFilterCmd(geometry_msgs::Vector3 cmdPrev, geometry_msgs::Vector3 cmdCurrent)
 {
 	geometry_msgs::Vector3 cmdOut;
 
-	cmdOut.x = x.param.filterCoeff * cmdT_1.x + (1.0f - x.param.filterCoeff) * cmdCurrent.x;
-	cmdOut.y = y.param.filterCoeff * cmdT_1.y + (1.0f - y.param.filterCoeff) * cmdCurrent.y;
-	cmdOut.z = z.param.filterCoeff * cmdT_1.z + (1.0f - z.param.filterCoeff) * cmdCurrent.z;
+	cmdOut.x = x.param.filterCoeff * cmdPrev.x + (1.0f - x.param.filterCoeff) * cmdCurrent.x;
+	cmdOut.y = y.param.filterCoeff * cmdPrev.y + (1.0f - y.param.filterCoeff) * cmdCurrent.y;
+	cmdOut.z = z.param.filterCoeff * cmdPrev.z + (1.0f - z.param.filterCoeff) * cmdCurrent.z;
 
 	return cmdOut;
 }

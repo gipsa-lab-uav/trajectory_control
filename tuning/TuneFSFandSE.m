@@ -89,10 +89,10 @@ Bacc = [0 dt 0 0]';
 
 % LQR Tuning of parameters = prioritize a part of the control.
 % Uncertainties value is always 0 and gain always 1: we want to reject them
-aggressivity = 10; % from 0.x to 100, higher means more agressive
+aggressivity = 20; % from 0.x to 100, higher means more agressive
 positionValue = 1; % should always be 1 as a reference: everything is relative
 positionToSpeedRatio = 10; % from 0.01 to 100, higher means prioritize speed
-positionToAccRatio = 1; % from 0.01 to 100, higher means prioritize acceleration
+positionToAccRatio = 10; % from 0.01 to 100, higher means prioritize acceleration
 sumRatios = positionValue+positionToSpeedRatio+positionToAccRatio;
 
 % Map userfriendly parameters to LQR parameters for control

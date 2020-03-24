@@ -8,17 +8,23 @@
 ###############################################################################
 ctrl_freq: 100
 
+# Control parameters:
+# If FF true, then we use feedforward & not the acceleration estimation
+# If INT true, then we use an integrator (shouldn't be needed)
 fsf_FF: true
 fsf_INT: false
+fsf_x_I: 0.0
 fsf_x_P: 0.37
 fsf_x_S: 0.87
+fsf_y_I: 0.0
 fsf_y_P: 0.37
 fsf_y_S: 0.87
+fsf_z_I: 0.0
 fsf_z_P: 0.67
 fsf_z_S: 1.2
 
+# Estimation parameters
 use_StatesObserver: true
-
 se_x_Lpos: 1.03
 se_y_Lpos: 1.03
 se_z_Lpos: 1.03
@@ -28,12 +34,15 @@ se_z_Lspeed: 10.7
 se_x_Lunc: 9.62
 se_y_Lunc: 9.62
 se_z_Lunc: 9.62
-
+# Actuator filters for estimation: Needs to be tuned
 se_x_Filter: 0.9
 se_y_Filter: 0.9
 se_z_Filter: 0.15
 
+# Kinematic transform parameters
 mass: 1.7
 hoverCompensation: 0.29
 maxAngle: 45.0
 maxVerticalAcceleration: 4.0
+compensateYaw: false
+Ky: 0.35

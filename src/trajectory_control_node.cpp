@@ -87,7 +87,7 @@ trajectory_msgs::JointTrajectoryPoint getNextTrajectoryPoint(const double &time)
 {
   int i = 0;
 	double trajectoryTime = jointTrajectory.header.stamp.toSec();
-	
+
   // Find the next trajectory point with respect to time
   for (const auto &point : jointTrajectory.points)
   {
@@ -325,7 +325,7 @@ int main(int argc, char *argv[])
 
   /*******************************Initialization*******************************/
   reset = true;
-  
+
   filterPercent = 0.0f;
 
   emptyCmd.x = 0.0;
@@ -348,7 +348,7 @@ int main(int argc, char *argv[])
   position = measuredStates.getVectPos();
 
 	jointTrajectory.header.stamp = ros::Time::now();
-	
+
   firstTrajectoryPoint.positions.push_back(position.x);
   firstTrajectoryPoint.positions.push_back(position.y);
   firstTrajectoryPoint.positions.push_back(position.z - .01f);
@@ -365,7 +365,7 @@ int main(int argc, char *argv[])
 
   // Initialize yawPrev in KinematicTransform
   kt.yawTargetPrev = eulerAngles.z;
-	
+
   // Set OFFBOARD mode request
   mavros_msgs::SetMode offb_set_mode;
   offb_set_mode.request.custom_mode = "OFFBOARD";
@@ -483,7 +483,7 @@ int main(int argc, char *argv[])
 
     // Generate (roll, pitch, thrust) command
     // For compatibility with different aircrafts or even terrestrial robots, this should be in its own node
-    attitudeCmd = kt.process(accelerationCmd, eulerAngles);
+    attitudeCmd = kt.process(dt, accelerationCmd, eulerAngles);
     /**************************************************************************/
 
     /*************************Publish Attitude Command*************************/

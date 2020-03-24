@@ -19,16 +19,11 @@ class SEParameters
 	float filterCoeff;
 
 	//Tuning
-	int overSamplingFactor;// = 1;
-	float maxUncertainties;// = 10f;
-
-	//Options
-	bool usePosEst;// = true;
-	bool manualReset;// = false;
+	float maxUncertainties;// = 6f;
 
 	SEParameters();
 	SEParameters(float lpos, float lspeed, float lunc, float filtercoeff);
-	SEParameters(float lpos, float lspeed, float lunc, float filtercoeff, int oversample, float maxUnc);
+	SEParameters(float lpos, float lspeed, float lunc, float filtercoeff, float maxUnc);
 	~SEParameters();
 };
 
@@ -62,7 +57,7 @@ class StatesEstimator
 	geometry_msgs::Vector3 cmdApplied, cmdAppliedPrev;
 	DroneStates process(float dt, geometry_msgs::Vector3 dronePosition, DroneStates predicted, geometry_msgs::Vector3 cmd);
 	void resetEstimations();
-  geometry_msgs::Vector3 firstOrderFilterCmd(geometry_msgs::Vector3 cmdT_1,geometry_msgs::Vector3 cmdCurrent);
+  geometry_msgs::Vector3 firstOrderFilterCmd(geometry_msgs::Vector3 cmdPrev,geometry_msgs::Vector3 cmdCurrent);
 	StatesEstimator();
 	~StatesEstimator();
 };

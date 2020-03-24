@@ -26,7 +26,7 @@ class KinematicTransform
 	KTParameters param;
   float yawTargetPrev;
 
-	geometry_msgs::Vector3 process(geometry_msgs::Vector3 accelerations, geometry_msgs::Vector3 radAngles);
+	geometry_msgs::Vector3 process(float dt, geometry_msgs::Vector3 accelerations, geometry_msgs::Vector3 radAngles);
 	float clamp(float value, float lowBound, float upperBound);
 
 	KinematicTransform();

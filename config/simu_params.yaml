@@ -4,7 +4,7 @@
 ## Date: 08 January 2020
 ## Tuning:
 ## -fsf: yes
-## -se : no
+## -se : yes
 ###############################################################################
 ctrl_freq: 100
 
@@ -14,15 +14,16 @@ ctrl_freq: 100
 fsf_FF: false
 fsf_INT: false
 fsf_x_I: 0.0
-fsf_x_P: 1.98
-fsf_x_S: 2.44
+fsf_x_P: 0.96
+fsf_x_S: 3.34
 fsf_y_I: 0.0
-fsf_y_P: 1.98
-fsf_y_S: 2.44
+fsf_y_P: 1.35
+fsf_y_S: 4.5
 fsf_z_I: 0.0
-fsf_z_P: 1.98
-fsf_z_S: 2.44
+fsf_z_P: 1.5
+fsf_z_S: 5.07
 
+# Estimation parameters
 use_StatesObserver: true
 se_x_Lpos: 0.67
 se_y_Lpos: 0.67
@@ -33,14 +34,15 @@ se_z_Lspeed: 3.4
 se_x_Lunc: 6.0
 se_y_Lunc: 6.0
 se_z_Lunc: 6.0
-
+# Actuator filters for estimation: Needs to be tuned
 se_x_Filter: 0.9
 se_y_Filter: 0.9
 se_z_Filter: 0.1
 
+# Kinematic transform parameters
 mass: 1.5
 hoverCompensation: 0.45
 maxAngle: 45.0
 maxVerticalAcceleration: 4.0
 compensateYaw: true
-Ky: 0.5
+Ky: 0.35

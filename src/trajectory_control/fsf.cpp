@@ -111,16 +111,17 @@ void FSF1D::resetIntegrator()
 
 float FSF1D::process(float dt, DS1D current, DS1D target)
 {
-	if (dt == 0.0f)
+	if (dt == 0.0f) // If we have time issues, just keep the current command
 		return current.acceleration;
 
 	float cmd;
 
+	// Compute standard errors
 	pError = target.position - current.position;
 	sError = target.speed - current.speed;
-	uError = target.uncertainties - current.uncertainties;
-	aError = target.acceleration - current.acceleration;
+	uError = - current.uncertainties;
 
+	// If we're using different control parameters for step movements & trajectory following
 	if (stepMode1D)
 	{
 		cmd = param.KpStep * pError + param.KsStep * sError + param.Ku * uError;
@@ -130,6 +131,7 @@ float FSF1D::process(float dt, DS1D current, DS1D target)
 		cmd = param.Kp * pError + param.Ks * sError + param.Ku * uError;
 	}
 
+	// Optional saturated integrator
 	if (param.useIntegrator)
 	{
 		iError += pError * dt;
@@ -145,12 +147,15 @@ float FSF1D::process(float dt, DS1D current, DS1D target)
 
 		cmd += param.Ki * iError;
 	}
+
+	// Feed-forward the acceleration or loop on it
 	if (param.useFeedForward)
 	{
 		cmd += target.acceleration;
 	}
 	else
 	{
+		aError = target.acceleration - current.acceleration;
 		cmd += param.Ka * aError;
 	}
 	return cmd;

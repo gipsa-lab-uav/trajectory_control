@@ -7,7 +7,6 @@
 /// <summary>
 /// Respresent the current drone states used for Full State Feedback.
 /// </summary>
-
 class DS1D {
     public:
     	float position;

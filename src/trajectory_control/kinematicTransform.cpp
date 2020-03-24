@@ -2,8 +2,8 @@
 
 KTParameters::KTParameters()
 {
-    hoverCompensation = 0.5f;
-    mass = 0.287f;
+    hoverCompensation = 0.3f;
+    mass = 1.0f;
     maxAngle = 45.0f;
     maxVerticalAcceleration = 4.0f;
     compensateYaw = true;
@@ -26,12 +26,11 @@ KinematicTransform::KinematicTransform() {
 }
 KinematicTransform::~KinematicTransform() {}
 
-geometry_msgs::Vector3 KinematicTransform::process(geometry_msgs::Vector3 accelerations, geometry_msgs::Vector3 droneEulerAngles)
+geometry_msgs::Vector3 KinematicTransform::process(float dt, geometry_msgs::Vector3 accelerations, geometry_msgs::Vector3 droneEulerAngles)
 {
     // outputCmd(x,y,z) <=> (roll, pitch, thrust)
     geometry_msgs::Vector3 outputCmd;
     float G = 9.81f;
-    float dt = 0.01f;
     float Rad2Deg = 180.0f / 3.14f;
     float yawCompensation;
 
@@ -40,15 +39,15 @@ geometry_msgs::Vector3 KinematicTransform::process(geometry_msgs::Vector3 accele
     float cosYaw = cos(droneEulerAngles.z);
     float sinYaw = sin(droneEulerAngles.z);
 
+    // Compute yawRate on target values to avoid oscillations
     float yawRate = (droneEulerAngles.z - yawTargetPrev) / dt;
     float maxAngleRad = param.maxAngle / Rad2Deg;
 
-    // float accelerationZ = KinematicTransform::clamp(accelerations.z, -param.maxVerticalAcceleration, param.maxVerticalAcceleration);
-
+    // Compute Thrust force
     //float thrust = param.mass * (accelerations.z + G) / (cosRoll * cosPitch);
     float thrust = param.mass * sqrt( accelerations.x*accelerations.x + accelerations.y*accelerations.y + (accelerations.z + G)*(accelerations.z + G));
 
-    // Clamp thrust to max value
+    // Clamp thrust to max authorized value
     thrust = KinematicTransform::clamp(thrust, 0.0f, param.mass * (param.maxVerticalAcceleration + G));
 
     //if we are going in freefall, we will do it horizontally, it will be easier to apply thrust to stabilize the drone when wanted
@@ -59,15 +58,15 @@ geometry_msgs::Vector3 KinematicTransform::process(geometry_msgs::Vector3 accele
     }
     else
     {
-        // In the regular frame we have:
-        // roll = std::Asin(mass / thrust * ( cmdDrone.translation.x * sinYaw - cmdDrone.translation.y * cosYaw ) );
-        // pitch = std::Asin(mass / thrust * ( cmdDrone.translation.x * cosYaw + cmdDrone.translation.y * sinYaw) ) );
-        // Yaw shouldn't change, so we keep the cos&sin as is, but we have x_reg = z_unity ; y_reg = -x_unity ; z_reg = y_unity
+        // Compute the angles from the acceleration command (from UAV equations)
         // The clamp is to ensure the quantity inside the asin to be between [-1, 1]
         outputCmd.x = asin(KinematicTransform::clamp(param.mass * (accelerations.x * sinYaw - accelerations.y * cosYaw) / thrust, -1.0f, 1.0f));
         //outputCmd.y = asin(KinematicTransform::clamp(param.mass * (accelerations.x * cosYaw + accelerations.y * sinYaw) / thrust, -1.0f, 1.0f));
         outputCmd.y = atan(param.mass * (accelerations.x * cosYaw + accelerations.y * sinYaw) / (accelerations.z + G));
     }
+
+    // If we're trying to compensate Yaw impact on roll
+    // Should probably use UAV forward speed as well
     if(param.compensateYaw)
     {
       yawCompensation = param.Ky * yawRate;
@@ -80,15 +79,10 @@ geometry_msgs::Vector3 KinematicTransform::process(geometry_msgs::Vector3 accele
     outputCmd.x = KinematicTransform::clamp(outputCmd.x, -maxAngleRad, maxAngleRad);
     outputCmd.y = KinematicTransform::clamp(outputCmd.y, -maxAngleRad, maxAngleRad);
 
-    // Map outputs between -1 and 1.
-    // outputCmd.x = outputCmd.x / param.maxAngle;
-    // outputCmd.y = outputCmd.y / param.maxAngle;
-    //outputCmd.x = (outputCmd.x + param.maxAngle) / (2.0f*param.maxAngle);
-    //outputCmd.y = (outputCmd.y + param.maxAngle) / (2.0f*param.maxAngle);
-
+    // Map Throttle value between 0 & 1
     outputCmd.z = thrust * param.hoverCompensation / (param.mass * G);
-    // outputCmd.z = param.hoverCompensation + accelerationZ / param.maxVerticalAcceleration;
 
+    // Update
     yawTargetPrev = droneEulerAngles.z;
     return outputCmd;
 }
