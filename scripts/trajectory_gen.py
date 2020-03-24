@@ -635,7 +635,7 @@ if __name__ == '__main__':
         trajectory_object.discretise_trajectory(parameters=['takeoff', 1.0], velocity=0.6)
         trajectory_object.discretise_trajectory(parameters=['hover', 3.], heading=['still'])
         trajectory_object.discretise_trajectory(parameters=['vector', [0., -.3, 1.]], velocity=0.6, heading=['axes', [1, 0]])
-        trajectory_object.discretise_trajectory(parameters=['hover', 3.], heading=['still'])
+        trajectory_object.discretise_trajectory(parameters=['hover', 3.], heading=['auto'])
         trajectory_object.discretise_trajectory(parameters=['circle', [.0, 0.8, 0.], 5], velocity=1.0, acceleration=0.03, heading=['auto', [1, 0]], relative=True)
         trajectory_object.discretise_trajectory(parameters=['hover', 3.])
         trajectory_object.discretise_trajectory(parameters=['landing'])
