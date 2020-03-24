@@ -3,7 +3,7 @@
 
 #include <ros/ros.h>
 #include <geometry_msgs/Vector3.h>
-#include <cmath> 
+#include <cmath>
 
 class KTParameters
 {
@@ -12,9 +12,11 @@ class KTParameters
     float mass;// = 0.287f;
     float maxAngle;// = 45.0f
     float maxVerticalAcceleration;// = 4.0f,
+    bool compensateYaw;
+    float Ky;
 
     KTParameters();
-	KTParameters(float Komp, float m, float angleMax, float maxVerticalAcc);
+	KTParameters(float Komp, float m, float angleMax, float maxVerticalAcc, float Kyaw);
     ~KTParameters();
 };
 
@@ -22,8 +24,9 @@ class KinematicTransform
 {
     public:
 	KTParameters param;
+  float yawTargetPrev;
 
-	geometry_msgs::Vector3 process(geometry_msgs::Vector3 accelerations, geometry_msgs::Vector3 radAngles);
+	geometry_msgs::Vector3 process(float dt, geometry_msgs::Vector3 accelerations, geometry_msgs::Vector3 radAngles);
 	float clamp(float value, float lowBound, float upperBound);
 
 	KinematicTransform();

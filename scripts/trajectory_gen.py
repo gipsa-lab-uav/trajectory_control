@@ -9,17 +9,20 @@ from timeit import default_timer as time
 
 import rospy
 from std_msgs.msg import Header
-from trajectory_msgs.msg import JointTrajectory, JointTrajectoryPoint
 from nav_msgs.msg import Odometry
+from mavros_msgs.msg import State
+from trajectory_msgs.msg import JointTrajectory, JointTrajectoryPoint
 
 
 class TrajectoryGeneration:
-    def __init__(self, node_name='trajectory_gen_node', subscriber='mavros/local_position/odom', publisher='mavros/JointTrajectory'):
+    def __init__(self, node_name='trajectory_gen_node', state='mavros/state' , subscriber='mavros/local_position/odom', publisher='mavros/JointTrajectory'):
 
         rospy.init_node(node_name, anonymous=True)
 
         # Define suscribers & publishers
+        rospy.Subscriber(state, State, self.drone_state_acquire_callback)
         rospy.Subscriber(subscriber, Odometry, self.callback)
+
         self.pub = rospy.Publisher(publisher, JointTrajectory, queue_size=10)
 
         # Define & initialize private variables
@@ -37,28 +40,33 @@ class TrajectoryGeneration:
         self.MAX_LINEAR_SPEED_XY = 10.0  # max. linear speed [m.s-1] (only used by generate_states_filtered(), not by generate_states_sg_filtered())
         self.MAX_LINEAR_SPEED_Z = 12.0  # max. linear speed [m.s-1] (only used by generate_states_filtered(), not by generate_states_sg_filtered())
 
+        self.drone_state = State()
+
         # Define & initialize flags
         self.is_filtered = False
         self.is_first_callback = False
+        self.print_time_info = False
 
-    def discretise_trajectory(self, parameters=[], velocity=False, heading=False):
+    def discretise_trajectory(self, parameters=[], velocity=False, acceleration=False, heading=False, relative=False):
         # Trajectory definition - shape/vertices in inertial frame (x, y, z - up)
         #
         # Define trajectory by using:
-        # trajectory_object.discretise_trajectory(parameters=['name', param], (opt.) velocity=float, (opt.) heading=options)
+        # trajectory_object.discretise_trajectory(parameters=['name', param], (opt.) velocity=float, (opt.) acceleration=float, (opt.) heading=options, , (opt.) relative=bool)
         #
         # Possible parameters:
         # parameters=['takeoff', z] with z in meters
         # parameters=['hover', time] with time in seconds
         # parameters=['vector', [x, y, z]] with x, y, z the target position
-        # parameters=['circle', [x, y, z], (opt.) n] with x, y, z the center of the circle and n (optional) the number of circle. Circle 
+        # parameters=['circle', [x, y, z], (opt.) n] with x, y, z the center of the circle and n (optional) the number of circle. Circle
         # is defined by the drone position when starting the circle trajectory and the center. The drone will turn around this point.
         # parameters=['landing']
         # parameters=['returnhome']
         #
         # Optional argument:
         # velocity=float
+        # acceleration=float
         # heading=options with options: ['auto'], ['still'], ['center', [x, y]], ['axes', [x, y]]
+        # relative=bool
 
         start = time()
 
@@ -73,6 +81,9 @@ class TrajectoryGeneration:
         if not velocity:
             velocity = self.TRAJECTORY_REQUESTED_SPEED
 
+        if not acceleration:
+            acceleration = 0.0
+
         if not heading:
             heading = self.YAW_HEADING
 
@@ -83,7 +94,7 @@ class TrajectoryGeneration:
         v0 = np.array([x1, y1, z1])
 
         if parameters[0] == 'takeoff':
-            profil = self.get_linear_position_profil(abs(parameters[1] - z1), velocity, self.MAX_LINEAR_ACC_Z, self.FREQUENCY)
+            profil = self.get_linear_position_profil(abs(parameters[1] - z1), acceleration, velocity, self.MAX_LINEAR_ACC_Z, self.FREQUENCY)
 
             sign = math.copysign(1.0, parameters[1] - z1)
 
@@ -100,13 +111,13 @@ class TrajectoryGeneration:
 
         elif parameters[0] == 'vector':
             vf = np.array(parameters[1])
-            vector = vf - v0
+            vector = vf if relative else vf - v0
             d = np.linalg.norm(vector)
             if (d == 0):
                 return
             vector_u = vector / d
 
-            profil = self.get_linear_position_profil(d, velocity, self.MAX_LINEAR_ACC_XY, self.FREQUENCY)
+            profil = self.get_linear_position_profil(d, acceleration, velocity, self.MAX_LINEAR_ACC_XY, self.FREQUENCY)
 
             x = [x1 + l * vector_u[0] for l in profil]
             y = [y1 + l * vector_u[1] for l in profil]
@@ -114,21 +125,21 @@ class TrajectoryGeneration:
 
         elif parameters[0] == 'circle':
             n = parameters[2] if len(parameters) > 2 else 1
-            center = np.array(parameters[1])
+            center = np.array(parameters[1]) + v0 if relative else np.array(parameters[1])
             r = np.linalg.norm(center - v0)
             circumference = 2 * math.pi * r
 
             cos_a = (x1 - center[0]) / r
             sin_a = (y1 - center[1]) / r
 
-            profil = self.get_linear_position_profil(n * circumference, velocity, self.MAX_LINEAR_ACC_XY / math.sqrt(2), self.FREQUENCY)
+            profil = self.get_linear_position_profil(n * circumference, acceleration, velocity, self.MAX_LINEAR_ACC_XY / math.sqrt(2), self.FREQUENCY)
 
             x = [(cos_a*math.cos(l/r) - sin_a*math.sin(l/r)) * r + center[0] for l in profil]
             y = [(sin_a*math.cos(l/r) + cos_a*math.sin(l/r)) * r + center[1] for l in profil]
             z = z1 * np.ones(len(profil))
 
         elif parameters[0] == 'landing':
-            profil = self.get_linear_position_profil(abs(z1), self.LANDING_SPEED, self.MAX_LINEAR_ACC_Z, self.FREQUENCY)
+            profil = self.get_linear_position_profil(abs(z1), acceleration, self.LANDING_SPEED, self.MAX_LINEAR_ACC_Z, self.FREQUENCY)
 
             x = x1 * np.ones(len(profil))
             y = y1 * np.ones(len(profil))
@@ -142,13 +153,13 @@ class TrajectoryGeneration:
                 return
             vector_u = vector / d
 
-            profil1 = self.get_linear_position_profil(d, velocity, self.MAX_LINEAR_ACC_XY, self.FREQUENCY)
+            profil1 = self.get_linear_position_profil(d, acceleration, velocity, self.MAX_LINEAR_ACC_XY, self.FREQUENCY)
 
             x = [x1 + l * vector_u[0] for l in profil1]
             y = [y1 + l * vector_u[1] for l in profil1]
             z = z1 * np.ones(len(profil1))
 
-            profil2 = self.get_linear_position_profil(abs(z1 - self.z_discretized[0]), self.LANDING_SPEED, self.MAX_LINEAR_ACC_Z, self.FREQUENCY)
+            profil2 = self.get_linear_position_profil(abs(z1 - self.z_discretized[0]), acceleration, self.LANDING_SPEED, self.MAX_LINEAR_ACC_Z, self.FREQUENCY)
 
             x = np.concatenate((x, x[-1] * np.ones(len(profil2))), axis=None)
             y = np.concatenate((y, y[-1] * np.ones(len(profil2))), axis=None)
@@ -163,44 +174,47 @@ class TrajectoryGeneration:
 
         self.ya_info.extend([heading] * len(x[1:]))
 
-        print('discretise_trajectory() - {} runs in {} s'.format(parameters[0], time() - start))
+        if self.print_time_info: print('discretise_trajectory() - {} runs in {} s'.format(parameters[0], time() - start))
 
-    def get_linear_position_profil(self, distance, vmax, amax, freq):
-        # compute a saturated triangular velocity based profil and return the discretization of the distance
+    def get_linear_position_profil(self, distance, a, vmax, amax, freq):
         if (distance == 0):
             return [0.]
 
         dt = 1./freq
+        t1 = vmax/amax
 
-        tf = self.get_final_time_for_profil(distance, vmax, amax)
+        if distance > vmax*t1:
+            if a == 0:
+                dt2 = distance/vmax - t1
+                t2 = t1 + dt2
+                tf = t2 + t1
+            else:
+                A = 0.5 * a * (1 + a/amax)
+                B = vmax * (1 + a/amax)
+                C = vmax * t1 - distance
+                D = B*B - 4*A*C
+                if D < 0:
+                    rospy.logfatal("[trajectory_gen] ERROR: in discretize_trajectory(), negative acceleration too high")
+                    exit()
+                dt2 = 0.5 * (-B + math.sqrt(D)) / A
+                t2 = t1 + dt2
+                tf = t2 + (a/amax) * dt2 + t1
+        else:
+            tf = math.sqrt(4*distance/amax)
+            t1 = tf/2
+            t2 = t1
 
-        dv = self.get_linear_velocity_profil(vmax, amax, tf, dt)
+        dv = []
+
+        for t in self.xfrange(tf, dt):
+            if t <= t1:
+                dv.append(amax * t)
+            elif t1 < t <= t2:
+                dv.append(amax * t1 + a * (t - t1))
+            else:
+                dv.append(amax * t1 + a * (t2 - t1) - amax * (t - t2))
 
         return [x for x in self.xfintegrate(dv, dt)]
-
-    def get_final_time_for_profil(self, distance, vmax, amax):
-
-        # compute final time tf from the area which represents the distance and the acceleration
-        tf = math.sqrt(4 * distance / amax)
-
-        # compute the height of the original triangle
-        h = tf * amax / 2.
-
-        h1 = vmax
-        if (h > h1):
-            t_m = vmax / amax  # time to reach vmax
-            t2 = tf - 2 * t_m
-            area2 = t2 * (h - h1) / 2
-            tf += area2 / h1
-
-        return tf
-
-    def get_linear_velocity_profil(self, vmax, amax, tf, dt):
-
-        tf_2 = tf / 2.
-        v_tf_2 = tf_2 * amax
-
-        return [min(amax * t if (t < tf_2) else v_tf_2 - amax * (t - tf_2), vmax) for t in self.xfrange(tf, dt)]
 
     def xfrange(self, end, step):
         x = .0
@@ -272,7 +286,7 @@ class TrajectoryGeneration:
             self.az_discretized.append((self.vz_discretized[-1] - self.vz_discretized[-2]) * self.FREQUENCY)
             self.ti_discretized.append((s + 1.) / self.FREQUENCY)
 
-        print('generate_states() runs in {} s'.format(time() - start))
+        if self.print_time_info: print('generate_states() runs in {} s'.format(time() - start))
 
     def generate_states_filtered(self):
 
@@ -305,7 +319,7 @@ class TrajectoryGeneration:
 
         self.is_filtered = True
 
-        print('generate_states_filtered() runs in {} s'.format(time() - start))
+        if self.print_time_info: print('generate_states_filtered() runs in {} s'.format(time() - start))
 
     def generate_states_sg_filtered(self, window_length=51, polyorder=3, deriv=0, delta=1.0, mode='mirror', on_filtered=False):
         # Info: Apply Savitzky-Golay filter to velocities
@@ -343,9 +357,9 @@ class TrajectoryGeneration:
 
         self.is_filtered = True
 
-        print('generate_states_sg_filtered() runs in {} s'.format(time() - start))
+        if self.print_time_info: print('generate_states_sg_filtered() runs in {} s'.format(time() - start))
 
-    def generate_yaw_filtered(self, is_1st_order=False):
+    def generate_yaw_filtered(self):
 
         if not self.is_filtered:
             return
@@ -390,7 +404,7 @@ class TrajectoryGeneration:
         for s, _ in enumerate(cos_ya):
             self.ya_filtered.append(math.atan2(sin_ya[s], cos_ya[s]))
 
-        print('generate_yaw_filtered() runs in {} s'.format(time() - start))
+        if self.print_time_info: print('generate_yaw_filtered() runs in {} s'.format(time() - start))
 
     def plot_trajectory_extras(self):
 
@@ -463,7 +477,7 @@ class TrajectoryGeneration:
         plt.legend()
         plt.title('Yaw')
 
-        print('plot_trajectory_extras_filtered() runs in {} s'.format(time() - start))
+        if self.print_time_info: print('plot_trajectory_extras_filtered() runs in {} s'.format(time() - start))
 
         fig.tight_layout()
         plt.show()
@@ -473,7 +487,8 @@ class TrajectoryGeneration:
         rate = rospy.Rate(self.PUBLISH_RATE)
         ratio = int(self.FREQUENCY / self.PUBLISH_RATE)
         window_points = self.WINDOW_FRAME * self.FREQUENCY
-        string_id = str(rospy.get_rostime().nsecs)
+        time_inc = 1. / self.PUBLISH_RATE
+        i = 0
         s = 0
 
         x = self.x_filtered if hasattr(self, 'x_filtered') else self.x_discretized
@@ -488,16 +503,18 @@ class TrajectoryGeneration:
         az = self.az_filtered if hasattr(self, 'az_filtered') else self.az_discretized
         ti = self.ti_filtered if hasattr(self, 'ti_filtered') else self.ti_discretized
 
+        stamp = rospy.get_rostime()
+
         while not (rospy.is_shutdown() or s >= len(x)-window_points):
             # Build JointTrajectory message
             header = Header()
             header.seq = s
-            header.stamp = rospy.get_rostime()
-            header.frame_id = string_id
+            header.stamp = stamp
+            header.frame_id = 'map'
 
             joint_trajectory_msg = JointTrajectory()
             joint_trajectory_msg.header = header
-            joint_trajectory_msg.joint_names = ['t', 't1']
+            joint_trajectory_msg.joint_names = ['base_link']
 
             points_in_next_trajectory = int(min(window_points, len(x)-s))
 
@@ -507,10 +524,11 @@ class TrajectoryGeneration:
                 joint_trajectory_point.velocities = [vx[s+i], vy[s+i], vz[s+i]]
                 joint_trajectory_point.accelerations = [ax[s+i], ay[s+i], az[s+i]]
                 joint_trajectory_point.effort = []
-                joint_trajectory_point.time_from_start = rospy.Duration.from_sec(ti[s+i])
+                joint_trajectory_point.time_from_start = rospy.Duration.from_sec(float(i) / self.FREQUENCY)
 
                 joint_trajectory_msg.points.append(joint_trajectory_point)
 
+            stamp += rospy.Duration(time_inc)
             s += ratio
 
             self.pub.publish(joint_trajectory_msg)
@@ -519,6 +537,18 @@ class TrajectoryGeneration:
     def saturate(self, x, y):
 
         return math.copysign(min(x, y, key=abs), x)
+
+    def wait_drone_armed(self):
+        rospy.loginfo("[trajectory_gen] Waiting for the drone to be armed ...")
+        while not (rospy.is_shutdown() or self.drone_state.armed):
+            pass
+        rospy.loginfo("[trajectory_gen] Drone armed.")
+
+    def wait_drone_offboard(self):
+        rospy.loginfo("[trajectory_gen] Waiting for offboard mode ...")
+        while not (rospy.is_shutdown() or (self.drone_state.mode == "OFFBOARD")):
+            pass
+        rospy.loginfo("[trajectory_gen] Offboard enabled.")
 
     def callback(self, odom):
 
@@ -534,10 +564,14 @@ class TrajectoryGeneration:
 
     def check_callback(self):
 
-        rospy.loginfo("Waiting for position measurement callback ...")
+        rospy.loginfo("[trajectory_gen] Waiting for position measurement callback ...")
         while not (rospy.is_shutdown() or self.is_first_callback):
             pass
-        rospy.loginfo("Position measurement callback ok.")
+        rospy.loginfo("[trajectory_gen] Position measurement callback ok.")
+
+    def drone_state_acquire_callback(self, state):
+        self.drone_state = state
+
 
 
 if __name__ == '__main__':
@@ -559,21 +593,21 @@ if __name__ == '__main__':
         trajectory_object.TRAJECTORY_REQUESTED_SPEED = 0.4  # req. trajectory linear speed [m.s-1] (used when arg velocity in not specify in discretise_trajectory())
         trajectory_object.LANDING_SPEED = 0.3  # [m.s-1]
 
-        trajectory_object.MAX_LINEAR_ACC_XY = 4.0  # max. linear acceleration [m.s-2]
-        trajectory_object.MAX_LINEAR_ACC_Z = 3.0  # max. linear acceleration [m.s-2]
+        trajectory_object.MAX_LINEAR_ACC_XY = 6.0  # max. linear acceleration [m.s-2]
+        trajectory_object.MAX_LINEAR_ACC_Z = 5.0  # max. linear acceleration [m.s-2]
         ########################################################################
 
         ########################################################################
         # Trajectory definition - shape/vertices in inertial frame (x, y, z - up)
         #
         # Define trajectory by using:
-        # trajectory_object.discretise_trajectory(parameters=['name', param], (opt. arg) velocity=float, (opt. arg) heading=[] (see YAW_HEADING))
+        # trajectory_object.discretise_trajectory(parameters=['name', param], (opt. arg) velocity=float, (opt. arg) acceleration=float, (opt. arg) heading=[] (see YAW_HEADING), (opt. arg) relative=bool)
         #
         # Possible parameters:
         # parameters=['takeoff', z] with z in meters
         # parameters=['hover', time] with time in seconds
         # parameters=['vector', [x, y, z]] with x, y, z the target position
-        # parameters=['circle', [x, y, z], (opt.) n] with x, y, z the center of the circle and n (optional) the number of circle. Circle 
+        # parameters=['circle', [x, y, z], (opt.) n] with x, y, z the center of the circle and n (optional) the number of circle. Circle
         # is defined by the drone position when starting the circle trajectory and the center. The drone will turn around this point.
         # parameters=['landing']
 
@@ -598,17 +632,13 @@ if __name__ == '__main__':
         # trajectory_object.discretise_trajectory(parameters=['landing'])
 
         # Circle trajectory example:
-        # trajectory_object.discretise_trajectory(parameters=['takeoff', 1.], velocity=0.6)
-        # trajectory_object.discretise_trajectory(parameters=['hover', 5.], heading=['still'])
-        # trajectory_object.discretise_trajectory(parameters=['vector', [0., -.3, 1.]], velocity=0.6, heading=['axes', [1, 0]])
-        # trajectory_object.discretise_trajectory(parameters=['hover', 5.], heading=['still'])
-        # trajectory_object.discretise_trajectory(parameters=['circle', [.0, .5, 1.], 2], velocity=0.6, heading=['axes', [1, 0]])
-        # trajectory_object.discretise_trajectory(parameters=['hover', 5.], heading=['still'])
-        # trajectory_object.discretise_trajectory(parameters=['circle', [.0, .5, 1.], 2], velocity=0.6, heading=['auto', [1, 0]])
-        # trajectory_object.discretise_trajectory(parameters=['hover', 5.], heading=['still'])
-        # trajectory_object.discretise_trajectory(parameters=['circle', [.0, .5, 1.], 2], velocity=2.0, heading=['auto', [1, 0]])
-        # trajectory_object.discretise_trajectory(parameters=['hover', 5.])
-        # trajectory_object.discretise_trajectory(parameters=['landing'])
+        trajectory_object.discretise_trajectory(parameters=['takeoff', 1.0], velocity=0.6)
+        trajectory_object.discretise_trajectory(parameters=['hover', 3.], heading=['still'])
+        trajectory_object.discretise_trajectory(parameters=['vector', [0., -.3, 1.]], velocity=0.6, heading=['axes', [1, 0]])
+        trajectory_object.discretise_trajectory(parameters=['hover', 3.], heading=['auto'])
+        trajectory_object.discretise_trajectory(parameters=['circle', [.0, 0.8, 0.], 5], velocity=1.0, acceleration=0.03, heading=['auto', [1, 0]], relative=True)
+        trajectory_object.discretise_trajectory(parameters=['hover', 3.])
+        trajectory_object.discretise_trajectory(parameters=['landing'])
 
         # More complex circle trajectory example:
         # trajectory_object.discretise_trajectory(parameters=['takeoff', 2.], velocity=1.0)
@@ -628,15 +658,15 @@ if __name__ == '__main__':
         # trajectory_object.discretise_trajectory(parameters=['returnhome'], velocity=1.0, heading=['axes', [1, 0]])
 
         # More complex trajectory example:
-        trajectory_object.discretise_trajectory(parameters=['takeoff', 2.], velocity=1.0)
-        trajectory_object.discretise_trajectory(parameters=['hover', 2.])
-        trajectory_object.discretise_trajectory(parameters=['circle', [.0, 2., 2.], 2], velocity=1.5, heading=['auto'])
-        trajectory_object.discretise_trajectory(parameters=['hover', 2.])
-        trajectory_object.discretise_trajectory(parameters=['vector', [1., 2., 3.]], velocity=1.0)
-        trajectory_object.discretise_trajectory(parameters=['hover', 2.])
-        trajectory_object.discretise_trajectory(parameters=['circle', [.0, 1., 3.], 2], velocity=1.5, heading=['auto'])
-        trajectory_object.discretise_trajectory(parameters=['hover', 2.])
-        trajectory_object.discretise_trajectory(parameters=['returnhome'], velocity=0.4, heading=['axes', [1, 0]])
+        # trajectory_object.discretise_trajectory(parameters=['takeoff', 2.], velocity=1.0)
+        # trajectory_object.discretise_trajectory(parameters=['hover', 3.])
+        # trajectory_object.discretise_trajectory(parameters=['circle', [.0, 30., 2.], 2], velocity=10, heading=['auto'])
+        # trajectory_object.discretise_trajectory(parameters=['hover', 2.])
+        # trajectory_object.discretise_trajectory(parameters=['vector', [1., 2., 3.]], velocity=1.0)
+        # trajectory_object.discretise_trajectory(parameters=['hover', 2.])
+        # trajectory_object.discretise_trajectory(parameters=['circle', [.0, 1., 3.], 2], velocity=10, heading=['auto'])
+        # trajectory_object.discretise_trajectory(parameters=['hover', 2.])
+        # trajectory_object.discretise_trajectory(parameters=['returnhome'], velocity=0.4, heading=['axes', [1, 0]])
 
         # HCERES demonstration trajectory (january 2020):
         # trajectory_object.discretise_trajectory(parameters=['takeoff', 1.0])
@@ -663,11 +693,16 @@ if __name__ == '__main__':
         trajectory_object.generate_states_sg_filtered(window_length=13, polyorder=1, mode='mirror', on_filtered=True)
         trajectory_object.generate_yaw_filtered()
 
-        # Plot the trajectory
-        trajectory_object.plot_trajectory_extras()
+        if not rospy.is_shutdown():
+            # Plot the trajectory
+            trajectory_object.plot_trajectory_extras()
 
-        # Publish trajectory states
-        trajectory_object.start()
+            # Checks before publishing
+            trajectory_object.wait_drone_armed()
+            trajectory_object.wait_drone_offboard()
+
+            # Publish trajectory states
+            trajectory_object.start()
 
     except rospy.ROSInterruptException:
         pass

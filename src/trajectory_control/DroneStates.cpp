@@ -146,3 +146,35 @@ void DroneStates::fillStates (geometry_msgs::Vector3 pos, geometry_msgs::Vector3
     z.acceleration = acc.z;
     z.uncertainties = uncertainties.z;
 }
+
+void DroneStates::fillStates (DroneStates states)
+{
+    x.position = states.x.position;
+    x.speed = states.x.speed;
+    x.acceleration = states.x.acceleration;
+    x.uncertainties = states.x.uncertainties;
+		y.position = states.y.position;
+    y.speed = states.y.speed;
+    y.acceleration = states.y.acceleration;
+    y.uncertainties = states.y.uncertainties;
+		z.position = states.z.position;
+    z.speed = states.z.speed;
+    z.acceleration = states.z.acceleration;
+    z.uncertainties = states.z.uncertainties;
+}
+
+void DroneStates::filterStates (DroneStates states, float filterPercent)
+{
+    x.position = (1-filterPercent) * x.position + filterPercent * states.x.position;
+    x.speed = (1-filterPercent) * x.speed + filterPercent * states.x.speed;
+    x.acceleration = (1-filterPercent) * x.acceleration + filterPercent * states.x.acceleration;
+    x.uncertainties = (1-filterPercent) * x.uncertainties + filterPercent * states.x.uncertainties;
+		y.position = (1-filterPercent) * y.position + filterPercent * states.y.position;
+    y.speed = (1-filterPercent) * y.speed + filterPercent * states.y.speed;
+    y.acceleration = (1-filterPercent) * y.acceleration + filterPercent * states.y.acceleration;
+    y.uncertainties = (1-filterPercent) * y.uncertainties + filterPercent * states.y.uncertainties;
+		z.position = (1-filterPercent) * z.position + filterPercent * states.z.position;
+    z.speed = (1-filterPercent) * z.speed + filterPercent * states.z.speed;
+    z.acceleration = (1-filterPercent) * z.acceleration + filterPercent * states.z.acceleration;
+    z.uncertainties = (1-filterPercent) * z.uncertainties + filterPercent * states.z.uncertainties;
+}

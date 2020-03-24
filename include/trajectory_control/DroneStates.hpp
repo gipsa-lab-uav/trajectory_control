@@ -7,7 +7,6 @@
 /// <summary>
 /// Respresent the current drone states used for Full State Feedback.
 /// </summary>
-
 class DS1D {
     public:
     	float position;
@@ -45,7 +44,9 @@ class DroneStates {
 		geometry_msgs::Vector3 getVectAcceleration();
 		geometry_msgs::Vector3 getVectUncertainties();
 		void fillStates (geometry_msgs::Vector3 pos, geometry_msgs::Vector3 speed, geometry_msgs::Vector3 acc);
-		void fillStates (geometry_msgs::Vector3 pos, geometry_msgs::Vector3 speed, geometry_msgs::Vector3 acc, geometry_msgs::Vector3 uncertainties);
+    void fillStates (geometry_msgs::Vector3 pos, geometry_msgs::Vector3 speed, geometry_msgs::Vector3 acc, geometry_msgs::Vector3 uncertainties);
+    void fillStates (DroneStates states);
+    void filterStates (DroneStates states, float filterPercent);
 };
 
 #endif // __DRONE_STATES_HPP__
