@@ -41,8 +41,8 @@ se_z_Filter: 0.1
 
 # Kinematic transform parameters
 mass: 1.5
-hoverCompensation: 0.45
+hoverCompensation: 0.55
 maxAngle: 45.0
-maxVerticalAcceleration: 4.0
+maxVerticalAcceleration: 15.0
 compensateYaw: true
 Ky: 0.35

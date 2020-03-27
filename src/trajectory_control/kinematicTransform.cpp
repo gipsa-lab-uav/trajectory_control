@@ -80,7 +80,7 @@ geometry_msgs::Vector3 KinematicTransform::process(float dt, geometry_msgs::Vect
     outputCmd.y = KinematicTransform::clamp(outputCmd.y, -maxAngleRad, maxAngleRad);
 
     // Map Throttle value between 0 & 1
-    outputCmd.z = thrust * param.hoverCompensation / (param.mass * G);
+    outputCmd.z = KinematicTransform::clamp(thrust * param.hoverCompensation / (param.mass * G), 0.0, 1.0);
 
     // Update
     yawTargetPrev = droneEulerAngles.z;
