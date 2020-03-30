@@ -34,8 +34,8 @@ geometry_msgs::Vector3 KinematicTransform::process(float dt, geometry_msgs::Vect
     float Rad2Deg = 180.0f / 3.14f;
     float yawCompensation;
 
-    float cosRoll = cos(droneEulerAngles.x);
-    float cosPitch = cos(droneEulerAngles.y);
+    float thrustMax = param.mass * (param.maxVerticalAcceleration + G);
+
     float cosYaw = cos(droneEulerAngles.z);
     float sinYaw = sin(droneEulerAngles.z);
 
@@ -43,12 +43,21 @@ geometry_msgs::Vector3 KinematicTransform::process(float dt, geometry_msgs::Vect
     float yawRate = (droneEulerAngles.z - yawTargetPrev) / dt;
     float maxAngleRad = param.maxAngle / Rad2Deg;
 
-    // Compute Thrust force
-    //float thrust = param.mass * (accelerations.z + G) / (cosRoll * cosPitch);
-    float thrust = param.mass * sqrt( accelerations.x*accelerations.x + accelerations.y*accelerations.y + (accelerations.z + G)*(accelerations.z + G));
+    // Compute & sature thrust force -> update accelerations if needed while keeping unchanged z-axis acceleration for safety
+    float thrust = param.mass * sqrt(pow(accelerations.x,2) + pow(accelerations.y,2) + pow(accelerations.z + G,2));
 
-    // Clamp thrust to max authorized value
-    thrust = KinematicTransform::clamp(thrust, 0.0f, param.mass * (param.maxVerticalAcceleration + G));
+    if (thrust > thrustMax)
+    {
+        if (accelerations.x != 0.0 | accelerations.y != 0.0)
+        {
+            float alpha = sqrt((pow(thrustMax,2) / pow(param.mass,2) - pow(accelerations.z + G,2)) / (pow(accelerations.x,2) + pow(accelerations.y,2)));
+
+            accelerations.x = alpha*accelerations.x;
+            accelerations.y = alpha*accelerations.y;
+        }
+
+        thrust = thrustMax;
+    }
 
     //if we are going in freefall, we will do it horizontally, it will be easier to apply thrust to stabilize the drone when wanted
     if (thrust <= 0.2f * param.mass)
