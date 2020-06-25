@@ -61,6 +61,7 @@ class TrajectoryGeneration:
         # is defined by the drone position when starting the circle trajectory and the center. The drone will turn around this point.
         # parameters=['landing']
         # parameters=['returnhome']
+        # parameters=['wave', [x, y, z], amplitude, freq] with x, y, z the target position, 'amplitude' the wave amplitude and 'freq' the wave frequency
         #
         # Optional argument:
         # velocity=float
@@ -165,6 +166,23 @@ class TrajectoryGeneration:
             y = np.concatenate((y, y[-1] * np.ones(len(profil2))), axis=None)
             z = np.concatenate((z, [z1 - l for l in profil2]), axis=None)
 
+        elif parameters[0] == 'wave':
+            vf = np.array(parameters[1])
+            vector = vf if relative else vf - v0
+            d = np.linalg.norm(vector)
+            if (d == 0):
+                return
+            vector_u = vector / d
+
+            profil = self.get_linear_position_profil(d, acceleration, velocity, self.MAX_LINEAR_ACC_XY, self.FREQUENCY)
+
+            x = [x1 + l * vector_u[0] for l in profil]
+            y = [y1 + l * vector_u[1] for l in profil]
+            z = [z1 + l * vector_u[2] for l in profil]
+
+            z += parameters[2]*np.sin(np.arange(0, len(x))*2.*math.pi*parameters[3]/self.FREQUENCY)
+            
+            
         # elif parameters[0] == 'square':
         # elif parameters[0] == 'inf':
 
@@ -639,6 +657,31 @@ if __name__ == '__main__':
         trajectory_object.discretise_trajectory(parameters=['circle', [.0, 0.8, 0.], 5], velocity=1.0, acceleration=0.03, heading=['auto', [1, 0]], relative=True)
         trajectory_object.discretise_trajectory(parameters=['hover', 3.])
         trajectory_object.discretise_trajectory(parameters=['landing'])
+
+        # Wave trajectory example:
+        #trajectory_object.discretise_trajectory(parameters=['takeoff', .7], velocity=0.6,)
+        #trajectory_object.discretise_trajectory(parameters=['hover', 3.], heading=['axes', [1,-1]])
+        #trajectory_object.discretise_trajectory(parameters=['vector', [1.5, -1.5, 0.7]], velocity=0.6, heading=['auto'])
+        #trajectory_object.discretise_trajectory(parameters=['hover', 3.], heading=['axes', [-1,1]])
+        #trajectory_object.discretise_trajectory(parameters=['wave', [-1.5, 1.5, 0.7], 0.1, 0.5], velocity=1., heading=['auto'])
+        #trajectory_object.discretise_trajectory(parameters=['hover', 3.], heading=['axes', [1,-1]])
+        #trajectory_object.discretise_trajectory(parameters=['vector', [0., 0., 0.7]], velocity=0.6, heading=['auto'])
+        #trajectory_object.discretise_trajectory(parameters=['hover', 3.])
+        #trajectory_object.discretise_trajectory(parameters=['landing'])
+        
+        
+        
+        # trajectory_object.discretise_trajectory(parameters=['vector', [1., -.5, 1.]], heading=['axes', [1, 0]])
+        # trajectory_object.discretise_trajectory(parameters=['hover', 2.], heading=['still'])
+        # trajectory_object.discretise_trajectory(parameters=['vector', [1., 1.5, 1.]], heading=['auto', [1, 0]])
+        # trajectory_object.discretise_trajectory(parameters=['hover', 2.], heading=['still'])
+        # trajectory_object.discretise_trajectory(parameters=['vector', [-1., 1.5, 1.]], heading=['auto', [1, 0]])
+        # trajectory_object.discretise_trajectory(parameters=['hover', 2.], heading=['still'])
+        # trajectory_object.discretise_trajectory(parameters=['vector', [-1., -.5, 1.]], heading=['auto', [1, 0]])
+        # trajectory_object.discretise_trajectory(parameters=['hover', 2.], heading=['still'])
+        # trajectory_object.discretise_trajectory(parameters=['vector', [0., -.5, 1.]], heading=['auto', [1, 0]])
+        # trajectory_object.discretise_trajectory(parameters=['hover', 2.], heading=['still'])
+        # trajectory_object.discretise_trajectory(parameters=['landing'])
 
         # More complex circle trajectory example:
         # trajectory_object.discretise_trajectory(parameters=['takeoff', 2.], velocity=1.0)

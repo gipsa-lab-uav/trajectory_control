@@ -1,0 +1,6 @@
+std_msgs/Header header
+
+trajectory_msgs/JointTrajectoryPoint measured
+trajectory_msgs/JointTrajectoryPoint estimated
+trajectory_msgs/JointTrajectoryPoint target
+

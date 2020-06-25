@@ -23,6 +23,8 @@
 #include <trajectory_msgs/JointTrajectory.h>
 #include <trajectory_msgs/JointTrajectoryPoint.h>
 
+#include <trajectory_control/TrajectoryControlState.h>
+
 #include <trajectory_control/DroneStates.hpp>
 #include <trajectory_control/fsf.hpp>
 #include <trajectory_control/kinematicTransform.hpp>
@@ -198,7 +200,9 @@ int main(int argc, char *argv[])
   ros::Publisher ekfStates_pub = nh.advertise<trajectory_msgs::JointTrajectoryPoint>("mavros/statesEKF", 10);
   ros::Publisher accelerationCmd_pub = nh.advertise<geometry_msgs::Vector3>("mavros/accelerationCmd", 10);
   ros::Publisher uncertainties_pub = nh.advertise<geometry_msgs::Vector3>("mavros/statesEstimatedUncertainties", 10);
-
+  
+  ros::Publisher trajectoryControlState_pub = nh.advertise<trajectory_control::TrajectoryControlState>("mavros/trajectory_control_state", 10);
+  
   // Define service client
   ros::ServiceClient arming_client = nh.serviceClient<mavros_msgs::CommandBool>("mavros/cmd/arming");
   ros::ServiceClient set_mode_client = nh.serviceClient<mavros_msgs::SetMode>("mavros/set_mode");
@@ -214,6 +218,8 @@ int main(int argc, char *argv[])
   trajectory_msgs::JointTrajectoryPoint estimatedStatesTrajectoryPoint, targetStatesTrajectoryPoint, ekfStatesTrajectoryPoint;
   geometry_msgs::Vector3 eulerAngles, accelerationCmd, attitudeCmd, position, emptyCmd;
   mavros_msgs::AttitudeTarget cmd;
+  trajectory_control::TrajectoryControlState trajectoryControlState;
+  
   ros::Time time, last_request;
   float yaw, dt, filterPercent;
   int ctrl_freq;
@@ -516,6 +522,16 @@ int main(int argc, char *argv[])
     ekfStates_pub.publish(ekfStatesTrajectoryPoint);
     accelerationCmd_pub.publish(accelerationCmd);
     uncertainties_pub.publish(estimatedStates.getVectUncertainties());
+
+    if(trajectoryControlState_pub.getNumSubscribers()>0)
+    {
+	trajectoryControlState.header.stamp = time;
+	trajectoryControlState.measured = ekfStatesTrajectoryPoint;
+	trajectoryControlState.estimated = estimatedStatesTrajectoryPoint;
+	trajectoryControlState.target = targetStatesTrajectoryPoint;
+	trajectoryControlState_pub.publish(trajectoryControlState);
+    }
+
     /**************************************************************************/
 
     /***************************Publish Pose Command***************************/
