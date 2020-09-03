@@ -30,6 +30,8 @@
 #include <trajectory_control/kinematicTransform.hpp>
 #include <trajectory_control/statesEstimator.hpp>
 
+#include <algorithm>
+
 /*******************************Global variables*******************************/
 mavros_msgs::State droneState;
 DroneStates lastMeasuredStates;
@@ -224,6 +226,7 @@ int main(int argc, char *argv[])
   float yaw, dt, filterPercent;
   int ctrl_freq;
   bool simulated_env, useStatesObserver, reset;
+  double maxYawVel = 6.28;
   /****************************************************************************/
 
   /*********************************Parameters*********************************/
@@ -272,6 +275,9 @@ int main(int argc, char *argv[])
   nh_private.param("Ky", kt.param.Ky, (float)0.4);
   nh_private.param("compensateYaw", kt.param.compensateYaw, true);
 
+  // Max yaw velocity
+  nh_private.param("maxYawVel", maxYawVel, 6.28);
+
   ROS_INFO_STREAM(
     "[trajectory_control]"
     << "\n********* System Parameters (can be defined in launchfile) *********"
@@ -301,6 +307,7 @@ int main(int argc, char *argv[])
     << "\nmaxVerticalAcceleration: " << kt.param.maxVerticalAcceleration
     << "\ncompensateYaw: " << kt.param.compensateYaw
     << "\nKy: " << kt.param.Ky
+    << "\nmaxYawVel: "<< maxYawVel
     << "\n*******************************************************************");
 
   ros::Rate rate = nh_private.param<int>("rate", ctrl_freq);
@@ -353,7 +360,7 @@ int main(int argc, char *argv[])
   eulerAngles = getLastEulerAngles();
   position = measuredStates.getVectPos();
 
-	jointTrajectory.header.stamp = ros::Time::now();
+  jointTrajectory.header.stamp = ros::Time::now();
 
   firstTrajectoryPoint.positions.push_back(position.x);
   firstTrajectoryPoint.positions.push_back(position.y);
@@ -466,8 +473,20 @@ int main(int argc, char *argv[])
     targetStates = getState(trajectoryPoint);
 
     // Get the yaw from the trajectoryPoint
-    yaw = trajectoryPoint.positions[3];
+    float desired_yaw = trajectoryPoint.positions[3];
+    
+    float sin_yaw, cos_yaw;
+    float sin_dyaw, cos_dyaw;    
+ 
+    //sincosf(eulerAngles.z, &sin_yaw, &cos_yaw);
+    //sincosf(desired_yaw, &sin_dyaw, &cos_dyaw);
+    //float delta_yaw = atan2f(sin_yaw-sin_dyaw, cos_yaw-cos_dyaw);
+    
+    sincosf(desired_yaw-eulerAngles.z, &sin_dyaw, &cos_dyaw);
+    float delta_yaw = atan2f(sin_dyaw, cos_dyaw);
 
+    yaw = eulerAngles.z + std::min(std::max(delta_yaw, (float)(-maxYawVel/dt)), (float)(maxYawVel/dt));
+    
     // Replace measured yaw by desired yaw from trajectoryPoint (used by kt)
     eulerAngles.z = yaw;
 
