@@ -226,7 +226,8 @@ int main(int argc, char *argv[])
   float yaw, dt, filterPercent;
   int ctrl_freq;
   bool simulated_env, useStatesObserver, reset;
-  double maxYawVel = 6.28;
+  double maxYawVel = 12.57;
+  double maxThrustVariation = 10.; // 10.*Throttle/sec
   /****************************************************************************/
 
   /*********************************Parameters*********************************/
@@ -274,9 +275,13 @@ int main(int argc, char *argv[])
   nh_private.param("maxVerticalAcceleration", kt.param.maxVerticalAcceleration, (float)4.0);
   nh_private.param("Ky", kt.param.Ky, (float)0.4);
   nh_private.param("compensateYaw", kt.param.compensateYaw, true);
+  nh_private.param("maxThrottle", kt.param.maxThrottle, (float)1.);
+  
 
   // Max yaw velocity
-  nh_private.param("maxYawVel", maxYawVel, 6.28);
+  nh_private.param("maxYawVel", maxYawVel, 12.57);
+  // Max thrust variation
+  nh_private.param("maxThrustVariation", maxThrustVariation, 10.);
 
   ROS_INFO_STREAM(
     "[trajectory_control]"
@@ -353,6 +358,8 @@ int main(int argc, char *argv[])
   accelerationCmd.y = 0.0;
   accelerationCmd.z = 0.0;
 
+  cmd.thrust = kt.param.hoverCompensation;
+  
   // Initialize first trajectory point as the measured position
   trajectory_msgs::JointTrajectoryPoint firstTrajectoryPoint;
 
@@ -428,7 +435,11 @@ int main(int argc, char *argv[])
     time = ros::Time::now();
 
     // Set reset flag to false if drone is armed, offboard and trajectory is started
-    if (reset && droneState.armed && (droneState.mode == "OFFBOARD") && isTrajectoryStarted) reset = false;
+    if (reset && droneState.armed && (droneState.mode == "OFFBOARD") && isTrajectoryStarted)
+    {
+	ROS_INFO("OFFBOARD mode activated, reset controller");
+	reset = false;
+    }
 
     // Get the last measured state
     eulerAngles = getLastEulerAngles();
@@ -501,6 +512,7 @@ int main(int argc, char *argv[])
       se.resetEstimations();
       seAcc.resetEstimations();
       fsf.resetIntegrators();
+      cmd.thrust = kt.param.hoverCompensation;
     }
 
     // Compute full state feedback control
@@ -515,7 +527,8 @@ int main(int argc, char *argv[])
     // Convert command in geometry_msgs::Vector3 to geometry_msgs::AttitudeTarget
     cmd.orientation = EulerToQuaternion(yaw, attitudeCmd.y, attitudeCmd.x);
     cmd.body_rate = geometry_msgs::Vector3();
-    cmd.thrust = attitudeCmd.z;
+    
+    cmd.thrust = KinematicTransform::clamp(attitudeCmd.z, cmd.thrust-maxThrustVariation*dt, cmd.thrust+maxThrustVariation*dt);
     cmd.type_mask = 7; // ignore body rate
 
     // For Testing:

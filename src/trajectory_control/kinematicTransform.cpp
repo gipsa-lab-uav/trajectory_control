@@ -8,15 +8,19 @@ KTParameters::KTParameters()
     maxVerticalAcceleration = 4.0f;
     compensateYaw = true;
     Ky = 0.4f;
+    maxThrottle = 1.f;
 }
 
-KTParameters::KTParameters(float Komp, float m, float angleMax, float maxVerticalAcc, float Kyaw)
+KTParameters::KTParameters(float Komp, float m,
+			   float angleMax, float maxVerticalAcc,
+			   float Kyaw, float maxT)
 {
     hoverCompensation = Komp;
     mass = m;
     maxAngle = angleMax;
     maxVerticalAcceleration = maxVerticalAcc;
     Ky = Kyaw;
+    maxThrottle = maxT;
 }
 
 KTParameters::~KTParameters() {}
@@ -26,7 +30,9 @@ KinematicTransform::KinematicTransform() {
 }
 KinematicTransform::~KinematicTransform() {}
 
-geometry_msgs::Vector3 KinematicTransform::process(float dt, geometry_msgs::Vector3 accelerations, geometry_msgs::Vector3 droneEulerAngles)
+geometry_msgs::Vector3 KinematicTransform::process(float dt,
+						   geometry_msgs::Vector3 accelerations,
+						   geometry_msgs::Vector3 droneEulerAngles)
 {
     // outputCmd(x,y,z) <=> (roll, pitch, thrust)
     geometry_msgs::Vector3 outputCmd;
@@ -44,13 +50,16 @@ geometry_msgs::Vector3 KinematicTransform::process(float dt, geometry_msgs::Vect
     float maxAngleRad = param.maxAngle / Rad2Deg;
 
     // Compute & sature thrust force -> update accelerations if needed while keeping unchanged z-axis acceleration for safety
-    float thrust = param.mass * sqrt(pow(accelerations.x,2) + pow(accelerations.y,2) + pow(accelerations.z + G,2));
+    float thrust = param.mass * sqrt(pow(accelerations.x,2)
+				     + pow(accelerations.y,2)
+				     + pow(accelerations.z + G,2));
 
     if (thrust > thrustMax)
     {
         if (accelerations.x != 0.0 | accelerations.y != 0.0)
         {
-            float alpha = sqrt((pow(thrustMax,2) / pow(param.mass,2) - pow(accelerations.z + G,2)) / (pow(accelerations.x,2) + pow(accelerations.y,2)));
+            float alpha = sqrt((pow(thrustMax,2) / pow(param.mass,2)
+				- pow(accelerations.z + G,2)) / (pow(accelerations.x,2) + pow(accelerations.y,2)));
 
             accelerations.x = alpha*accelerations.x;
             accelerations.y = alpha*accelerations.y;
@@ -89,7 +98,7 @@ geometry_msgs::Vector3 KinematicTransform::process(float dt, geometry_msgs::Vect
     outputCmd.y = KinematicTransform::clamp(outputCmd.y, -maxAngleRad, maxAngleRad);
 
     // Map Throttle value between 0 & 1
-    outputCmd.z = KinematicTransform::clamp(thrust * param.hoverCompensation / (param.mass * G), 0.0, 1.0);
+    outputCmd.z = KinematicTransform::clamp(thrust * param.hoverCompensation / (param.mass * G), 0.0, param.maxThrottle);
 
     // Update
     yawTargetPrev = droneEulerAngles.z;
