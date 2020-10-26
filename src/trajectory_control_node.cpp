@@ -496,7 +496,7 @@ int main(int argc, char *argv[])
     sincosf(desired_yaw-eulerAngles.z, &sin_dyaw, &cos_dyaw);
     float delta_yaw = atan2f(sin_dyaw, cos_dyaw);
 
-    yaw = eulerAngles.z + std::min(std::max(delta_yaw, (float)(-maxYawVel/dt)), (float)(maxYawVel/dt));
+    yaw = eulerAngles.z + std::min(std::max(delta_yaw, (float)(-maxYawVel*dt)), (float)(maxYawVel*dt));
     
     // Replace measured yaw by desired yaw from trajectoryPoint (used by kt)
     eulerAngles.z = yaw;
